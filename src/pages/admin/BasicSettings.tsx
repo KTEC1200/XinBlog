@@ -21,6 +21,8 @@ export function BasicSettings() {
     turnstileSecret: '',
     geetestCaptchaId: '',
     geetestCaptchaKey: '',
+    hcaptchaSiteKey: '',
+    hcaptchaSecret: '',
   });
   const [initialSettings, setInitialSettings] = useState<AuthSettings>(settings);
   const isDirty = JSON.stringify(settings) !== JSON.stringify(initialSettings);

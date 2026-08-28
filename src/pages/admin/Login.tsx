@@ -42,7 +42,7 @@ export function AdminLogin() {
   const [allowRegister, setAllowRegister] = useState(true);
   const [emailVerification, setEmailVerification] = useState(false);
   const [enableForgot, setEnableForgot] = useState(false);
-  const [captchaMode, setCaptchaMode] = useState<'none' | 'turnstile' | 'math' | 'geetest'>('none');
+  const [captchaMode, setCaptchaMode] = useState<'none' | 'turnstile' | 'math' | 'geetest' | 'hcaptcha'>('none');
   const [loginRequired, setLoginRequired] = useState(false);
   const [registerRequired, setRegisterRequired] = useState(false);
   const [captchaPayload, setCaptchaPayload] = useState<CaptchaPayload | null>(null);

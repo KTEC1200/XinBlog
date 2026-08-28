@@ -29,11 +29,14 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import NotificationsOffIcon from '@mui/icons-material/NotificationsOff';
 import PhoneIcon from '@mui/icons-material/Phone';
+import VideocamIcon from '@mui/icons-material/Videocam';
 import ChatMessageList from './ChatMessageList';
 import ChatInput from './ChatInput';
 import { useChatRoom } from '@/hooks/useChatRoom';
 import { useVoiceCall } from '@/hooks/useVoiceCall';
+import type { CallKind } from '@/hooks/useVoiceCall';
 import VoiceCallCard from '@/components/Call/VoiceCallCard';
+import VideoCallCard from '@/components/Call/VideoCallCard';
 import { useChatNotifications } from '@/hooks/useChatNotifications';
 import { showNotification } from '@/utils/notifications';
 import { useAuthStore } from '@/stores/authStore';
@@ -91,8 +94,9 @@ export default function ChatRoomPanel({ roomKey, userName, roomName = '公共聊
   const [listOpen, setListOpen] = useState(false);
   
   const [callPickerOpen, setCallPickerOpen] = useState(false);
+  const [callPickerKind, setCallPickerKind] = useState<CallKind>('audio');
   
-  const [pendingCallTarget, setPendingCallTarget] = useState<string | null>(null);
+  const [pendingCall, setPendingCall] = useState<{ name: string; kind: CallKind } | null>(null);
   
   const [quote, setQuote] = useState<ChatQuote | null>(null);
   const [focusSignal, setFocusSignal] = useState(0);
@@ -144,13 +148,19 @@ export default function ChatRoomPanel({ roomKey, userName, roomName = '公共聊
 
   
   const requestCall = useCallback(
-    (name: string) => {
+    (name: string, kind: CallKind = 'audio') => {
       if (voiceCall.state !== 'idle') return;
       setCallPickerOpen(false);
-      setPendingCallTarget(name);
+      setPendingCall({ name, kind });
     },
     [voiceCall.state]
   );
+
+  
+  const openPicker = useCallback((kind: CallKind) => {
+    setCallPickerKind(kind);
+    setCallPickerOpen(true);
+  }, []);
   const meta = STATUS_META[status];
 
   
@@ -403,7 +413,8 @@ export default function ChatRoomPanel({ roomKey, userName, roomName = '公共聊
           onClearQuote={() => setQuote(null)}
           focusSignal={focusSignal}
           roomKey={roomKey}
-          onVoiceCall={() => setCallPickerOpen(true)}
+          onVoiceCall={() => openPicker('audio')}
+          onVideoCall={() => openPicker('video')}
         />
 
         {}
@@ -477,7 +488,7 @@ export default function ChatRoomPanel({ roomKey, userName, roomName = '公共聊
                       color="primary"
                       title={`与 ${name} 语音通话`}
                       disabled={voiceCall.state !== 'idle'}
-                      onClick={() => requestCall(name)}
+                      onClick={() => requestCall(name, 'audio')}
                     >
                       <PhoneIcon fontSize="small" />
                     </IconButton>
@@ -503,8 +514,8 @@ export default function ChatRoomPanel({ roomKey, userName, roomName = '公共聊
 
         {}
         <Dialog
-          open={pendingCallTarget !== null}
-          onClose={() => setPendingCallTarget(null)}
+          open={pendingCall !== null}
+          onClose={() => setPendingCall(null)}
           maxWidth="xs"
           fullWidth
         >
@@ -512,24 +523,24 @@ export default function ChatRoomPanel({ roomKey, userName, roomName = '公共聊
 
           <DialogContent sx={{ px: 1, pb: 1 }}>
             <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-line' }}>
-              {`语音通话采用浏览器点对点直连（P2P），由两端直接传输语音，不经过服务器中转。\n\n这种连接方式取决于双方的网络环境，连接并不保证稳定：\n\n• 受 NAT、防火墙、运营商网络策略等因素影响，可能无法建立连接；\n• 若连接失败或通话中断，不一定是代码问题，可能是你自己的网络环境不支持点对点直连。\n\n对方 ${pendingCallTarget ? `「${pendingCallTarget}」` : ''} 接听后即开始连接。`}
+              {`${pendingCall?.kind === 'video' ? '视频通话' : '语音通话'}采用浏览器点对点直连（P2P），由两端直接传输音视频，不经过服务器中转。\n\n这种连接方式取决于双方的网络环境，连接并不保证稳定：\n\n• 受 NAT、防火墙、运营商网络策略等因素影响，可能无法建立连接；\n• 若连接失败或通话中断，不一定是代码问题，可能是你自己的网络环境不支持点对点直连。\n\n对方 ${pendingCall ? `「${pendingCall.name}」` : ''} 接听后即开始连接。`}
             </Typography>
 
           </DialogContent>
 
           <DialogActions sx={{ px: 2, pb: 1.5 }}>
-            <Button color="inherit" onClick={() => setPendingCallTarget(null)}>
+            <Button color="inherit" onClick={() => setPendingCall(null)}>
               取消
             </Button>
 
             <Button
               variant="contained"
               color="primary"
-              startIcon={<PhoneIcon />}
+              startIcon={pendingCall?.kind === 'video' ? <VideocamIcon /> : <PhoneIcon />}
               onClick={() => {
-                const target = pendingCallTarget;
-                setPendingCallTarget(null);
-                if (target) voiceCall.startCall(target);
+                const call = pendingCall;
+                setPendingCall(null);
+                if (call) voiceCall.startCall(call.name, call.kind);
               }}
             >
               知道了，开始通话
@@ -542,7 +553,9 @@ export default function ChatRoomPanel({ roomKey, userName, roomName = '公共聊
 
         {}
         <Dialog open={callPickerOpen} onClose={() => setCallPickerOpen(false)} maxWidth="xs" fullWidth>
-          <DialogTitle sx={{ pb: 1 }}>选择通话对象</DialogTitle>
+          <DialogTitle sx={{ pb: 1 }}>
+            {callPickerKind === 'video' ? '选择视频通话对象' : '选择语音通话对象'}
+          </DialogTitle>
 
           <DialogContent sx={{ px: 1, pb: 1 }}>
             <List disablePadding>
@@ -556,8 +569,8 @@ export default function ChatRoomPanel({ roomKey, userName, roomName = '公共聊
                       <Button
                         variant="contained"
                         color="primary"
-                        startIcon={<PhoneIcon />}
-                        onClick={() => requestCall(name)}
+                        startIcon={callPickerKind === 'video' ? <VideocamIcon /> : <PhoneIcon />}
+                        onClick={() => requestCall(name, callPickerKind)}
                         sx={{
                           borderRadius: Math.max(8, theme.shape.borderRadius - 4),
                           textTransform: 'none',
@@ -592,18 +605,36 @@ export default function ChatRoomPanel({ roomKey, userName, roomName = '公共聊
 
 
         {}
-        <VoiceCallCard
-          state={voiceCall.state}
-          peerName={voiceCall.peerName}
-          muted={voiceCall.muted}
-          durationSec={voiceCall.durationSec}
-          endedNote={voiceCall.endedNote}
-          remoteStream={voiceCall.remoteStream}
-          onAccept={voiceCall.accept}
-          onReject={voiceCall.reject}
-          onHangup={voiceCall.hangup}
-          onToggleMute={voiceCall.toggleMute}
-        />
+        {voiceCall.kind === 'video' ? (
+          <VideoCallCard
+            state={voiceCall.state}
+            peerName={voiceCall.peerName}
+            muted={voiceCall.muted}
+            cameraMuted={voiceCall.cameraMuted}
+            durationSec={voiceCall.durationSec}
+            endedNote={voiceCall.endedNote}
+            remoteStream={voiceCall.remoteStream}
+            localStream={voiceCall.localStream}
+            onAccept={voiceCall.accept}
+            onReject={voiceCall.reject}
+            onHangup={voiceCall.hangup}
+            onToggleMute={voiceCall.toggleMute}
+            onToggleCamera={voiceCall.toggleCamera}
+          />
+        ) : (
+          <VoiceCallCard
+            state={voiceCall.state}
+            peerName={voiceCall.peerName}
+            muted={voiceCall.muted}
+            durationSec={voiceCall.durationSec}
+            endedNote={voiceCall.endedNote}
+            remoteStream={voiceCall.remoteStream}
+            onAccept={voiceCall.accept}
+            onReject={voiceCall.reject}
+            onHangup={voiceCall.hangup}
+            onToggleMute={voiceCall.toggleMute}
+          />
+        )}
       </Box>
 
     </Fade>

@@ -22,16 +22,29 @@ const STUN_SERVERS = [
 
 export type CallState = 'idle' | 'dialing' | 'ringing' | 'connecting' | 'connected' | 'ending';
 
+export type CallKind = 'audio' | 'video';
+
 function genCallId(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+
+function mediaConstraints(kind: CallKind): MediaStreamConstraints {
+  return kind === 'video'
+    ? { audio: true, video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' } }
+    : { audio: true };
 }
 
 export interface VoiceCallHandlers {
   state: CallState;
   
+  kind: CallKind;
+  
   peerName: string;
   
   muted: boolean;
+  
+  cameraMuted: boolean;
   
   durationSec: number;
   
@@ -39,7 +52,9 @@ export interface VoiceCallHandlers {
   
   remoteStream: MediaStream | null;
   
-  startCall: (peerName: string) => void;
+  localStream: MediaStream | null;
+  
+  startCall: (peerName: string, kind?: CallKind) => void;
   
   accept: () => void;
   
@@ -48,6 +63,8 @@ export interface VoiceCallHandlers {
   hangup: () => void;
   
   toggleMute: () => void;
+  
+  toggleCamera: () => void;
   
   handleSignal: (data: Record<string, unknown>) => void;
 }
@@ -63,17 +80,21 @@ interface UseVoiceCallOptions {
 
 export function useVoiceCall({ selfName, sendSignal, connected }: UseVoiceCallOptions): VoiceCallHandlers {
   const [state, setState] = useState<CallState>('idle');
+  const [kind, setKind] = useState<CallKind>('audio');
   const [peerName, setPeerName] = useState('');
   const [muted, setMuted] = useState(false);
+  const [cameraMuted, setCameraMuted] = useState(false);
   const [durationSec, setDurationSec] = useState(0);
   const [endedNote, setEndedNote] = useState('');
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
+  const [localStream, setLocalStream] = useState<MediaStream | null>(null);
 
   
   const stateRef = useRef<CallState>('idle');
   const roleRef = useRef<'caller' | 'callee' | null>(null);
   const callIdRef = useRef<string | null>(null);
   const peerRef = useRef<string>('');
+  const kindRef = useRef<CallKind>('audio');
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   const ringTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -82,6 +103,7 @@ export function useVoiceCall({ selfName, sendSignal, connected }: UseVoiceCallOp
   const durationTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const connectedAtRef = useRef(0);
   const mutedRef = useRef(false);
+  const cameraMutedRef = useRef(false);
   const selfNameRef = useRef(selfName);
   const sendSignalRef = useRef(sendSignal);
   const duringEndingRef = useRef(false);
@@ -165,11 +187,16 @@ export function useVoiceCall({ selfName, sendSignal, connected }: UseVoiceCallOp
       roleRef.current = null;
       callIdRef.current = null;
       peerRef.current = '';
+      kindRef.current = 'audio';
+      setKind('audio');
       mutedRef.current = false;
       setMuted(false);
+      cameraMutedRef.current = false;
+      setCameraMuted(false);
       setDurationSec(0);
       setPeerName('');
       setRemoteStream(null);
+      setLocalStream(null);
       if (note) {
         setEndedNote(note);
         setCallState('ending');
@@ -247,14 +274,17 @@ export function useVoiceCall({ selfName, sendSignal, connected }: UseVoiceCallOp
     setCallState('connecting'); 
     armConnectTimeout();
     if (!navigator.mediaDevices?.getUserMedia) {
-      endCall('当前环境不支持麦克风采集');
+      endCall('当前环境不支持媒体采集');
       return;
     }
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia(mediaConstraints(kindRef.current));
       localStreamRef.current = stream;
+      setLocalStream(stream);
       mutedRef.current = false;
       setMuted(false);
+      cameraMutedRef.current = false;
+      setCameraMuted(false);
       const pc = createPeer();
       stream.getTracks().forEach((t) => pc.addTrack(t, stream));
       const offer = await pc.createOffer();
@@ -262,7 +292,7 @@ export function useVoiceCall({ selfName, sendSignal, connected }: UseVoiceCallOp
       signal('signal.offer', { sdp: pc.localDescription });
     } catch {
       signal('call.hangup');
-      endCall('无法访问麦克风，通话已取消');
+      endCall('无法访问麦克风或摄像头，通话已取消');
     }
   }, [createPeer, signal, endCall, armConnectTimeout, setCallState]);
 
@@ -355,6 +385,8 @@ export function useVoiceCall({ selfName, sendSignal, connected }: UseVoiceCallOp
           roleRef.current = 'callee';
           peerRef.current = from;
           callIdRef.current = callId ?? genCallId();
+          kindRef.current = data.kind === 'video' ? 'video' : 'audio';
+          setKind(kindRef.current);
           setPeerName(from);
           setCallState('ringing');
           if (ringTimerRef.current) clearTimeout(ringTimerRef.current);
@@ -416,15 +448,17 @@ export function useVoiceCall({ selfName, sendSignal, connected }: UseVoiceCallOp
   );
 
   const startCall = useCallback(
-    (name: string) => {
+    (name: string, kind: CallKind = 'audio') => {
       if (stateRef.current !== 'idle') return;
       if (!name || name === selfNameRef.current) return;
       roleRef.current = 'caller';
       peerRef.current = name;
       callIdRef.current = genCallId();
+      kindRef.current = kind;
+      setKind(kind);
       setPeerName(name);
       setCallState('dialing');
-      signal('call.invite');
+      signal('call.invite', { kind });
       if (ringTimerRef.current) clearTimeout(ringTimerRef.current);
       ringTimerRef.current = setTimeout(() => {
         if (stateRef.current === 'dialing') {
@@ -443,16 +477,19 @@ export function useVoiceCall({ selfName, sendSignal, connected }: UseVoiceCallOp
     armConnectTimeout();
     
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia(mediaConstraints(kindRef.current));
       localStreamRef.current = stream;
+      setLocalStream(stream);
       mutedRef.current = false;
       setMuted(false);
+      cameraMutedRef.current = false;
+      setCameraMuted(false);
       const pc = createPeer();
       stream.getTracks().forEach((t) => pc.addTrack(t, stream));
       signal('call.accept');
     } catch {
       signal('call.reject');
-      endCall('无法访问麦克风，已自动拒绝');
+      endCall('无法访问麦克风或摄像头，已自动拒绝');
     }
   }, [signal, createPeer, endCall, armConnectTimeout, setCallState]);
 
@@ -478,18 +515,32 @@ export function useVoiceCall({ selfName, sendSignal, connected }: UseVoiceCallOp
     });
   }, []);
 
+  const toggleCamera = useCallback(() => {
+    if (kindRef.current !== 'video') return;
+    const next = !cameraMutedRef.current;
+    cameraMutedRef.current = next;
+    setCameraMuted(next);
+    localStreamRef.current?.getVideoTracks().forEach((t) => {
+      t.enabled = !next;
+    });
+  }, []);
+
   return {
     state,
+    kind,
     peerName,
     muted,
+    cameraMuted,
     durationSec,
     endedNote,
     remoteStream,
+    localStream,
     startCall,
     accept,
     reject,
     hangup,
     toggleMute,
+    toggleCamera,
     handleSignal,
   };
 }

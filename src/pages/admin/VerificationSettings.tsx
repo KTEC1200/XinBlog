@@ -44,6 +44,11 @@ const MODE_OPTIONS: { value: AuthSettings['verificationMode']; label: string; de
     label: '极验 GT4',
     desc: '国内验证码服务。需先在极验平台申请应用，获取 Captcha ID 与 Captcha Key。',
   },
+  {
+    value: 'hcaptcha',
+    label: 'hCaptcha',
+    desc: 'Cloudflare 出品的隐私友好验证码，海外效果好。需在 hCaptcha 官网注册应用，获取 Site Key 与 Secret Key。',
+  },
 ];
 
 
@@ -59,6 +64,8 @@ export function VerificationSettings() {
   const [turnstileSecret, setTurnstileSecret] = useState('');
   const [geetestCaptchaId, setGeetestCaptchaId] = useState('');
   const [geetestCaptchaKey, setGeetestCaptchaKey] = useState('');
+  const [hcaptchaSiteKey, setHcaptchaSiteKey] = useState('');
+  const [hcaptchaSecret, setHcaptchaSecret] = useState('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -77,6 +84,8 @@ export function VerificationSettings() {
         setTurnstileSecret('');
         setGeetestCaptchaId(data.geetestCaptchaId || '');
         setGeetestCaptchaKey('');
+        setHcaptchaSiteKey(data.hcaptchaSiteKey || '');
+        setHcaptchaSecret('');
       }
       setLoading(false);
     })();
@@ -99,6 +108,8 @@ export function VerificationSettings() {
       turnstileSecret: turnstileSecret.trim() || '****',
       geetestCaptchaId: geetestCaptchaId.trim(),
       geetestCaptchaKey: geetestCaptchaKey.trim() || '****',
+      hcaptchaSiteKey: hcaptchaSiteKey.trim(),
+      hcaptchaSecret: hcaptchaSecret.trim() || '****',
     };
     const ok = await updateAuthSettings(payload);
     setSaving(false);
@@ -107,6 +118,7 @@ export function VerificationSettings() {
       
       setTurnstileSecret('');
       setGeetestCaptchaKey('');
+      setHcaptchaSecret('');
       setLoaded(payload);
     } else {
       enqueueSnackbar('保存失败，请稍后再试', { variant: 'error' });
@@ -126,7 +138,9 @@ export function VerificationSettings() {
     turnstileSiteKey.trim() !== (loaded.turnstileSiteKey || '') ||
     geetestCaptchaId.trim() !== (loaded.geetestCaptchaId || '') ||
     turnstileSecret.trim() !== '' ||
-    geetestCaptchaKey.trim() !== ''
+    geetestCaptchaKey.trim() !== '' ||
+    hcaptchaSiteKey.trim() !== (loaded.hcaptchaSiteKey || '') ||
+    hcaptchaSecret.trim() !== ''
   );
 
   return (
@@ -244,6 +258,25 @@ export function VerificationSettings() {
                 type="password"
                 value={geetestCaptchaKey}
                 onChange={(e) => setGeetestCaptchaKey(e.target.value)}
+                fullWidth
+              />
+            </Box>
+
+          )}
+
+          {mode === 'hcaptcha' && (
+            <Box sx={{ display: 'grid', gap: 2.5 }}>
+              <TextField
+                label="hCaptcha Site Key"
+                value={hcaptchaSiteKey}
+                onChange={(e) => setHcaptchaSiteKey(e.target.value)}
+                fullWidth
+              />
+              <TextField
+                label="hCaptcha Secret Key"
+                type="password"
+                value={hcaptchaSecret}
+                onChange={(e) => setHcaptchaSecret(e.target.value)}
                 fullWidth
               />
             </Box>

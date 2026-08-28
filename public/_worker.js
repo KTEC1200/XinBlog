@@ -1,13 +1,13 @@
-// my-blog 后端 API（单文件 Worker）
-// 部署方式：Cloudflare Pages + _routes.json + 4 个 D1 数据库
-// 注意：表结构由用户在 Cloudflare Dashboard 或 wrangler 中手动执行 SQL 初始化，Worker 只处理 API。
+
+
+
 
 import { connect } from 'cloudflare:sockets';
 
 const VERSION = '1.0.0';
-const GLOBAL_DAILY_EMAIL_LIMIT = 200; // 全局每日邮件发送总量上限
+const GLOBAL_DAILY_EMAIL_LIMIT = 200; 
 
-// ---------- 工具函数 ----------
+
 
 function jsonResponse(code, data, msg = 'ok', status = 200) {
   return new Response(JSON.stringify({ code, data, msg }), {
@@ -44,7 +44,7 @@ function readingTime(content) {
   return Math.max(1, Math.ceil(chars / 300));
 }
 
-// ---------- Web Crypto 工具 ----------
+
 
 function bufToHex(buf) {
   return Array.from(new Uint8Array(buf))
@@ -182,7 +182,7 @@ async function verifyJWT(token, secret) {
   return payload;
 }
 
-// ---------- 数据库辅助 ----------
+
 
 function ensureDbConfig(env) {
   if (!env || !env.DB_CONFIG || typeof env.DB_CONFIG.prepare !== 'function') {
@@ -217,7 +217,7 @@ function getBindingDebugInfo(env, err) {
 
 function getConfigDb(env) {
   ensureDbConfig(env);
-  // 对配置类读取使用 first-primary，避免 D1 读副本异步复制导致保存后仍读到旧数据
+  
   return env.DB_CONFIG.withSession ? env.DB_CONFIG.withSession('first-primary') : env.DB_CONFIG;
 }
 
@@ -252,7 +252,7 @@ async function setSystem(env, key, value) {
     .run();
 }
 
-// ---------- 认证中间件 ----------
+
 
 async function getCurrentUser(request, env) {
   const auth = request.headers.get('Authorization') || '';
@@ -273,7 +273,7 @@ async function getCurrentUser(request, env) {
   }
 }
 
-// 供 WebSocket 握手使用：直接校验一个原始 access token，返回登录用户（鉴权放 Pages 端）。
+
 async function resolveAuthIdentity(token, env) {
   if (!token) return null;
   try {
@@ -291,7 +291,7 @@ async function resolveAuthIdentity(token, env) {
   }
 }
 
-// 把新身份头合并进原请求头，返回带 mergedHeaders 的对象。
+
 function buildAuthHeaders(requestHeaders, identity) {
   const headers = new Headers(requestHeaders);
   headers.set('x-user-id', String(identity.id));
@@ -299,8 +299,8 @@ function buildAuthHeaders(requestHeaders, identity) {
   return { mergedHeaders: headers };
 }
 
-// 构造指向聊天 DO 的"内部"媒体/数据子路径 URL（/api/room/<key><subPath>）。
-// 聊天 Worker 无公网端口，只能经 Pages 的 env.CHAT Service Binding 内部调用。
+
+
 function buildChatSubUrl(roomKey, subPath) {
   const u = new URL('https://internal');
   u.pathname = `/api/room/${roomKey}${subPath.charAt(0) === '/' ? subPath : '/' + subPath}`;
@@ -314,8 +314,8 @@ async function requireAuth(request, env, handler) {
 }
 
 async function requireAdmin(request, env, handler) {
-  // 管理后台：管理员(admin)与超级管理员(super_admin)可访问内容/社区管理接口；
-  // 站主级配置(用户/系统/外观/主题/AI凭据等)另走 requireSuperAdmin
+  
+  
   const user = await getCurrentUser(request, env);
   if (!user) return jsonResponse(401, null, 'Unauthorized', 401);
   if (user.role !== 'admin' && user.role !== 'super_admin') {
@@ -331,7 +331,7 @@ async function requireSuperAdmin(request, env, handler) {
   return handler(request, env, user);
 }
 
-// ---------- 接口处理器 ----------
+
 
 async function setup(env) {
   return jsonResponse(0, { version: VERSION }, 'ok');
@@ -440,8 +440,8 @@ async function getSiteConfigObject(env) {
   const hero = (await getSetting(env, 'hero')) || {};
   const about = (await getSetting(env, 'about')) || {};
   const friends = (await getSetting(env, 'friends')) || {};
-  // 自愈兜底：没有应用任何主题时，强制将 cardTheme 归一为原生默认卡片（variant='default'，
-  // 走 PostCard 的 else 回退分支），避免旧数据残留 cloud-overlay 导致主页永远显示非默认卡片。
+  
+  
   const activeThemeId = (await getSetting(env, 'active_theme')) || '';
   const cardTheme = activeThemeId
     ? { ...defaultSiteConfig.cardTheme, ...(site.cardTheme || {}) }
@@ -550,7 +550,7 @@ async function getManifest(env, requestUrl) {
 }
 
 async function getSiteConfig(env) {
-  // 拆分到多个 key 存储，避免单条记录因 Base64 图片过大超过 D1 1MB 限制
+  
   try {
     const config = await getSiteConfigObject(env);
     return jsonResponseWithCache(0, { site: config }, 'ok', 200, 'public, max-age=120, stale-while-revalidate=86400');
@@ -602,7 +602,7 @@ async function listPosts(env, url) {
     total = countRow.c;
   }
 
-  // 填充标签
+  
   const list = await fillPostTags(env, posts.results || []);
   return jsonResponseWithCache(0, { list, total, page, limit }, 'ok', 200, 'public, max-age=600');
 }
@@ -657,7 +657,7 @@ async function listPostsByTag(env, path) {
   return listPosts(env, new URL(`https://x.com/api/v1/posts?tag=${encodeURIComponent(slug)}`));
 }
 
-// ---------- 速率限制 ----------
+
 
 let rateLimitTableReady = false;
 
@@ -677,7 +677,7 @@ function getClientIp(request) {
   );
 }
 
-// 原子计数限流：key 在 windowSec 秒窗口内最多允许 limit 次，返回 true 表示放行
+
 async function checkRateLimit(env, key, limit, windowSec) {
   const nowSec = Math.floor(Date.now() / 1000);
   const bucket = Math.floor(nowSec / windowSec);
@@ -690,7 +690,7 @@ async function checkRateLimit(env, key, limit, windowSec) {
       .bind(bucketKey, bucket)
       .run();
   } catch (e) {
-    // 旧库缺少表时懒创建，并放行本次请求
+    
     if (e.message && e.message.includes('no such table')) {
       await ensureRateLimitTable(env);
       return true;
@@ -699,12 +699,12 @@ async function checkRateLimit(env, key, limit, windowSec) {
   }
   const row = await db.prepare('SELECT count, window_start FROM rate_limits WHERE key = ?').bind(bucketKey).first();
   if (!row) return true;
-  // 窗口翻转后复用了旧桶行时重置计数
+  
   if (row.window_start !== bucket) {
     await db.prepare('UPDATE rate_limits SET count = 1, window_start = ? WHERE key = ?').bind(bucket, bucketKey).run();
     return true;
   }
-  // 概率性清理过期桶，防止表无限增长
+  
   if (Math.random() < 0.02) {
     await db.prepare('DELETE FROM rate_limits WHERE window_start < ?').bind(bucket - 3).run();
   }
@@ -728,7 +728,7 @@ async function register(request, env) {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) return jsonResponse(400, null, '邮箱格式不正确');
 
-  // 速率限制：按 IP 与邮箱限流，防止批量灌号
+  
   const regIp = getClientIp(request);
   if (!(await checkRateLimit(env, `reg:ip:${regIp}`, 5, 3600))) {
     return jsonResponse(429, null, '注册过于频繁，请稍后再试', 429);
@@ -746,7 +746,7 @@ async function register(request, env) {
       .first();
     if (!record) return jsonResponse(403, null, '请先获取邮箱验证码');
     if (record.code !== code) {
-      // 验证码比对限流：防止对同一邮箱爆破验证码
+      
       if (!(await checkRateLimit(env, `vc-check:${email.toLowerCase()}`, 5, 600))) {
         return jsonResponse(429, null, '验证码错误次数过多，请重新获取', 429);
       }
@@ -757,14 +757,14 @@ async function register(request, env) {
     await env.DB_USERS.prepare('DELETE FROM verify_codes WHERE email = ?').bind(email).run();
   }
 
-  // 注册场景验证：开关开启时需通过人机验证
+  
   if (authSettings.registerVerification === true) {
     if (!(await verifyHuman(request, env, body))) {
       return jsonResponse(403, null, '人机验证未通过，请重试');
     }
   }
 
-  // 第一个注册用户自动成为 super_admin
+  
   const countRow = await env.DB_USERS.prepare('SELECT COUNT(*) as c FROM users').first();
   const role = countRow.c === 0 ? 'super_admin' : 'guest';
 
@@ -791,7 +791,7 @@ async function login(request, env) {
   const account = String(body.username || '').trim();
   const password = String(body.password || '');
 
-  // 登录场景验证：开关开启时需通过人机验证
+  
   const authSettings = (await getSetting(env, 'auth')) || {};
   if (authSettings.loginVerification === true) {
     if (!(await verifyHuman(request, env, body))) {
@@ -799,7 +799,7 @@ async function login(request, env) {
     }
   }
 
-  // 速率限制：按 IP 与账号限流，防止暴力破解
+  
   const loginIp = getClientIp(request);
   if (!(await checkRateLimit(env, `login:ip:${loginIp}`, 10, 600))) {
     return jsonResponse(429, null, '尝试次数过多，请 10 分钟后再试', 429);
@@ -815,7 +815,7 @@ async function login(request, env) {
     .bind(account)
     .first();
 
-  // 允许使用邮箱登录
+  
   if (!user) {
     user = await env.DB_USERS.prepare(
       'SELECT id, username, email, email_verified, avatar_base64, role, status, password_hash, password_salt FROM users WHERE email = ?'
@@ -885,7 +885,7 @@ async function refreshToken(request, env) {
       env.JWT_SECRET
     );
 
-    // 刷新后使旧 refresh token 失效，并签发新的 refresh token（单次使用 + 轮换策略）
+    
     await env.DB_USERS.prepare('DELETE FROM refresh_tokens WHERE token_hash = ?').bind(tokenHash).run();
     const refreshExpSec = nowSec + 30 * 24 * 3600;
     const newRefreshToken = await signJWT(
@@ -916,13 +916,13 @@ async function refreshToken(request, env) {
 }
 
 async function logout(request, env) {
-  // 优先从请求体获取 refreshToken，同时兼容 Authorization 头
+  
   let token = '';
   try {
     const body = await request.json();
     token = String(body?.refreshToken || body?.refresh_token || '');
   } catch {
-    // 请求体为空或解析失败时忽略
+    
   }
 
   if (!token) {
@@ -939,11 +939,11 @@ async function logout(request, env) {
         const tokenHash = await sha256Hex(token);
         await env.DB_USERS.prepare('DELETE FROM refresh_tokens WHERE token_hash = ?').bind(tokenHash).run();
       } else if (payload.sub) {
-        // 若仅提供 access token，则撤销该用户的全部 refresh tokens（兜底安全策略）
+        
         await env.DB_USERS.prepare('DELETE FROM refresh_tokens WHERE user_id = ?').bind(payload.sub).run();
       }
     } catch {
-      // ignore
+      
     }
   }
   return jsonResponse(0, null, 'Logged out');
@@ -999,7 +999,7 @@ async function updateUserSettings(request, env, user) {
 }
 
 async function getDashboard(request, env, user) {
-  // 折线统计：最近 N 天的逐日数据（created_at 为 ISO 字符串，substr 取日期分组）
+  
   let days = 30;
   try {
     const p = new URL(request.url).searchParams.get('days');
@@ -1197,7 +1197,7 @@ async function updatePost(request, env, user) {
 async function deletePost(request, env, user) {
   const id = parseInt(request.url.split('/').pop(), 10);
   await env.DB_POSTS.prepare('DELETE FROM post_tags WHERE post_id = ?').bind(id).run();
-  // 删除该文章下所有评论（含楼中楼，先删子再删父，避免外键约束报错）
+  
   await deleteCommentsByPost(env, id);
   await env.DB_POSTS.prepare('DELETE FROM likes WHERE post_id = ?').bind(id).run();
   await env.DB_POSTS.prepare('DELETE FROM posts WHERE id = ?').bind(id).run();
@@ -1271,7 +1271,7 @@ async function updateSettings(request, env, user) {
   return jsonResponse(0, null, '保存成功');
 }
 
-// ---------- 主题管理 ----------
+
 
 async function listAdminThemes(request, env, user) {
   const activeThemeId = (await getSetting(env, 'active_theme')) || '';
@@ -1293,7 +1293,7 @@ async function listAdminThemes(request, env, user) {
       description = content.description || '';
       author = content.author || '';
     } catch {
-      // ignore
+      
     }
     return {
       id: row.id,
@@ -1373,7 +1373,7 @@ async function updateAdminTheme(request, env, user) {
 async function applyAdminTheme(request, env, user) {
   const pathParts = new URL(request.url).pathname.split('/').filter(Boolean);
   const id = pathParts[pathParts.length - 2];
-  // 优先使用请求体传入的 postCard（前端内置主题直接带上，避免依赖 D1 中可能过期的旧数据）
+  
   let postCard = null;
   try {
     const body = await request.json();
@@ -1419,7 +1419,7 @@ async function clearAdminActiveTheme(request, env, user) {
   return jsonResponse(0, null, '已恢复默认主题');
 }
 
-const MAX_MEDIA_CHUNK_SIZE = 80 * 1024; // 80KB base64 per chunk, well under D1 100KB statement limit
+const MAX_MEDIA_CHUNK_SIZE = 80 * 1024; 
 
 async function uploadMedia(request, env, user) {
   const body = await request.json();
@@ -1525,7 +1525,7 @@ async function getMedia(env, id, request, ctx) {
     response = await caches.default.match(cacheKey);
     if (response) return response;
   } catch {
-    // 缓存读取失败时继续回源
+    
   }
 
   const row = await env.DB_MEDIA.prepare(
@@ -1576,7 +1576,7 @@ async function getMedia(env, id, request, ctx) {
   try {
     ctx.waitUntil(caches.default.put(cacheKey, response.clone()));
   } catch {
-    // 缓存写入失败不影响响应
+    
   }
   return response;
 }
@@ -1592,12 +1592,12 @@ async function deleteMedia(request, env, user) {
   await env.DB_MEDIA.prepare('DELETE FROM media_chunks WHERE media_id = ?').bind(mediaId).run();
   await env.DB_MEDIA.prepare('DELETE FROM media WHERE id = ?').bind(mediaId).run();
 
-  // 清理 Cloudflare 缓存中的旧图片
+  
   try {
     const publicUrl = new URL(`/api/v1/media/${mediaId}`, request.url);
     await caches.default.delete(publicUrl);
   } catch {
-    // 缓存清理失败不影响删除结果
+    
   }
 
   return jsonResponse(0, null, '删除成功');
@@ -1607,7 +1607,7 @@ async function getMediaBindings(env, mediaId) {
   const urlPattern = `/api/v1/media/${mediaId}`;
   const bindings = [];
 
-  // 文章封面与正文引用
+  
   const posts = await env.DB_POSTS.prepare(
     `SELECT id, title, slug, cover_base64, content FROM posts
      WHERE cover_base64 LIKE ? OR content LIKE ?`
@@ -1624,7 +1624,7 @@ async function getMediaBindings(env, mediaId) {
     });
   }
 
-  // 用户头像
+  
   const users = await env.DB_USERS.prepare(
     `SELECT id, username, avatar_base64 FROM users WHERE avatar_base64 LIKE ?`
   )
@@ -1634,7 +1634,7 @@ async function getMediaBindings(env, mediaId) {
     bindings.push({ type: 'user', id: u.id, name: u.username });
   }
 
-  // 友链头像
+  
   const friends = await env.DB_CONFIG.prepare(
     `SELECT id, name, avatar FROM friends WHERE avatar LIKE ?`
   )
@@ -1644,7 +1644,7 @@ async function getMediaBindings(env, mediaId) {
     bindings.push({ type: 'friend', id: f.id, name: f.name });
   }
 
-  // 站点设置中的图片引用（配置读取一次，避免多次查询）
+  
   try {
     const site = (await getSetting(env, 'site')) || {};
     const hero = (await getSetting(env, 'hero')) || {};
@@ -1661,7 +1661,7 @@ async function getMediaBindings(env, mediaId) {
     check('hero.backgroundImage', hero.backgroundImage);
     check('about.avatar', about.avatar);
   } catch {
-    // 配置读取失败不影响绑定结果
+    
   }
 
   return bindings;
@@ -1689,7 +1689,7 @@ async function getAdminMediaUsage(request, env, user) {
     const row = await env.DB_MEDIA.prepare(
       'SELECT COALESCE(SUM(size), 0) as total, COUNT(*) as count FROM media'
     ).first();
-    // 按实际观察比例 1.42 估算 D1 真实存储占用，只读 size 字段、省额度
+    
     const totalSize = Math.floor(Number(row.total) * 1.42);
     return jsonResponse(0, { totalSize, count: row.count });
   } catch (err) {
@@ -1759,17 +1759,17 @@ async function updateAdminMedia(request, env, user) {
   if (!rawBase64) return jsonResponse(400, null, '图片数据为空');
   if (!mimeType.startsWith('image/')) return jsonResponse(400, null, '仅支持图片');
 
-  // 兼容前端可能传入的完整 data URI scheme，统一提取纯 base64
+  
   const base64 = rawBase64.includes(',') ? rawBase64.split(',')[1] : rawBase64;
   if (!base64) return jsonResponse(400, null, '图片数据为空');
 
   const size = Math.floor(base64.length * 0.75);
 
-  // 清理旧分片
+  
   await env.DB_MEDIA.prepare('DELETE FROM media_chunks WHERE media_id = ?').bind(id).run();
 
   if (base64.length <= MAX_MEDIA_CHUNK_SIZE) {
-    // 小文件直接存储完整 base64
+    
     await env.DB_MEDIA.prepare(
       `UPDATE media SET name = ?, mime_type = ?, size = ?, base64_data = ?, width = ?, height = ?, chunk_count = 0, created_at = ?
        WHERE id = ?`
@@ -1777,7 +1777,7 @@ async function updateAdminMedia(request, env, user) {
       .bind(name, mimeType, size, base64, width, height, now(), id)
       .run();
   } else {
-    // 大文件分片存储，避免超过 D1 单条语句限制
+    
     const chunkCount = Math.ceil(base64.length / MAX_MEDIA_CHUNK_SIZE);
     await env.DB_MEDIA.prepare(
       `UPDATE media SET name = ?, mime_type = ?, size = ?, base64_data = ?, width = ?, height = ?, chunk_count = ?, created_at = ?
@@ -1796,12 +1796,12 @@ async function updateAdminMedia(request, env, user) {
     }
   }
 
-  // 清理 Cloudflare 缓存中的旧图片
+  
   try {
     const publicUrl = new URL(`/api/v1/media/${id}`, request.url);
     await caches.default.delete(publicUrl);
   } catch {
-    // 缓存清理失败不影响更新结果
+    
   }
 
   return jsonResponse(0, { id, url: `/api/v1/media/${id}`, size }, '替换成功');
@@ -1814,7 +1814,7 @@ async function listDatabases(request, env, user) {
   if (env.DB_CONFIG) bindings.push({ binding: 'DB_CONFIG', name: 'myblog-config' });
   if (env.DB_MEDIA) bindings.push({ binding: 'DB_MEDIA', name: 'myblog-media' });
 
-  // 获取各库表行数作为容量参考
+  
   const stats = {};
   try {
     stats.users = (await env.DB_USERS.prepare('SELECT COUNT(*) as c FROM users').first()).c;
@@ -1852,31 +1852,34 @@ async function getSystemStatus(request, env, user) {
   });
 }
 
-// ---------- 认证/安全设置 ----------
+
 
 const defaultAuthSettings = {
   allowRegister: true,
   emailVerification: false,
   enableForgotPassword: false,
-  // 各场景是否启用验证（开关可实时调整）
+  
   loginVerification: false,
   registerVerification: false,
   forgotPasswordVerification: false,
-  // 人机验证：none | turnstile | math | geetest
+  
   verificationMode: 'none',
   turnstileSiteKey: '',
   turnstileSecret: '',
   geetestCaptchaId: '',
   geetestCaptchaKey: '',
+  hcaptchaSiteKey: '',
+  hcaptchaSecret: '',
 };
 
 async function getAuthSettings(request, env, user) {
   try {
     const data = (await getSetting(env, 'auth')) || {};
     const result = { ...defaultAuthSettings, ...data };
-    // 密钥不回显前端
+    
     if (result.turnstileSecret) result.turnstileSecret = '****';
     if (result.geetestCaptchaKey) result.geetestCaptchaKey = '****';
+    if (result.hcaptchaSecret) result.hcaptchaSecret = '****';
     return jsonResponseWithCache(0, result, 'ok', 200, 'public, max-age=60');
   } catch (err) {
     if (isBindingError(err)) {
@@ -1891,8 +1894,8 @@ async function updateAuthSettings(request, env, user) {
   const body = await request.json();
   const existing = (await getSetting(env, 'auth')) || {};
   const merged = { ...defaultAuthSettings, ...existing };
-  // 与已有配置合并，允许"用户管理-验证设置"单独保存验证相关字段而不覆盖其它配置
-  const verificationMode = ['none', 'turnstile', 'math', 'geetest'].includes(body.verificationMode)
+  
+  const verificationMode = ['none', 'turnstile', 'math', 'geetest', 'hcaptcha'].includes(body.verificationMode)
     ? body.verificationMode
     : merged.verificationMode;
   const data = {
@@ -1915,7 +1918,7 @@ async function updateAuthSettings(request, env, user) {
     turnstileSiteKey: body.turnstileSiteKey !== undefined
       ? String(body.turnstileSiteKey || '').trim()
       : merged.turnstileSiteKey,
-    // 空值或星号表示"保持不变"；密钥不回显前端
+    
     turnstileSecret:
       body.turnstileSecret === undefined ||
       body.turnstileSecret === '' ||
@@ -1931,12 +1934,21 @@ async function updateAuthSettings(request, env, user) {
       body.geetestCaptchaKey === '****'
         ? merged.geetestCaptchaKey
         : String(body.geetestCaptchaKey || '').trim(),
+    hcaptchaSiteKey: body.hcaptchaSiteKey !== undefined
+      ? String(body.hcaptchaSiteKey || '').trim()
+      : merged.hcaptchaSiteKey,
+    hcaptchaSecret:
+      body.hcaptchaSecret === undefined ||
+      body.hcaptchaSecret === '' ||
+      body.hcaptchaSecret === '****'
+        ? merged.hcaptchaSecret
+        : String(body.hcaptchaSecret || '').trim(),
   };
   await setSetting(env, 'auth', data);
   return jsonResponse(0, data, '保存成功');
 }
 
-// ---------- 邮箱设置 ----------
+
 
 const defaultEmailSettings = {
   provider: 'resend',
@@ -1954,8 +1966,8 @@ async function getEmailSettings(request, env, user) {
   try {
     const data = (await getSetting(env, 'email')) || {};
     const result = { ...defaultEmailSettings, ...data };
-    // 邮箱配置含敏感信息且后台会频繁修改，禁止缓存避免保存后仍显示旧值
-    // 脱敏，不将密钥明文返回前端
+    
+    
     if (result.resendApiKey) result.resendApiKey = '****';
     if (result.smtpPass) result.smtpPass = '****';
     return jsonResponse(0, result, 'ok');
@@ -1983,14 +1995,14 @@ async function updateEmailSettings(request, env, user) {
     smtpSecure: body.smtpSecure === true,
   };
   await setSetting(env, 'email', data);
-  // 返回时也脱敏
+  
   const result = { ...data };
   if (result.resendApiKey) result.resendApiKey = '****';
   if (result.smtpPass) result.smtpPass = '****';
   return jsonResponse(0, result, '保存成功');
 }
 
-// ---------- 评论邮件通知设置 ----------
+
 
 const defaultCommentNotifySettings = {
   enabled: false,
@@ -2032,7 +2044,7 @@ async function updateCommentNotifySettings(request, env, user) {
   return jsonResponse(0, data, '保存成功');
 }
 
-// ---------- 每日邮件发送计数 ----------
+
 
 async function getEmailDailyCount(env) {
   const data = await getSetting(env, 'email_daily_count');
@@ -2200,7 +2212,7 @@ async function getEmailTemplateSettings(request, env, user) {
       'ok'
     );
   } catch (err) {
-    // D1 绑定类异常只影响读取，返回默认模板即可保证前端可用；其它异常继续抛出以便排查
+    
     if (isBindingError(err)) {
       console.error('读取邮件模板失败，返回默认模板:', err);
       const fallback = new URL(request.url).searchParams.get('kind') === 'reset' ? defaultResetEmailTemplate : defaultEmailTemplate;
@@ -2222,7 +2234,7 @@ async function updateEmailTemplateSettings(request, env, user) {
     html: String(body.html || fallback.html),
     text: String(body.text || fallback.text),
   };
-  // 拆分为三个独立 key 存储，避免单条 JSON 解析或读取异常
+  
   await db.prepare('INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES (?, ?, ?)')
     .bind(`${prefix}_subject`, data.subject, ts).run();
   await db.prepare('INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES (?, ?, ?)')
@@ -2240,7 +2252,7 @@ async function sendEmailByProvider(env, to, subject, text, html, critical = fals
     throw new Error('未配置发件人邮箱');
   }
 
-  // 非关键邮件检查每日发送限额
+  
   if (!critical) {
     const notifySettings = (await getSetting(env, 'comment_notify')) || {};
     const dailyLimit = notifySettings.dailyLimit || 100;
@@ -2259,7 +2271,7 @@ async function sendEmailByProvider(env, to, subject, text, html, critical = fals
     }
   }
 
-  // 邮件发送整体加超时保护，避免 SMTP/Resend 网络挂起导致 Worker 一直不返回
+  
   const sendPromise = (async () => {
     if (provider === 'smtp') {
       const ok = await sendEmailBySMTP(settings, to, subject, text, html);
@@ -2303,7 +2315,7 @@ async function sendEmailByProvider(env, to, subject, text, html, critical = fals
   return withTimeout(sendPromise, 25000, '邮件发送');
 }
 
-// ---------- SMTP 客户端（基于 Cloudflare TCP Sockets） ----------
+
 
 function utf8ToBase64(str) {
   const bytes = new TextEncoder().encode(str);
@@ -2392,7 +2404,7 @@ async function smtpSend(writer, line) {
   await writer.write(encoder.encode(line + '\r\n'));
 }
 
-// 读取 EHLO 返回的全部 250 多行响应，解析 AUTH 与 STARTTLS 能力
+
 async function smtpReadEhloCapabilities(reader, writer, ehloHost, timeoutMs = 15000) {
   await smtpSend(writer, `EHLO ${ehloHost}`);
   const lines = [];
@@ -2450,7 +2462,7 @@ async function sendEmailBySMTP(settings, to, subject, text, html) {
 
   const message = buildMimeMessage({ from, fromName, to, subject, text, html });
 
-  // 端口决定传输层安全策略：465 强制隐式 TLS；587 优先 STARTTLS；其余按用户开关
+  
   let secureTransport;
   if (port === 465) {
     secureTransport = 'on';
@@ -2460,7 +2472,7 @@ async function sendEmailBySMTP(settings, to, subject, text, html) {
     secureTransport = secure ? 'on' : 'off';
   }
 
-  // EHLO 参数使用发件人域名；若无法取得则使用 cloudflare-workers，避免被反垃圾策略拒绝
+  
   const ehloHost = from.includes('@') ? from.split('@')[1] : 'cloudflare-workers';
 
   let socket;
@@ -2474,13 +2486,13 @@ async function sendEmailBySMTP(settings, to, subject, text, html) {
   let writer = socket.writable.getWriter();
 
   try {
-    // 连接握手阶段使用较短超时，避免 SMTP 不可达时长期占用 Worker
+    
     await smtpReadResponse(reader, 220, 15000);
 
-    // 读取服务器能力列表（AUTH/STARTTLS）
+    
     let caps = await smtpReadEhloCapabilities(reader, writer, ehloHost, 15000);
 
-    // STARTTLS：确认服务器支持后再升级，升级后重新 EHLO 并重新读取能力
+    
     if (secureTransport === 'starttls') {
       if (caps.STARTTLS === undefined) {
         throw new Error('SMTP 服务器未声明 STARTTLS 支持');
@@ -2488,8 +2500,8 @@ async function sendEmailBySMTP(settings, to, subject, text, html) {
       await smtpSend(writer, 'STARTTLS');
       await smtpReadResponse(reader, 220, 15000);
 
-      // 升级 TLS 前必须释放旧 reader/writer 的锁，而不是关闭流；
-      // close()/cancel() 会向底层连接发送 EOF，导致 startTls() 时握手挂起或失败。
+      
+      
       try { reader.releaseLock(); } catch {}
       try { writer.releaseLock(); } catch {}
 
@@ -2499,7 +2511,7 @@ async function sendEmailBySMTP(settings, to, subject, text, html) {
       } catch (e) {
         throw new Error(`STARTTLS 升级失败：${e.message}`);
       }
-      socket = secureSocket; // 后续清理需要关闭升级后的 socket
+      socket = secureSocket; 
       reader = secureSocket.readable.getReader();
       writer = secureSocket.writable.getWriter();
       caps = await smtpReadEhloCapabilities(reader, writer, ehloHost, 15000);
@@ -2525,7 +2537,7 @@ async function sendEmailBySMTP(settings, to, subject, text, html) {
     await smtpSend(writer, 'DATA');
     await smtpReadResponse(reader, 354, 15000);
 
-    // 点号转义：行首的点号需补一个点；末尾单独一行点号表示结束
+    
     const escapedMessage = message
       .split('\r\n')
       .map((line) => (line.startsWith('.') ? '.' + line : line))
@@ -2535,7 +2547,7 @@ async function sendEmailBySMTP(settings, to, subject, text, html) {
 
     await smtpSend(writer, 'QUIT');
   } catch (e) {
-    // 包装下层错误，保留原始信息
+    
     throw new Error(e.message || 'SMTP 发送失败');
   } finally {
     try { await writer.close(); } catch {}
@@ -2546,12 +2558,12 @@ async function sendEmailBySMTP(settings, to, subject, text, html) {
   return true;
 }
 
-// ---------- 人机验证（Human Verification） ----------
 
-const MATH_CAPTCHA_TTL_MS = 5 * 60 * 1000; // 算术验证题有效期 5 分钟
+
+const MATH_CAPTCHA_TTL_MS = 5 * 60 * 1000; 
 const MATH_CAPTCHA_SALT = 'math-captcha-v1';
 
-// HMAC-SHA256 无状态签名（题目不落库）
+
 async function hmacSignBase64(secret, data) {
   const encoder = new TextEncoder();
   const key = await crypto.subtle.importKey(
@@ -2565,7 +2577,7 @@ async function hmacSignBase64(secret, data) {
   return base64UrlEncode(String.fromCharCode(...new Uint8Array(signature)));
 }
 
-// HMAC-SHA256 十六进制小写签名（极验 GT4 的 sign_token 要求 hex 输出，不能用 base64）
+
 async function hmacSignHex(secret, data) {
   const encoder = new TextEncoder();
   const key = await crypto.subtle.importKey(
@@ -2581,7 +2593,7 @@ async function hmacSignHex(secret, data) {
     .join('');
 }
 
-// 生成一道算术题：返回题目文本与签名 token（答案加密在 token 内，不落库）
+
 async function issueMathCaptcha(request, env) {
   const ip = getClientIp(request);
   if (!(await checkRateLimit(env, `mc:ip:${ip}`, 10, 60))) {
@@ -2601,13 +2613,13 @@ async function issueMathCaptcha(request, env) {
   return jsonResponse(0, { question: `${a} ${op} ${b}`, token: `${data}.${sig}` }, 'ok');
 }
 
-// 校验算术题答案（token 验签 + 过期 + 答案比对）
+
 async function verifyMathCaptcha(env, body) {
   const token = String(body.mathToken || '').trim();
   const answer = body.mathAnswer;
   if (!token || answer === undefined || answer === null || answer === '') return false;
   const parts = token.split('.');
-  if (parts.length !== 2) return false; // token 格式为 data.sig，共两段
+  if (parts.length !== 2) return false; 
   const [data, sig] = parts;
   let payload;
   try {
@@ -2623,7 +2635,7 @@ async function verifyMathCaptcha(env, body) {
   return Math.abs(num - payload.answer) < 1e-6;
 }
 
-// Cloudflare Turnstile 服务端校验
+
 async function verifyTurnstile(secret, token, ip) {
   if (!secret || !token) return false;
   try {
@@ -2642,7 +2654,7 @@ async function verifyTurnstile(secret, token, ip) {
   }
 }
 
-// 极验 GT4 服务端二次校验
+
 async function verifyGeetest(captchaId, captchaKey, body) {
   const lotNumber = String(body.lotNumber || '').trim();
   const captchaOutput = String(body.captchaOutput || '').trim();
@@ -2670,7 +2682,26 @@ async function verifyGeetest(captchaId, captchaKey, body) {
   }
 }
 
-// 统一入口：按后台配置执行人机验证，返回 true 表示通过
+
+async function verifyHCaptcha(secret, token, ip) {
+  if (!secret || !token) return false;
+  try {
+    const form = new URLSearchParams();
+    form.append('secret', secret);
+    form.append('response', token);
+    if (ip && ip !== 'unknown') form.append('remoteip', ip);
+    const resp = await fetch('https://api.hcaptcha.com/siteverify', {
+      method: 'POST',
+      body: form,
+    });
+    const result = await resp.json();
+    return !!result && result.success === true;
+  } catch {
+    return false;
+  }
+}
+
+
 async function verifyHuman(request, env, body) {
   const authSettings = (await getSetting(env, 'auth')) || {};
   const mode = authSettings.verificationMode || 'none';
@@ -2682,10 +2713,13 @@ async function verifyHuman(request, env, body) {
   if (mode === 'geetest') {
     return verifyGeetest(authSettings.geetestCaptchaId, authSettings.geetestCaptchaKey, body);
   }
+  if (mode === 'hcaptcha') {
+    return verifyHCaptcha(authSettings.hcaptchaSecret, body.hcaptchaToken, getClientIp(request));
+  }
   return true;
 }
 
-// 前端获取当前验证模式、各场景开关与公开配置（sitekey / captchaId 本就公开，可安全下发）
+
 async function getCaptchaConfig(request, env) {
   const authSettings = (await getSetting(env, 'auth')) || {};
   const mode = authSettings.verificationMode || 'none';
@@ -2698,6 +2732,7 @@ async function getCaptchaConfig(request, env) {
       forgotRequired: authSettings.forgotPasswordVerification === true,
       turnstileSiteKey: mode === 'turnstile' ? authSettings.turnstileSiteKey || '' : '',
       geetestCaptchaId: mode === 'geetest' ? authSettings.geetestCaptchaId || '' : '',
+      hcaptchaSiteKey: mode === 'hcaptcha' ? authSettings.hcaptchaSiteKey || '' : '',
     },
     'ok'
   );
@@ -2714,20 +2749,20 @@ async function sendVerifyCode(request, env) {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) return jsonResponse(400, null, '邮箱格式不正确');
 
-  // 检查邮箱验证开关
+  
   const authSettings = (await getSetting(env, 'auth')) || {};
   if (authSettings.emailVerification !== true) {
     return jsonResponse(403, null, '未开启注册邮箱验证功能');
   }
 
-  // 注册发码场景验证：开关开启时需通过人机验证
+  
   if (authSettings.registerVerification === true) {
     if (!(await verifyHuman(request, env, body))) {
       return jsonResponse(403, null, '人机验证未通过，请重试');
     }
   }
 
-  // 速率限制：按 IP、邮箱及每日上限限流，防止验证码轰炸
+  
   const vcIp = getClientIp(request);
   if (!(await checkRateLimit(env, `vc:ip:${vcIp}`, 5, 600))) {
     return jsonResponse(429, null, '发送过于频繁，请稍后再试', 429);
@@ -2770,7 +2805,7 @@ async function sendVerifyCode(request, env) {
     return jsonResponse(503, { sent: false }, '邮件服务未配置，无法发送验证码');
   }
 
-  // 全局每日邮件总量限制
+  
   const currentCount = await getEmailDailyCount(env);
   if (currentCount >= GLOBAL_DAILY_EMAIL_LIMIT) {
     return jsonResponse(429, { sent: false }, '今日邮件发送总量已达上限，请明日再试');
@@ -2804,7 +2839,7 @@ async function sendVerifyCode(request, env) {
     if (emailConfigured) {
       return jsonResponse(500, { sent: false }, `邮件发送失败：${e.message || '未知错误'}`);
     }
-    // 未配置邮件服务时，仅记录验证码，不阻止注册流程
+    
   }
 
   return jsonResponse(0, { sent: true }, '验证码已发送');
@@ -2824,14 +2859,14 @@ async function sendForgotCode(request, env) {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) return jsonResponse(400, null, '邮箱格式不正确');
 
-  // 忘记密码发码场景验证：开关开启时需通过人机验证
+  
   if (authSettings.forgotPasswordVerification === true) {
     if (!(await verifyHuman(request, env, body))) {
       return jsonResponse(403, null, '人机验证未通过，请重试');
     }
   }
 
-  // 速率限制：按 IP、邮箱及每日上限限流，找回密码与注册发送共用一套防线
+  
   const fpIp = getClientIp(request);
   if (!(await checkRateLimit(env, `fp:ip:${fpIp}`, 5, 600))) {
     return jsonResponse(429, null, '操作过于频繁，请稍后再试', 429);
@@ -2844,7 +2879,7 @@ async function sendForgotCode(request, env) {
     return jsonResponse(429, null, '该邮箱今日操作次数已达上限', 429);
   }
 
-  // 校验用户名与邮箱匹配且已注册；不匹配时仍返回统一提示，防止账号枚举
+  
   const user = await env.DB_USERS.prepare(
     'SELECT username, email FROM users WHERE username = ? OR email = ?'
   )
@@ -2880,7 +2915,7 @@ async function sendForgotCode(request, env) {
     return jsonResponse(503, { sent: false }, '邮件服务未配置，无法发送重置邮件');
   }
 
-  // 全局每日邮件总量限制
+  
   const globalCount = await getEmailDailyCount(env);
   if (globalCount >= GLOBAL_DAILY_EMAIL_LIMIT) {
     return jsonResponse(429, { sent: false }, '今日邮件发送总量已达上限，请明日再试');
@@ -2985,7 +3020,7 @@ async function changePassword(request, env, user) {
   if (newPassword.length < 6) return jsonResponse(400, null, '新密码至少 6 位');
   if (newPassword === currentPassword) return jsonResponse(400, null, '新密码不能与当前密码相同');
 
-  // 登录后修改密码始终可用（不受找回密码开关控制）；按账号限流防止爆破
+  
   if (!(await checkRateLimit(env, `cp:${user.id}`, 5, 600))) {
     return jsonResponse(429, null, '操作过于频繁，请稍后再试', 429);
   }
@@ -3010,7 +3045,7 @@ async function changePassword(request, env, user) {
   return jsonResponse(0, null, '密码已修改');
 }
 
-// ---------- 互动/评论/点赞 ----------
+
 
 async function getPostIdBySlug(env, slug) {
   const row = await env.DB_POSTS.prepare('SELECT id FROM posts WHERE slug = ? AND status = ?')
@@ -3105,7 +3140,7 @@ async function listComments(env, url, path) {
   const list = comments.results || [];
   const userIds = [...new Set(list.map((c) => c.user_id).filter(Boolean))];
   const parentUserIds = [...new Set(list.map((c) => c.parent_id).filter(Boolean))];
-  // 获取父评论的用户 ID
+  
   const parentCommentMap = {};
   if (parentUserIds.length > 0) {
     const parentComments = await env.DB_POSTS.prepare(
@@ -3168,8 +3203,8 @@ async function createComment(request, env, user) {
 
   const commentId = result.meta ? result.meta.last_row_id : null;
 
-  // 同步发送邮件通知，并把错误/日志返回给前端（便于排查）
-  // 无论评论状态是 pending（审核中）还是 approved，都通知站长去处理
+  
+  
   const notifyErrors = [];
   if (commentId) {
     const errs = await sendCommentNotifications(request, env, postId, slug, user, content, parentId, commentId, status);
@@ -3179,7 +3214,7 @@ async function createComment(request, env, user) {
   return jsonResponse(0, { id: commentId, status, notifyErrors }, '评论成功');
 }
 
-// ---------- 评论邮件通知发送 ----------
+
 
 function buildEmailHtml(siteName, title, bodyLines, postTitle, postUrl, time) {
   return `<!DOCTYPE html>
@@ -3240,7 +3275,7 @@ async function sendCommentNotifications(request, env, postId, slug, commenter, c
   const needAudit = commentStatus === 'pending' ? '（需审核后公开显示）' : '';
 
   if (parentId) {
-    // 回复评论
+    
     const parentComment = await env.DB_POSTS.prepare('SELECT user_id FROM comments WHERE id = ?').bind(parentId).first();
     if (!parentComment) return;
 
@@ -3252,13 +3287,13 @@ async function sendCommentNotifications(request, env, postId, slug, commenter, c
     const isAdmin = commenter.role === 'super_admin';
     const isParentAdmin = parentUser.role === 'super_admin';
 
-    // 通知被回复的用户
+    
     let shouldNotifyUser = false;
     if (isAdmin) {
-      // 站长回复用户
+      
       shouldNotifyUser = notifySettings.notifyAdminReply;
     } else if (!isParentAdmin) {
-      // 用户回复用户
+      
       shouldNotifyUser = notifySettings.notifyUserReply;
     }
 
@@ -3279,7 +3314,7 @@ async function sendCommentNotifications(request, env, postId, slug, commenter, c
       }
     }
 
-    // 通知站长有新回复（站长不是被回复者时才通知）
+    
     if (notifySettings.notifyAdminOnNew && !isParentAdmin && notifySettings.notifyEmail) {
       const subject = `[${siteName}] ${commenter.username} 回复了评论`;
       const text = `用户 ${commenter.username} 回复了 ${parentUser.username} 在文章「${postTitle}」中的评论：\n\n${content}\n\n链接：${postUrl}`;
@@ -3297,7 +3332,7 @@ async function sendCommentNotifications(request, env, postId, slug, commenter, c
       }
     }
   } else {
-    // 新评论（非回复）- 通知站长
+    
     if (notifySettings.notifyAdminOnNew && notifySettings.notifyEmail) {
       const subject = `[${siteName}] ${commenter.username} 发表了新评论`;
       const text = `用户 ${commenter.username} 在文章「${postTitle}」中发表了评论：\n\n${content}\n\n链接：${postUrl}`;
@@ -3343,20 +3378,20 @@ async function deleteComment(request, env, user) {
   return jsonResponse(0, null, '删除成功');
 }
 
-// ---------- 评论树删除工具 ----------
-// 删除评论及其所有子（楼中楼）评论。先删最深层子评论，再逐层向上删父，避免外键约束失败。
+
+
 
 async function deleteCommentTree(env, rootId) {
   const ordered = [];
   await collectCommentTree(env, rootId, ordered);
-  // ordered 为「最深层子 → ...」，最后补上根评论，保证根最后删，避免外键约束失败
+  
   ordered.push(rootId);
   for (const id of ordered) {
     await env.DB_POSTS.prepare('DELETE FROM comments WHERE id = ?').bind(id).run();
   }
 }
 
-// 递归收集，把子评论先塞进数组（深度优先、子在前）
+
 async function collectCommentTree(env, parentId, ordered) {
   const rows = await env.DB_POSTS.prepare('SELECT id FROM comments WHERE parent_id = ?')
     .bind(parentId)
@@ -3367,13 +3402,13 @@ async function collectCommentTree(env, parentId, ordered) {
   }
 }
 
-// 删除某文章下全部评论：先解除文章内评论的楼中楼外键引用，再整体删除
+
 async function deleteCommentsByPost(env, postId) {
   await env.DB_POSTS.prepare('UPDATE comments SET parent_id = NULL WHERE post_id = ?').bind(postId).run();
   await env.DB_POSTS.prepare('DELETE FROM comments WHERE post_id = ?').bind(postId).run();
 }
 
-// 删除某用户全部评论：先解除指向该用户评论的子评论引用，再删除
+
 async function deleteCommentsByUser(env, userId) {
   await env.DB_POSTS.prepare(
     'UPDATE comments SET parent_id = NULL WHERE parent_id IN (SELECT id FROM comments WHERE user_id = ?)'
@@ -3529,7 +3564,7 @@ async function deleteAdminComment(request, env, user) {
   return jsonResponse(0, null, '删除成功');
 }
 
-// ---------- 留言墙 ----------
+
 
 const defaultMessageWallSettings = {
   enabled: false,
@@ -3589,16 +3624,16 @@ async function updateMessageWallSettings(request, env, user) {
   return jsonResponse(0, data, '保存成功');
 }
 
-// ---------- 聊天室设置 ----------
+
 const PUBLIC_CHAT_ROOM_KEY = 'public';
 const PUBLIC_CHAT_ROOM_NAME = '公共聊天房';
 const ALL_USERS_CHAT_ROOM_KEY = 'members';
 const ALL_USERS_CHAT_ROOM_NAME = '全体聊天房';
 
 const defaultChatSettings = {
-  enabled: false, // 功能总开关：控制主页侧边栏是否显示聊天室入口
-  publicRoomEnabled: true, // 公共聊天房开关：控制无需鉴权可进的公共房是否开放
-  allUsersRoomEnabled: true, // 全体聊天房开关：控制仅登录用户可进的全员房是否开放
+  enabled: false, 
+  publicRoomEnabled: true, 
+  allUsersRoomEnabled: true, 
 };
 
 async function getChatSettings(request, env, user) {
@@ -3630,9 +3665,9 @@ async function updateChatSettings(request, env, user) {
   return jsonResponse(0, data, '保存成功');
 }
 
-// ---------- 自定义聊天房间（后台创建、按成员授权、可设封面/人数上限） ----------
 
-// 惰性建表缓存：同一 DB 实例只建一次表，避免每次请求重复 DDL
+
+
 const ensuredRoomTables = new WeakSet();
 
 async function ensureChatRoomTables(env) {
@@ -3666,14 +3701,14 @@ async function ensureChatRoomTables(env) {
   return db;
 }
 
-// 生成不与他人冲突的自定义房间 key（与内置 public/members 区分）
+
 function randomRoomKey() {
   const bytes = new Uint8Array(5);
   crypto.getRandomValues(bytes);
   return 'c_' + Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
 }
 
-// 当前登录用户可见（自己是成员且已启用）的自定义房间；未登录返回空
+
 async function listMyChatRooms(request, env, user) {
   if (!user) return jsonResponse(0, { list: [] }, 'ok');
   await ensureChatRoomTables(env);
@@ -3689,7 +3724,7 @@ async function listMyChatRooms(request, env, user) {
   return jsonResponse(0, { list: rows.results || [] }, 'ok');
 }
 
-// 管理端：分页列出自定义房间
+
 async function listAdminChatRooms(request, env, user) {
   await ensureChatRoomTables(env);
   const db = getConfigDb(env);
@@ -3708,7 +3743,7 @@ async function listAdminChatRooms(request, env, user) {
   return jsonResponse(0, { list: rows.results || [], total: countRow.c, page, limit });
 }
 
-// 成员选择器：按用户名模糊搜索已启用用户，分页
+
 async function searchRoomUsers(request, env, user) {
   const url = new URL(request.url);
   const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10));
@@ -3734,9 +3769,9 @@ async function searchRoomUsers(request, env, user) {
   return jsonResponse(0, { list: list.results || [], total: countRow.c, page, limit });
 }
 
-// 管理端：读取某房间成员（编辑回显）
+
 async function getAdminChatRoomMembers(request, env, user) {
-  // 路径形如 …/chat/rooms/<key>/members，房间 key 在倒数第二段
+  
   const parts = request.url.split('/');
   const key = decodeURIComponent(parts[parts.length - 2]);
   await ensureChatRoomTables(env);
@@ -3747,7 +3782,7 @@ async function getAdminChatRoomMembers(request, env, user) {
   return jsonResponse(0, { list: rows.results || [] }, 'ok');
 }
 
-// 连接用：按房间 key 读取启用中的自定义房间，并校验指定用户是否为成员；通过则返回房间，否则返回 null
+
 async function getRoomForConnect(roomKey, userId, env) {
   await ensureChatRoomTables(env);
   const db = getConfigDb(env);
@@ -3760,8 +3795,8 @@ async function getRoomForConnect(roomKey, userId, env) {
   return { room_key: room.room_key, name: room.name, max_users: room.max_users || 0 };
 }
 
-// 管理端：聊天 DO 概览（各房间的消息数/图片数/图片字节数）。
-// 枚举固定房（公共房 + 全体房）+ 配置库中的自定义房，逐个调用聊天 DO /stats。
+
+
 async function adminChatDoOverview(request, env, user) {
   if (!env.CHAT) return jsonResponse(500, null, '聊天服务未绑定（env.CHAT）', 500);
   const keys = [PUBLIC_CHAT_ROOM_KEY, ALL_USERS_CHAT_ROOM_KEY];
@@ -3770,7 +3805,7 @@ async function adminChatDoOverview(request, env, user) {
     const db = getConfigDb(env);
     const rows = await db.prepare('SELECT room_key, name FROM chat_rooms WHERE enabled = 1').all();
     (rows.results || []).forEach((r) => keys.push(String(r.room_key)));
-  } catch (e) { /* 配置库异常时仍返回固定房 */ }
+  } catch (e) {  }
   const rooms = [];
   for (const key of keys) {
     try {
@@ -3784,7 +3819,7 @@ async function adminChatDoOverview(request, env, user) {
   return jsonResponse(0, { rooms }, 'ok');
 }
 
-// 管理端：列出某房间 DO 里已存的聊天图片元信息
+
 async function adminListChatMedia(request, env, user) {
   const parts = request.url.split('/');
   const roomKey = decodeURIComponent(parts[parts.length - 1]);
@@ -3794,7 +3829,7 @@ async function adminListChatMedia(request, env, user) {
   return jsonResponse(0, { items: j.items || [] }, 'ok');
 }
 
-// 管理端：删除某房间 DO 里的单张聊天图片
+
 async function adminDeleteChatMedia(request, env, user) {
   const parts = request.url.split('/');
   const id = decodeURIComponent(parts[parts.length - 1]);
@@ -3805,7 +3840,7 @@ async function adminDeleteChatMedia(request, env, user) {
   return new Response(text, { status: upstream.status, headers: { 'content-type': 'application/json' } });
 }
 
-// 创建自定义房间：建房间 + 写入成员（自动把创建者加入，保证管理员能进入）
+
 async function createChatRoom(request, env, user) {
   const body = await request.json();
   const name = String(body.name || '').trim();
@@ -3844,7 +3879,7 @@ async function createChatRoom(request, env, user) {
   return jsonResponse(0, { room_key: roomKey }, '创建成功');
 }
 
-// 编辑房间：更新字段，可选整体替换成员
+
 async function updateChatRoom(request, env, user) {
   const key = decodeURIComponent(request.url.split('/').pop());
   const body = await request.json();
@@ -3905,7 +3940,7 @@ async function updateChatRoom(request, env, user) {
   return jsonResponse(0, null, '保存成功');
 }
 
-// 删除自定义房间（含其成员关系）
+
 async function deleteChatRoom(request, env, user) {
   const key = decodeURIComponent(request.url.split('/').pop());
   await ensureChatRoomTables(env);
@@ -3917,7 +3952,7 @@ async function deleteChatRoom(request, env, user) {
   return jsonResponse(0, null, '删除成功');
 }
 
-// 公开聊天房元数据（当前仅一个公共房，多房间管理后续版本扩展）
+
 async function getChatPublicRoom(env) {
   const settings = (await getSetting(env, 'chat')) || {};
   return {
@@ -3948,7 +3983,7 @@ async function listMessages(env, url) {
       "SELECT COUNT(*) as c FROM message_wall WHERE status = 'approved'"
     ).first();
   } catch {
-    // 表不存在或数据库异常时按空数据处理，避免报错
+    
     return jsonResponse(0, { list: [], total: 0, page, limit });
   }
 
@@ -4076,7 +4111,7 @@ async function listAdminMessages(request, env, user) {
       total = countRow.c;
     }
   } catch {
-    // 表不存在或数据库异常时按空数据处理，避免报错
+    
     return jsonResponse(0, { list: [], total: 0, page, limit });
   }
 
@@ -4138,7 +4173,7 @@ async function deleteAdminMessage(request, env, user) {
   return jsonResponse(0, null, '删除成功');
 }
 
-// ---------- 用户管理 ----------
+
 
 async function listAdminUsers(request, env, user) {
   const url = new URL(request.url);
@@ -4209,12 +4244,12 @@ async function deleteAdminUser(request, env, user) {
   const target = await env.DB_USERS.prepare('SELECT id, role FROM users WHERE id = ?').bind(id).first();
   if (!target) return jsonResponse(404, null, '用户不存在', 404);
 
-  // 禁止删除当前登录用户，避免把自己锁在外面
+  
   if (id === user.id) {
     return jsonResponse(403, null, '不能删除当前登录用户');
   }
 
-  // 禁止删除最后一个 super_admin，避免系统失去管理入口
+  
   if (target.role === 'super_admin') {
     const admins = await env.DB_USERS.prepare(
       "SELECT COUNT(*) as c FROM users WHERE role = 'super_admin' AND status = 1"
@@ -4224,7 +4259,7 @@ async function deleteAdminUser(request, env, user) {
     }
   }
 
-  // 级联清理：登录令牌、验证码、点赞、评论
+  
   await env.DB_USERS.prepare('DELETE FROM refresh_tokens WHERE user_id = ?').bind(id).run();
   await env.DB_USERS.prepare('DELETE FROM verify_codes WHERE email IN (SELECT email FROM users WHERE id = ?)').bind(id).run();
   await env.DB_POSTS.prepare('DELETE FROM likes WHERE user_id = ?').bind(id).run();
@@ -4234,7 +4269,7 @@ async function deleteAdminUser(request, env, user) {
   return jsonResponse(0, null, '删除成功');
 }
 
-// ---------- 友链管理 ----------
+
 
 function rowToFriend(row) {
   return {
@@ -4338,8 +4373,8 @@ async function deleteFriend(request, env, user) {
   return jsonResponse(0, null, '删除成功');
 }
 
-// ---------- 友链申请 ----------
-// 申请数据存 settings 表 key='friend_applications' 的 JSON 数组，避免改库结构。
+
+
 
 async function readFriendApplications(env) {
   const list = (await getSetting(env, 'friend_applications')) || [];
@@ -4351,7 +4386,7 @@ async function writeFriendApplications(env, list) {
 }
 
 async function applyFriend(request, env, user) {
-  // 需要登录：user 由 requireAuth 传入
+  
   const body = await request.json();
   const name = String(body.name || '').trim();
   const url = String(body.url || '').trim();
@@ -4374,7 +4409,7 @@ async function applyFriend(request, env, user) {
     const maxId = Math.max(...list.map((a) => Number(a.id) || 0));
     id = maxId + 1;
   }
-  // 若未开启审核，则申请直接生效为正式友链
+  
   if (friendsConfig.applyNeedsAudit !== true) {
     await env.DB_CONFIG.prepare(
       'INSERT INTO friends (name, url, description, avatar, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
@@ -4449,7 +4484,7 @@ async function auditFriendApplication(request, env, user) {
   const app = list[idx];
 
   if (status === 'approved') {
-    // 通过：写入正式友链
+    
     const time = now();
     await env.DB_CONFIG.prepare(
       'INSERT INTO friends (name, url, description, avatar, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
@@ -4471,9 +4506,9 @@ async function deleteFriendApplication(request, env, user) {
   return jsonResponse(0, null, '已删除');
 }
 
-// ---------- AI 功能 ----------
 
-// OpenAI 风格别名 -> Cloudflare Workers AI 实际模型 ID
+
+
 const AI_MODEL_COST = {
   'gpt-4o-mini': '轻量',
   'gpt-4o': '中消耗',
@@ -4592,8 +4627,8 @@ async function deleteCustomModel(env, id) {
   return true;
 }
 
-// 自动识别请求地址：若 baseUrl 已以 /chat/completions 结尾，说明用户填的是完整 endpoint，直接使用；
-// 否则视为 Base URL，自动拼接 OpenAI 兼容路径 /v1/chat/completions。
+
+
 function buildCustomModelEndpoint(custom) {
   const base = String(custom.baseUrl || '').trim().replace(/\/+$/, '');
   if (/\/chat\/completions$/i.test(base)) {
@@ -4659,7 +4694,7 @@ function stripThinkingTags(text) {
 }
 
 function sanitizeJsonControlChars(text) {
-  // 去掉 BOM，并把未转义的控制字符（tab/换行等）转换为 JSON 转义序列
+  
   return text
     .replace(/^\uFEFF/, '')
     .replace(/[\u0000-\u001F\u007F-\u009F]/g, (c) => {
@@ -4677,12 +4712,12 @@ function extractJson(text) {
   if (!text || typeof text !== 'string') return null;
   let trimmed = text.trim();
 
-  // 1. 直接解析
+  
   try {
     return JSON.parse(trimmed);
   } catch {}
 
-  // 1.5 尝试清理控制字符后再解析
+  
   try {
     const sanitized = sanitizeJsonControlChars(trimmed);
     if (sanitized !== trimmed) {
@@ -4690,7 +4725,7 @@ function extractJson(text) {
     }
   } catch {}
 
-  // 2. 提取 ```json ... ``` 或 ``` ... ``` 代码块
+  
   const codeBlockMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
   if (codeBlockMatch) {
     try {
@@ -4698,8 +4733,8 @@ function extractJson(text) {
     } catch {}
   }
 
-  // 3. 从第一个 { 开始，找到第一个可完整解析的 JSON 对象
-  //    该实现会跳过字符串内部的 { 和 }，避免 content 中的 Markdown/代码块干扰
+  
+  
   let start = trimmed.indexOf('{');
   while (start !== -1) {
     let depth = 0;
@@ -4728,7 +4763,7 @@ function extractJson(text) {
               return JSON.parse(trimmed.slice(start, i + 1));
             } catch {}
             break;
-            // 如果解析失败，尝试下一个 { 开头
+            
           }
         }
       }
@@ -4800,10 +4835,10 @@ async function verifyAiApiKey(request, env) {
   const token = auth.slice(7).trim();
   if (!token) return false;
 
-  // 内置 API Key（环境变量，不存储到 D1）
+  
   if (env.AI_API_KEY && token === env.AI_API_KEY) return true;
 
-  // 用户添加的 API Key
+  
   const hash = await sha256Hex(token);
   const row = await env.DB_CONFIG.prepare(
     'SELECT id FROM ai_api_keys WHERE key_hash = ? AND enabled = 1'
@@ -5130,7 +5165,7 @@ async function aiChat(request, env, user) {
   const options = { messages, temperature, max_tokens: maxTokens };
   if (stream) options.stream = true;
 
-  // 自定义模型
+  
   if (isCustomModel(modelAlias)) {
     const customId = parseCustomModelId(modelAlias);
     const custom = customId ? await getCustomModelById(env, customId) : null;
@@ -5245,7 +5280,7 @@ async function aiChat(request, env, user) {
     });
   }
 
-  // 流式响应
+  
   const id = aiGenerateId();
   const created = aiNowUnix();
   const encoder = new TextEncoder();
@@ -5353,7 +5388,7 @@ async function aiFormatOptimize(request, env, user) {
   }
 
   optimized = stripThinkingTags(optimized);
-  // 去除可能包裹的 markdown 代码块
+  
   optimized = optimized.replace(/^```markdown\s*/, '').replace(/^```\s*/, '').replace(/\s*```$/, '').trim();
 
   return jsonResponse(0, { content: optimized, model: modelAlias });
@@ -5380,7 +5415,7 @@ async function aiGenerateSummary(request, env, user) {
     : (settings.maxTokens ?? defaultAiSettings.maxTokens);
 
   const systemPrompt = await loadPrompt(env, request, 'article-summary');
-  // 正文过长时截断，避免超出模型上下文
+  
   const safeContent = content.length > 12000 ? content.slice(0, 12000) : content;
   const userPrompt = `请为下面这篇文章生成摘要。\n标题：${title || '（无标题）'}\n正文：\n${safeContent}`;
   const messages = [
@@ -5415,7 +5450,7 @@ async function aiGenerateSummary(request, env, user) {
   }
 
   summary = stripThinkingTags(summary).trim();
-  // 去除可能包裹的 markdown 代码块或首尾引号
+  
   summary = summary.replace(/^```\s*/, '').replace(/\s*```$/, '').replace(/^["“'`]|["”'`]$/g, '').trim();
 
   return jsonResponse(0, { excerpt: summary, model: modelAlias });
@@ -5473,7 +5508,7 @@ async function openaiChatCompletions(request, env) {
 
   const options = { messages, temperature, max_tokens: maxTokens };
 
-  // 自定义模型
+  
   if (isCustomModel(modelAlias)) {
     const customId = parseCustomModelId(modelAlias);
     const custom = customId ? await getCustomModelById(env, customId) : null;
@@ -5664,7 +5699,7 @@ async function openaiEmbeddings(request, env) {
   });
 }
 
-// ---------- 主入口 ----------
+
 
 function checkEnv(env) {
   const missing = [];
@@ -5676,20 +5711,16 @@ function checkEnv(env) {
   return missing;
 }
 
-// ---------- 短链接解析 ----------
 
-/**
- * 解析网易云音乐分享短链接 / 任意 URL，跟随重定向后返回最终 URL。
- * 主要用于解析 163cn.tv 短链接，获取真实歌单页面地址。
- * 服务端请求不受 CORS 限制，可正常跟随重定向。
- */
+
+
 async function resolveUrl(request) {
   const url = new URL(request.url);
   const target = url.searchParams.get('url');
   if (!target) {
     return jsonResponse(400, null, '缺少 url 参数');
   }
-  // 只允许解析 YouTube 链接（防止滥用开放解析）
+  
   if (!target.startsWith('https://youtu.be/') && !target.startsWith('https://www.youtube.com/')) {
     return jsonResponse(403, null, '只允许解析 YouTube 链接');
   }
@@ -5704,7 +5735,7 @@ async function resolveUrl(request) {
       },
     });
     const finalUrl = response.url;
-    // 从最终 URL 中提取歌单 ID
+    
     let playlistId = '';
     const idMatch = finalUrl.match(/[?&]id=(\d+)/);
     if (idMatch) {
@@ -5719,23 +5750,20 @@ async function resolveUrl(request) {
   }
 }
 
-/**
- * 代理图片资源（解决跨域/CDN 域名在 PWA 中显示 URL 的问题）
- * GET /api/v1/proxy-image?url=...
- */
+
 async function proxyImage(request) {
   const url = new URL(request.url);
   const target = url.searchParams.get('url');
   if (!target) {
     return jsonResponse(400, null, '缺少 url 参数');
   }
-  // 只允许图片cdn使用，只允许http/https且是静态资源域名
+  
   const allowedHosts = [
-    'i.ytimg.com', // YouTube 封面图
-    'img.youtube.com', // YouTube 封面图
-    'i.imgur.com', // Imgur 图片
-    'picsum.photos', // 占位图
-    'images.unsplash.com', // Unsplash
+    'i.ytimg.com', 
+    'img.youtube.com', 
+    'i.imgur.com', 
+    'picsum.photos', 
+    'images.unsplash.com', 
   ];
   try {
     const targetUrl = new URL(target);
@@ -5786,7 +5814,7 @@ export default {
     }
 
     try {
-      // 生成"登录/权限失败"的错误帧，确保前端收到可读错误
+      
       function rejectChatSocket(message, code = 403) {
         const pair = new WebSocketPair();
         pair[1].accept();
@@ -5795,12 +5823,12 @@ export default {
         return new Response(null, { status: 101, webSocket: pair[0] });
       }
 
-      // 聊天室：同源转发给 xin--blog-chat-worker（Service Binding env.CHAT，内部调用，不出公网）
-      // 浏览器只连博客同源域名，国内可访问；聊天 Worker 通过绑定被调用，无公网暴露。
-      // 鉴权在 Pages 端完成：公共房（public）免鉴权；成员房（members）及自定义房（c_*）需在
-      // 校验 token 后注入身份头给聊天 Worker；自定义房还会据此校验成员身份并带上人数上限。
+      
+      
+      
+      
       if (path.startsWith('/api/chat/')) {
-        // 昵称查重接口：供前端在改名/进房前校验昵称是否占用注册用户名（纯 HTTP，不走 WS）
+        
         if (path === '/api/chat/check-nickname') {
           const name = (url.searchParams.get('name') || '').trim();
           if (!name) return jsonResponse(400, null, '昵称不能为空', 400);
@@ -5811,22 +5839,22 @@ export default {
 
         if (!env.CHAT) return jsonResponse(500, null, '聊天服务未绑定（env.CHAT）', 500);
         const chatUrl = new URL(request.url);
-        // 取到房间 key（/api/chat/room/<key>/websocket -> members/public）
+        
         const seg = chatUrl.pathname.replace(/^\/api\/chat/, '').split('/').filter(Boolean);
         const roomKey = seg[0] === 'room' ? seg[1] : null;
         const isMembers = roomKey === ALL_USERS_CHAT_ROOM_KEY;
         const isCustom = !!roomKey && roomKey.startsWith('c_');
 
-        // 游客房（public）昵称若命中注册用户名，握手阶段直接拒绝，保护注册账号的用户名权益。
-        // 已登录用户（携带有效 token，且其用户名与昵称一致）使用自己的用户名，属于本人，不视为占用。
+        
+        
         let identity = null;
         let forwarded = new Request(chatUrl.toString(), request);
         if (roomKey === PUBLIC_CHAT_ROOM_KEY) {
           const guestName = (chatUrl.searchParams.get('nickname') || '').trim();
-          // 先认领登录身份：已登录用户在公共房同样注入身份头，让聊天 Worker 识别"本人多端"，
-          // 否则同一账号多客户端会被误判为昵称重复。此解析必须在 guestName 判断之外执行，
-          // 因为登录用户进公共房时常不带 nickname（用户名走 WS 的 { name }），若只在
-          // guestName 内解析，identity 恒为 null，导致身份头缺失、后端误判游客。
+          
+          
+          
+          
           const token = chatUrl.searchParams.get('token') || '';
           if (token) identity = await resolveAuthIdentity(token, env);
           if (guestName) {
@@ -5847,17 +5875,17 @@ export default {
 
         let maxUsers = 0;
         if (isMembers || isCustom) {
-          // 成员房/自定义房：从握手 URL 提取 token 并校验，成功后注入身份头
+          
           const token = chatUrl.searchParams.get('token') || '';
           identity = await resolveAuthIdentity(token, env);
           if (!identity) return rejectChatSocket('登录已失效，请重新登录后再进入聊天室');
           if (isCustom) {
-            // 自定义房：校验该用户是否为成员，并读取人数上限
+            
             const room = await getRoomForConnect(roomKey, identity.id, env);
             if (!room) return rejectChatSocket('房间不存在或您不在该房间成员列表中');
             maxUsers = room.max_users;
           }
-          // 注入可信身份头（内部绑定调用，聊天 Worker 直接信任）
+          
           forwarded = new Request(chatUrl.toString(), {
             ...request,
             headers: buildAuthHeaders(request.headers, identity).mergedHeaders,
@@ -5869,15 +5897,15 @@ export default {
           }
         }
 
-        // /api/chat/room/... -> /api/room/... ，让聊天 Worker 按官方 /api/room 路由处理
+        
         chatUrl.pathname = '/api' + chatUrl.pathname.slice('/api/chat'.length);
         forwarded = new Request(chatUrl.toString(), forwarded);
         return env.CHAT.fetch(forwarded);
       }
 
-      // ====== 聊天图片（独立于博客媒体库，存于聊天 Worker 的 DO 内）=====
-      // 读取图片：public 免鉴权；members/自定义房需登录（自定义房还需是成员）。
-      // 图片 <img> 无法带自定义 header，故鉴权统一走 URL 上的 ?token=（前端渲染图片时按房间类型附带）。
+      
+      
+      
       async function canViewChatRoomMedia(roomKey, req) {
         if (!env.CHAT) return jsonResponse(500, null, '聊天服务未绑定（env.CHAT）', 500);
         if (roomKey === PUBLIC_CHAT_ROOM_KEY) return true;
@@ -5891,7 +5919,7 @@ export default {
         }
         return true;
       }
-      // 上传图片：仅登录用户；自定义房校验成员身份。
+      
       async function chatUploadMedia(req, env2, user) {
         if (!env2.CHAT) return jsonResponse(500, null, '聊天服务未绑定（env.CHAT）', 500);
         const key = (new URL(req.url).searchParams.get('room') || PUBLIC_CHAT_ROOM_KEY).trim();
@@ -5913,7 +5941,7 @@ export default {
       }
 
       if (method === 'GET' && path.match(/^\/api\/v1\/chat\/media\/[^/]+\/[^/]+$/)) {
-        // path = /api/v1/chat/media/<roomKey>/<id>
+        
         const seg = path.split('/');
         const roomKey = seg[5];
         const id = seg[6];
@@ -5926,26 +5954,26 @@ export default {
         return await requireAuth(request, env, chatUploadMedia);
       }
 
-      // OpenAI 兼容接口（标准路径 /v1/*，供外部客户端直接以域名作为 base URL 调用）
+      
       if (method === 'GET' && path === '/v1/models') return await openaiModels(request, env);
       if (method === 'POST' && path === '/v1/chat/completions') return await openaiChatCompletions(request, env);
       if (method === 'POST' && path === '/v1/embeddings') return await openaiEmbeddings(request, env);
 
-      // 初始化
+      
       if (method === 'POST' && path === '/api/v1/setup') return await setup(env);
 
-      // 公开接口
+      
       if (method === 'GET' && path === '/api/v1/site') return await getSiteConfig(env);
       if (method === 'GET' && path === '/manifest.json') return await getManifest(env, request.url);
       if (method === 'GET' && path === '/api/v1/posts') return await listPosts(env, url);
 
-      // 短链接解析（无需认证，用于解析网易云分享短链接 163cn.tv）
+      
       if (method === 'GET' && path === '/api/v1/resolve-url') return await resolveUrl(request);
 
-      // 图片代理（解决跨域/CDN 域名在 PWA 中显示 URL 的问题）
+      
       if (method === 'GET' && path === '/api/v1/proxy-image') return await proxyImage(request);
 
-      // 文章评论/点赞（需在通用 getPost 之前匹配）
+      
       if (method === 'GET' && path.match(/^\/api\/v1\/posts\/[^/]+\/comments$/)) return await listComments(env, url, path);
       if (method === 'POST' && path.match(/^\/api\/v1\/posts\/[^/]+\/comments$/)) return await requireAuth(request, env, createComment);
       if (method === 'DELETE' && path.match(/^\/api\/v1\/posts\/[^/]+\/comments\/\d+$/)) return await requireAuth(request, env, deleteComment);
@@ -5967,14 +5995,14 @@ export default {
         return await listPostsByTag(env, path);
       }
 
-      // 友链公开接口
+      
       if (method === 'GET' && path === '/api/v1/friends') return await listFriends(env);
-      // 友链申请（需登录）
+      
       if (method === 'POST' && path === '/api/v1/friends/apply') return await requireAuth(request, env, applyFriend);
-      // 我的友链申请记录（需登录）
+      
       if (method === 'GET' && path === '/api/v1/friends/applications/my') return await requireAuth(request, env, listMyFriendApplications);
 
-      // 认证接口
+      
       if (method === 'POST' && path === '/api/v1/auth/register') return await register(request, env);
       if (method === 'POST' && path === '/api/v1/auth/login') return await login(request, env);
       if (method === 'POST' && path === '/api/v1/auth/refresh') return await refreshToken(request, env);
@@ -5984,11 +6012,11 @@ export default {
       if (method === 'POST' && path === '/api/v1/auth/forgot-code') return await sendForgotCode(request, env);
       if (method === 'POST' && path === '/api/v1/auth/reset-password') return await resetPassword(request, env);
 
-      // 人机验证（公开配置 + 算术题）
+      
       if (method === 'GET' && path === '/api/v1/auth/captcha/config') return await getCaptchaConfig(request, env);
       if (method === 'POST' && path === '/api/v1/auth/captcha/math') return await issueMathCaptcha(request, env);
 
-      // 站点公开设置
+      
       if (method === 'GET' && path === '/api/v1/settings/auth') return await getAuthSettings(request, env);
       if (method === 'GET' && path === '/api/v1/settings/email') return await getEmailSettings(request, env);
       if (method === 'GET' && path === '/api/v1/settings/email-template') return await getEmailTemplateSettings(request, env);
@@ -5996,10 +6024,10 @@ export default {
       if (method === 'GET' && path === '/api/v1/settings/message-wall') return await getMessageWallSettings(request, env);
       if (method === 'GET' && path === '/api/v1/settings/chat') return await getChatSettings(request, env);
 
-      // 自定义聊天房：当前登录用户可见的房间列表
+      
       if (method === 'GET' && path === '/api/v1/chat/my-rooms') return await requireAuth(request, env, listMyChatRooms);
 
-      // 留言墙公开接口
+      
       if (method === 'GET' && path === '/api/v1/messages/my') return await requireAuth(request, env, listMyMessages);
       if (method === 'GET' && path === '/api/v1/messages') return await listMessages(env, url);
       if (method === 'POST' && path === '/api/v1/messages') {
@@ -6008,26 +6036,26 @@ export default {
       }
       if (method === 'DELETE' && path.match(/^\/api\/v1\/messages\/\d+$/)) return await requireAuth(request, env, deleteMessage);
 
-      // 用户个人设置（主题/UI 等）
+      
       if (method === 'GET' && path === '/api/v1/user/settings') return await requireAuth(request, env, getUserSettings);
       if (method === 'PATCH' && path === '/api/v1/user/settings') return await requireAuth(request, env, updateUserSettings);
-      // 修改登录账号密码（需登录）
+      
       if (method === 'POST' && path === '/api/v1/user/change-password') return await requireAuth(request, env, changePassword);
 
-      // 管理接口
+      
       if (method === 'GET' && path === '/api/v1/admin/dashboard') return await requireAdmin(request, env, getDashboard);
-      // 文章：管理员可写/可改/可发布，仅站主可删除
+      
       if (method === 'GET' && path === '/api/v1/admin/posts') return await requireAdmin(request, env, listAdminPosts);
       if (method === 'GET' && path.startsWith('/api/v1/admin/posts/')) return await requireAdmin(request, env, getAdminPost);
       if (method === 'POST' && path === '/api/v1/admin/posts') return await requireAdmin(request, env, createPost);
       if (method === 'PATCH' && path.startsWith('/api/v1/admin/posts/')) return await requireAdmin(request, env, updatePost);
       if (method === 'DELETE' && path.startsWith('/api/v1/admin/posts/')) return await requireSuperAdmin(request, env, deletePost);
-      // 标签
+      
       if (method === 'GET' && path === '/api/v1/admin/tags') return await requireAdmin(request, env, listAdminTags);
       if (method === 'POST' && path === '/api/v1/admin/tags') return await requireAdmin(request, env, createTag);
       if (method === 'PATCH' && path.startsWith('/api/v1/admin/tags/')) return await requireAdmin(request, env, updateTag);
       if (method === 'DELETE' && path.startsWith('/api/v1/admin/tags/')) return await requireSuperAdmin(request, env, deleteTag);
-      // 站点配置通用保存接口（协议/外观/主题等共用），仅站主
+      
       if (method === 'PATCH' && path === '/api/v1/admin/settings') return await requireSuperAdmin(request, env, updateSettings);
       if (method === 'GET' && path === '/api/v1/admin/settings/auth') return await requireSuperAdmin(request, env, getAuthSettings);
       if (method === 'PATCH' && path === '/api/v1/admin/settings/auth') return await requireSuperAdmin(request, env, updateAuthSettings);
@@ -6035,55 +6063,55 @@ export default {
       if (method === 'PATCH' && path === '/api/v1/admin/settings/email') return await requireSuperAdmin(request, env, updateEmailSettings);
       if (method === 'GET' && path === '/api/v1/admin/settings/email-template') return await requireSuperAdmin(request, env, getEmailTemplateSettings);
       if (method === 'PATCH' && path === '/api/v1/admin/settings/email-template') return await requireSuperAdmin(request, env, updateEmailTemplateSettings);
-      // 评论通知：管理页可读，仅站主可改
+      
       if (method === 'GET' && path === '/api/v1/admin/settings/comment-notify') return await requireAdmin(request, env, getCommentNotifySettings);
       if (method === 'PATCH' && path === '/api/v1/admin/settings/comment-notify') return await requireSuperAdmin(request, env, updateCommentNotifySettings);
-      // 互动设置：仅站主
+      
       if (method === 'GET' && path === '/api/v1/admin/settings/interaction') return await requireSuperAdmin(request, env, getInteractionSettings);
       if (method === 'PATCH' && path === '/api/v1/admin/settings/interaction') return await requireSuperAdmin(request, env, updateInteractionSettings);
-      // 留言墙设置：管理页可读，仅站主可改
+      
       if (method === 'GET' && path === '/api/v1/admin/settings/message-wall') return await requireAdmin(request, env, getMessageWallSettings);
       if (method === 'PATCH' && path === '/api/v1/admin/settings/message-wall') return await requireSuperAdmin(request, env, updateMessageWallSettings);
-      // 聊天室设置：管理页可读，仅站主可改
+      
       if (method === 'GET' && path === '/api/v1/admin/settings/chat') return await requireAdmin(request, env, getChatSettings);
       if (method === 'PATCH' && path === '/api/v1/admin/settings/chat') return await requireSuperAdmin(request, env, updateChatSettings);
-      // 自定义房间管理：管理员可增/改/列表/搜索成员，仅站主可删
+      
       if (method === 'GET' && path === '/api/v1/admin/chat/rooms') return await requireAdmin(request, env, listAdminChatRooms);
       if (method === 'GET' && path === '/api/v1/admin/chat/rooms/search-users') return await requireAdmin(request, env, searchRoomUsers);
       if (method === 'GET' && path.match(/^\/api\/v1\/admin\/chat\/rooms\/[^/]+\/members$/)) return await requireAdmin(request, env, getAdminChatRoomMembers);
       if (method === 'POST' && path === '/api/v1/admin/chat/rooms') return await requireAdmin(request, env, createChatRoom);
       if (method === 'PATCH' && path.match(/^\/api\/v1\/admin\/chat\/rooms\/[^/]+$/)) return await requireAdmin(request, env, updateChatRoom);
       if (method === 'DELETE' && path.match(/^\/api\/v1\/admin\/chat\/rooms\/[^/]+$/)) return await requireSuperAdmin(request, env, deleteChatRoom);
-      // 聊天 DO 数据（存储于聊天 Worker 的 Durable Object，独立于博客媒体库）
+      
       if (method === 'GET' && path === '/api/v1/admin/chat/do/overview') return await requireAdmin(request, env, adminChatDoOverview);
       if (method === 'GET' && path.match(/^\/api\/v1\/admin\/chat\/do\/media\/[^/]+$/)) return await requireAdmin(request, env, adminListChatMedia);
       if (method === 'DELETE' && path.match(/^\/api\/v1\/admin\/chat\/do\/media\/[^/]+\/[^/]+$/)) return await requireAdmin(request, env, adminDeleteChatMedia);
-      // 留言墙管理：管理员可审阅/同意/隐藏，仅站主可删除
+      
       if (method === 'GET' && path === '/api/v1/admin/messages') return await requireAdmin(request, env, listAdminMessages);
       if (method === 'PATCH' && path === '/api/v1/admin/messages/batch') return await requireAdmin(request, env, updateAdminMessagesBatch);
       if (method === 'PATCH' && path.match(/^\/api\/v1\/admin\/messages\/\d+$/)) return await requireAdmin(request, env, updateAdminMessage);
       if (method === 'DELETE' && path.match(/^\/api\/v1\/admin\/messages\/\d+$/)) return await requireSuperAdmin(request, env, deleteAdminMessage);
-      // 评论管理：管理员可审核，仅站主可删除
+      
       if (method === 'GET' && path === '/api/v1/admin/comments') return await requireAdmin(request, env, listAdminComments);
       if (method === 'PATCH' && path === '/api/v1/admin/comments/batch') return await requireAdmin(request, env, updateAdminCommentsBatch);
       if (method === 'PATCH' && path.match(/^\/api\/v1\/admin\/comments\/\d+$/)) return await requireAdmin(request, env, updateAdminComment);
       if (method === 'DELETE' && path.match(/^\/api\/v1\/admin\/comments\/\d+$/)) return await requireSuperAdmin(request, env, deleteAdminComment);
-      // 用户管理：仅站主（列表/改角色/禁删）
+      
       if (method === 'GET' && path === '/api/v1/admin/users') return await requireSuperAdmin(request, env, listAdminUsers);
       if (method === 'PATCH' && path.startsWith('/api/v1/admin/users/')) return await requireSuperAdmin(request, env, updateAdminUser);
       if (method === 'DELETE' && path.match(/^\/api\/v1\/admin\/users\/\d+$/)) return await requireSuperAdmin(request, env, deleteAdminUser);
 
-      // 友链管理：管理员可增/改，仅站主可删
+      
       if (method === 'GET' && path === '/api/v1/admin/friends') return await requireAdmin(request, env, listAdminFriends);
       if (method === 'POST' && path === '/api/v1/admin/friends') return await requireAdmin(request, env, createFriend);
       if (method === 'PATCH' && path.match(/^\/api\/v1\/admin\/friends\/\d+$/)) return await requireAdmin(request, env, updateFriend);
       if (method === 'DELETE' && path.match(/^\/api\/v1\/admin\/friends\/\d+$/)) return await requireSuperAdmin(request, env, deleteFriend);
-      // 友链申请：管理员可通过，仅站主可拒绝/删除
+      
       if (method === 'GET' && path === '/api/v1/admin/friends/applications') return await requireAdmin(request, env, listFriendApplications);
       if (method === 'PATCH' && path.match(/^\/api\/v1\/admin\/friends\/applications\/\d+$/)) return await requireAdmin(request, env, auditFriendApplication);
       if (method === 'DELETE' && path.match(/^\/api\/v1\/admin\/friends\/applications\/\d+$/)) return await requireSuperAdmin(request, env, deleteFriendApplication);
 
-      // 媒体：管理员可上传/改，仅站主可删
+      
       if (method === 'GET' && path === '/api/v1/admin/media') return await requireAdmin(request, env, listAdminMedia);
       if (method === 'GET' && path === '/api/v1/admin/media/usage') return await requireAdmin(request, env, getAdminMediaUsage);
       if (method === 'GET' && path === '/api/v1/admin/media/usage/detail') return await requireAdmin(request, env, getAdminMediaUsageDetail);
@@ -6095,11 +6123,11 @@ export default {
       if (method === 'POST' && path.startsWith('/api/v1/admin/media/finalize/')) return await requireAdmin(request, env, finalizeMediaUpload);
       if (method === 'DELETE' && path.match(/^\/api\/v1\/admin\/media\/\d+$/)) return await requireSuperAdmin(request, env, deleteMedia);
 
-      // 系统/数据库管理接口（仅站主）
+      
       if (method === 'GET' && path === '/api/v1/admin/system/databases') return await requireSuperAdmin(request, env, listDatabases);
       if (method === 'GET' && path === '/api/v1/admin/system/status') return await requireSuperAdmin(request, env, getSystemStatus);
 
-      // AI：写作工具（模型列表/生成/润色/总结/对话）管理员可用；配置/API Key/自定义模型仅站主
+      
       if (method === 'GET' && path === '/api/v1/admin/settings/ai') return await requireAdmin(request, env, getAiSettings);
       if (method === 'PATCH' && path === '/api/v1/admin/settings/ai') return await requireSuperAdmin(request, env, updateAiSettings);
       if (method === 'GET' && path === '/api/v1/admin/ai/models') return await requireAdmin(request, env, listAdminAiModels);
@@ -6115,7 +6143,7 @@ export default {
       if (method === 'PATCH' && path.match(/^\/api\/v1\/admin\/ai\/custom-models\/\d+$/)) return await requireSuperAdmin(request, env, updateAiCustomModel);
       if (method === 'DELETE' && path.match(/^\/api\/v1\/admin\/ai\/custom-models\/\d+$/)) return await requireSuperAdmin(request, env, deleteAiCustomModelHandler);
 
-      // 主题管理接口（仅站主）
+      
       if (method === 'GET' && path === '/api/v1/admin/themes') return await requireSuperAdmin(request, env, listAdminThemes);
       if (method === 'GET' && path.match(/^\/api\/v1\/admin\/themes\/[^/]+$/)) return await requireSuperAdmin(request, env, getAdminTheme);
       if (method === 'POST' && path === '/api/v1/admin/themes') return await requireSuperAdmin(request, env, createAdminTheme);
@@ -6124,12 +6152,12 @@ export default {
       if (method === 'DELETE' && path.match(/^\/api\/v1\/admin\/themes\/[^/]+$/)) return await requireSuperAdmin(request, env, deleteAdminTheme);
       if (method === 'POST' && path === '/api/v1/admin/themes/clear-active') return await requireSuperAdmin(request, env, clearAdminActiveTheme);
 
-      // OpenAI 兼容接口（供外部工具通过 API Key 调用）
+      
       if (method === 'GET' && path === '/api/v1/ai/v1/models') return await openaiModels(request, env);
       if (method === 'POST' && path === '/api/v1/ai/v1/chat/completions') return await openaiChatCompletions(request, env);
       if (method === 'POST' && path === '/api/v1/ai/v1/embeddings') return await openaiEmbeddings(request, env);
 
-      // 静态资源与 SPA 页面：注入站点分享 meta 后返回
+      
       if (env.ASSETS) {
         const assetResponse = await env.ASSETS.fetch(request);
         if (!assetResponse || assetResponse.status === 404) {
@@ -6153,7 +6181,7 @@ export default {
     } catch (err) {
       console.error(err);
       const msg = err.message || 'Internal Server Error';
-      // 仅把真正的绑定缺失/类型错误归类为 D1 绑定异常，避免 SQL 执行错误被误报
+      
       if (
         msg.includes('D1 数据库绑定') ||
         msg.includes("Cannot read properties of undefined (reading 'prepare')") ||

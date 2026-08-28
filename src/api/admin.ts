@@ -253,11 +253,13 @@ export interface AuthSettings {
   loginVerification: boolean;
   registerVerification: boolean;
   forgotPasswordVerification: boolean;
-  verificationMode: 'none' | 'turnstile' | 'math' | 'geetest';
+  verificationMode: 'none' | 'turnstile' | 'math' | 'geetest' | 'hcaptcha';
   turnstileSiteKey: string;
   turnstileSecret: string;
   geetestCaptchaId: string;
   geetestCaptchaKey: string;
+  hcaptchaSiteKey: string;
+  hcaptchaSecret: string;
 }
 
 export async function fetchAuthSettings(): Promise<AuthSettings | null> {

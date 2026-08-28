@@ -6,6 +6,7 @@ import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import SentimentSatisfiedAltIcon from '@mui/icons-material/SentimentSatisfiedAlt';
 import ImageIcon from '@mui/icons-material/Image';
 import PhoneInTalkIcon from '@mui/icons-material/PhoneInTalk';
+import VideocamIcon from '@mui/icons-material/Videocam';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { uploadChatImage } from '@/api/chat';
 
@@ -32,6 +33,8 @@ interface ChatInputProps {
   onTyping?: () => void;
   
   onVoiceCall?: () => void;
+  
+  onVideoCall?: () => void;
 }
 
 function truncate(text: string, max: number): string {
@@ -96,7 +99,7 @@ async function compressToUploadable(file: File): Promise<{ mime: string; base64:
   return { mime: 'image/jpeg', base64 };
 }
 
-export default function ChatInput({ disabled, quote, onClearQuote, onSend, focusSignal, roomKey, onTyping, onVoiceCall }: ChatInputProps) {
+export default function ChatInput({ disabled, quote, onClearQuote, onSend, focusSignal, roomKey, onTyping, onVoiceCall, onVideoCall }: ChatInputProps) {
   const [value, setValue] = useState('');
   
   const [inputFocused, setInputFocused] = useState(false);
@@ -476,6 +479,49 @@ export default function ChatInput({ disabled, quote, onClearQuote, onSend, focus
 
                 <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                   语音通话
+                </Typography>
+
+              </Box>
+
+              {}
+              <Box
+                component="button"
+                type="button"
+                onClick={() => {
+                  close();
+                  onVideoCall?.();
+                }}
+                sx={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: 0.5,
+                  width: 64,
+                  py: 1,
+                  border: 'none',
+                  borderRadius: 2,
+                  bgcolor: 'transparent',
+                  cursor: 'pointer',
+                  '&:hover': (t) => ({ bgcolor: alpha(t.palette.text.primary, 0.06) }),
+                }}
+              >
+                <Box
+                  sx={{
+                    width: 46,
+                    height: 46,
+                    borderRadius: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    bgcolor: (t) => alpha(t.palette.success.main, 0.14),
+                    color: 'success.main',
+                  }}
+                >
+                  <VideocamIcon sx={{ fontSize: 28 }} />
+                </Box>
+
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                  视频通话
                 </Typography>
 
               </Box>

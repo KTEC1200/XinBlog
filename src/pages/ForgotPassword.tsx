@@ -34,7 +34,7 @@ export function ForgotPassword() {
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   const [sendingCode, setSendingCode] = useState(false);
-  const [captchaMode, setCaptchaMode] = useState<'none' | 'turnstile' | 'math' | 'geetest'>('none');
+  const [captchaMode, setCaptchaMode] = useState<'none' | 'turnstile' | 'math' | 'geetest' | 'hcaptcha'>('none');
   const [forgotRequired, setForgotRequired] = useState(false);
   const [captchaPayload, setCaptchaPayload] = useState<CaptchaPayload | null>(null);
   const captchaRef = useRef<HumanCaptchaHandle>(null);

@@ -10,6 +10,7 @@ import {
   Grow,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import {
   fetchCaptchaConfig,
   fetchMathCaptcha,
@@ -30,6 +31,26 @@ function loadScript(src: string): Promise<void> {
     s.onload = () => resolve();
     s.onerror = () => reject(new Error('加载验证 SDK 失败'));
     document.head.appendChild(s);
+  });
+}
+
+
+function waitForHcaptcha(timeoutMs = 8000): Promise<boolean> {
+  return new Promise((resolve) => {
+    const start = Date.now();
+    const check = () => {
+      const w = window as unknown as { hcaptcha?: unknown };
+      if (w.hcaptcha) {
+        resolve(true);
+        return;
+      }
+      if (Date.now() - start > timeoutMs) {
+        resolve(false);
+        return;
+      }
+      setTimeout(check, 100);
+    };
+    check();
   });
 }
 
@@ -59,10 +80,15 @@ export const HumanCaptcha = forwardRef<HumanCaptchaHandle, HumanCaptchaProps>(
     const [math, setMath] = useState<{ question: string; token: string } | null>(null);
     const [mathAnswer, setMathAnswer] = useState('');
     const [mathLoading, setMathLoading] = useState(false);
+    const [mathSubmitted, setMathSubmitted] = useState(false);
 
     
     const turnstileRef = useRef<HTMLDivElement | null>(null);
     const [turnstileError, setTurnstileError] = useState(false);
+
+    
+    const hcaptchaContainerRef = useRef<HTMLDivElement | null>(null);
+    const [hcaptchaError, setHcaptchaError] = useState(false);
 
     
     const geetestObjRef = useRef<{
@@ -72,6 +98,7 @@ export const HumanCaptcha = forwardRef<HumanCaptchaHandle, HumanCaptchaProps>(
     const [geetestError, setGeetestError] = useState(false);
     const [geetestReady, setGeetestReady] = useState(false);
     const [geetestLoading, setGeetestLoading] = useState(false);
+    const [geetestSuccess, setGeetestSuccess] = useState(false);
 
     
     const trigger = useCallback(() => {
@@ -97,8 +124,11 @@ export const HumanCaptcha = forwardRef<HumanCaptchaHandle, HumanCaptchaProps>(
     setConfig(null);
     setMath(null);
     setMathAnswer('');
+    setMathSubmitted(false);
     setTurnstileError(false);
+    setHcaptchaError(false);
     setGeetestError(false);
+    setGeetestSuccess(false);
     fetchCaptchaConfig().then((cfg) => {
       if (cancelled) return;
       setLoadingConfig(false);
@@ -201,6 +231,49 @@ export const HumanCaptcha = forwardRef<HumanCaptchaHandle, HumanCaptchaProps>(
 
   
   useEffect(() => {
+    if (!open || !config || config.mode !== 'hcaptcha') return;
+    let cancelled = false;
+    (async () => {
+      try {
+        await loadScript('https://js.hcaptcha.com/1/api.js?render=explicit');
+        if (cancelled) return;
+        const ready = await waitForHcaptcha();
+        if (cancelled) return;
+        const w = window as unknown as {
+          hcaptcha?: {
+            render: (el: HTMLElement, opts: Record<string, unknown>) => void;
+          };
+        };
+        if (!ready || !w.hcaptcha) {
+          setHcaptchaError(true);
+          return;
+        }
+        if (hcaptchaContainerRef.current) {
+          w.hcaptcha.render(hcaptchaContainerRef.current, {
+            sitekey: config.hcaptchaSiteKey,
+            size: 'normal',
+            theme: theme.palette.mode,
+            callback: (token: string) => {
+              if (cancelled) return;
+              finish({ mode: 'hcaptcha', hcaptchaToken: token });
+            },
+            'error-callback': () => {
+              if (!cancelled) setHcaptchaError(true);
+            },
+          });
+        }
+      } catch {
+        if (!cancelled) setHcaptchaError(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    
+  }, [open, config]);
+
+  
+  useEffect(() => {
     if (!open || !config || config.mode !== 'geetest') return;
     let cancelled = false;
     (async () => {
@@ -242,6 +315,7 @@ export const HumanCaptcha = forwardRef<HumanCaptchaHandle, HumanCaptchaProps>(
           });
           captchaObj.onSuccess(() => {
             setGeetestLoading(false);
+            setGeetestSuccess(true);
             const v = captchaObj.getValidate();
             if (!v) return;
             finish({
@@ -271,9 +345,10 @@ export const HumanCaptcha = forwardRef<HumanCaptchaHandle, HumanCaptchaProps>(
 
   const handleMathSubmit = () => {
     const trimmed = mathAnswer.trim();
-    if (!math || trimmed === '') return;
+    if (!math || trimmed === '' || mathSubmitted) return;
     const num = Number(trimmed);
     if (!Number.isFinite(num)) return;
+    setMathSubmitted(true);
     finish({ mode: 'math', mathToken: math.token, mathAnswer: num });
   };
 
@@ -297,7 +372,16 @@ export const HumanCaptcha = forwardRef<HumanCaptchaHandle, HumanCaptchaProps>(
 
           </Typography>
 
-          {math ? (
+          {mathSubmitted ? (
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, width: '100%', minHeight: 48 }}>
+              <CheckCircleIcon fontSize="small" color="success" />
+              <Typography variant="body2" sx={{ color: 'success.main', fontWeight: 600 }}>
+                已提交
+              </Typography>
+
+            </Box>
+
+          ) : math ? (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%', maxWidth: 340 }}>
               <TextField
                 type="number"
@@ -335,7 +419,7 @@ export const HumanCaptcha = forwardRef<HumanCaptchaHandle, HumanCaptchaProps>(
             type="button"
             size="small"
             onClick={loadMathQuestion}
-            disabled={mathLoading}
+            disabled={mathLoading || mathSubmitted}
             sx={{ textTransform: 'none' }}
           >
             换一题
@@ -361,6 +445,21 @@ export const HumanCaptcha = forwardRef<HumanCaptchaHandle, HumanCaptchaProps>(
       );
     }
 
+    if (mode === 'hcaptcha') {
+      return (
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', minHeight: 78, justifyContent: 'center' }}>
+          <div ref={hcaptchaContainerRef} />
+          {hcaptchaError && (
+            <Typography variant="body2" color="error" sx={{ textAlign: 'center', mt: 1 }}>
+              验证加载失败，请关闭后重试
+            </Typography>
+
+          )}
+        </Box>
+
+      );
+    }
+
     if (mode === 'geetest') {
       return (
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', gap: 1 }}>
@@ -368,11 +467,24 @@ export const HumanCaptcha = forwardRef<HumanCaptchaHandle, HumanCaptchaProps>(
             variant="outlined"
             size="large"
             onClick={() => trigger()}
-            disabled={!geetestReady || geetestLoading}
-            startIcon={geetestLoading ? <CircularProgress size={18} color="inherit" /> : undefined}
+            disabled={!geetestReady || geetestLoading || geetestSuccess}
+            startIcon={
+              geetestSuccess ? (
+                <CheckCircleIcon fontSize="small" />
+              ) : geetestLoading ? (
+                <CircularProgress size={18} color="inherit" />
+              ) : undefined
+            }
+            color={geetestSuccess ? 'success' : 'primary'}
             sx={{ borderRadius: 1, fontWeight: 700, minWidth: 180 }}
           >
-            {!geetestReady ? '验证加载中...' : geetestLoading ? '验证中...' : '点击验证'}
+            {geetestSuccess
+              ? '验证成功'
+              : !geetestReady
+                ? '验证加载中...'
+                : geetestLoading
+                  ? '验证中...'
+                  : '点击验证'}
           </Button>
 
           {geetestError && (

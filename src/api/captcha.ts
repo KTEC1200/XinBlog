@@ -1,7 +1,7 @@
 
 
 
-export type CaptchaMode = 'none' | 'turnstile' | 'math' | 'geetest';
+export type CaptchaMode = 'none' | 'turnstile' | 'math' | 'geetest' | 'hcaptcha';
 
 export interface CaptchaConfig {
   mode: CaptchaMode;
@@ -10,6 +10,7 @@ export interface CaptchaConfig {
   forgotRequired: boolean;
   turnstileSiteKey: string;
   geetestCaptchaId: string;
+  hcaptchaSiteKey: string;
 }
 
 export interface MathCaptcha {
@@ -27,6 +28,7 @@ export interface CaptchaPayload {
   captchaOutput?: string;
   passToken?: string;
   genTime?: string;
+  hcaptchaToken?: string;
 }
 
 export async function fetchCaptchaConfig(): Promise<CaptchaConfig | null> {

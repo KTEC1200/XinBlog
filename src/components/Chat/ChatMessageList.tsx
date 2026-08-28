@@ -380,6 +380,11 @@ export default function ChatMessageList({
                 sx={{
                   cursor: 'context-menu',
                   touchAction: 'pan-y', 
+                  minWidth: 0,
+                  maxWidth: '100%',
+                  
+                  wordBreak: 'break-word',
+                  overflowWrap: 'break-word',
                   px: 1.5,
                   py: 0.9,
                   
