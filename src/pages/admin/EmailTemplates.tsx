@@ -50,7 +50,7 @@ const SAMPLE_VALUES: Record<string, string> = {
   siteTitle: 'XinBlog',
 };
 
-// 与后端 defaultEmailTemplate 保持一致的兜底模板，避免接口异常时页面空白
+
 const defaultTemplate: EmailTemplateSettings = {
   subject: '您的注册验证码',
   html: `<!DOCTYPE html>
@@ -101,7 +101,7 @@ const defaultTemplate: EmailTemplateSettings = {
   text: '您好，{{username}}：感谢您注册 {{siteName}}，验证码是 {{code}}，{{expireMinutes}} 分钟内有效。如非本人操作请忽略。',
 };
 
-// 与后端 defaultResetEmailTemplate 保持一致的兜底模板（找回密码）
+
 const defaultResetTemplate: EmailTemplateSettings = {
   subject: '您的密码重置验证码',
   html: `<!DOCTYPE html>
@@ -245,7 +245,7 @@ export function AdminEmailTemplates() {
 
   const handleSave = async () => {
     setSaving(true);
-    // 后端返回已保存的数据，直接用其更新本地状态，避免 D1 读副本滞后导致保存后回退到旧数据
+    
     const saved = await updateEmailTemplateSettings(template, kind);
     if (saved) {
       setTemplate(saved);
@@ -337,9 +337,11 @@ export function AdminEmailTemplates() {
           <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 600 }}>
             魔法变量
           </Typography>
+
           <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
             点击变量可插入到当前聚焦的输入框中；发送邮件时会自动替换为实际内容。
           </Typography>
+
           <Paper
             variant="outlined"
             sx={{
@@ -371,22 +373,30 @@ export function AdminEmailTemplates() {
                 />
               ))}
             </Box>
+
             <Stack spacing={0.5}>
               {MAGIC_VARIABLES.map((v) => (
                 <Typography key={v.key} variant="caption" color="text.secondary">
                   <Box component="span" sx={{ fontFamily: '"Fira Code", monospace', color: 'primary.main', fontWeight: 500 }}>
                     {'{{'}{v.key}{'}}'}
                   </Box>{' '}
+
                   — {v.desc}
                 </Typography>
+
               ))}
             </Stack>
+
           </Paper>
+
         </Box>
+
 
         <FloatingSaveButton show={isDirty} saving={saving} onClick={handleSave} label="保存模板" />
       </Stack>
+
     </Paper>
+
   );
 
   const renderPreview = () => (
@@ -407,16 +417,21 @@ export function AdminEmailTemplates() {
         <Typography variant="h6" sx={{ fontWeight: 700 }}>
           实时预览
         </Typography>
+
       </Box>
+
 
       <Box sx={{ mb: 2 }}>
         <Typography variant="body2" color="text.secondary">
           主题
         </Typography>
+
         <Typography variant="body1" sx={{ fontWeight: 500, overflowWrap: 'break-word' }}>
           {preview.subject || '（未填写主题）'}
         </Typography>
+
       </Box>
+
 
       <Box sx={{ flex: 1, minHeight: 240, border: '1px solid', borderColor: 'divider', borderRadius: 1, overflow: 'hidden' }}>
         <iframe
@@ -427,10 +442,12 @@ export function AdminEmailTemplates() {
         />
       </Box>
 
+
       <Box sx={{ mt: 2 }}>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
           纯文本版本
         </Typography>
+
         <Paper
           variant="outlined"
           sx={{
@@ -447,8 +464,11 @@ export function AdminEmailTemplates() {
         >
           {preview.text || '（未填写纯文本版本）'}
         </Paper>
+
       </Box>
+
     </Paper>
+
   );
 
   if (loading) {
@@ -461,9 +481,11 @@ export function AdminEmailTemplates() {
       <Typography variant="h5" sx={{ mb: 1, fontWeight: 700 }}>
         邮件模板
       </Typography>
+
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
         自定义验证码邮件的主题、HTML 和纯文本内容。
       </Typography>
+
 
       <ToggleButtonGroup
         exclusive
@@ -474,13 +496,17 @@ export function AdminEmailTemplates() {
         aria-label="邮件模板类型"
       >
         <ToggleButton value="register">注册验证模板</ToggleButton>
+
         <ToggleButton value="reset">重置密码模板</ToggleButton>
+
       </ToggleButtonGroup>
+
 
       {loadError && (
         <Alert severity="warning" sx={{ mb: 3, borderRadius: 1 }}>
           {loadError}
         </Alert>
+
       )}
 
       {isMobileAdmin ? (
@@ -488,17 +514,23 @@ export function AdminEmailTemplates() {
           {renderEditor()}
           {renderPreview()}
         </Stack>
+
       ) : (
         <Grid container spacing={3} alignItems="stretch">
           <Grid item xs={12} lg={7}>
             {renderEditor()}
           </Grid>
+
           <Grid item xs={12} lg={5}>
             {renderPreview()}
           </Grid>
+
         </Grid>
+
       )}
     </Box>
+
     </Fade>
+
   );
 }

@@ -191,7 +191,7 @@ export async function agentChatStream(
   });
 }
 
-// ---- Agent 持久会话（对标 dsh-edge /api/sessions） ----
+
 export interface AgentSession {
   id: string;
   title: string;
@@ -211,10 +211,10 @@ export interface AgentTrailBlock {
 }
 export interface AgentSessionDetail extends AgentSession {
   messages: { role: 'user' | 'assistant'; content: string; trail?: AgentTrailBlock[] }[];
-  partIndex?: number; // 当前返回片 index（单分片加载时）
-  partTotal?: number; // 总片数
+  partIndex?: number; 
+  partTotal?: number; 
 }
-// 同步校验返回
+
 export interface AgentSessionCheck {
   id: string;
   title: string;
@@ -238,7 +238,7 @@ export async function fetchAgentSession(id: string): Promise<AgentSessionDetail 
   return res.data.session;
 }
 
-// 分片加载：取指定 part_index 的单个分片消息（0 为最早；负值落到最后一片）
+
 export async function fetchAgentSessionPart(id: string, partIndex: number): Promise<AgentSessionDetail | null> {
   const q = new URLSearchParams({ part: String(partIndex) });
   const res = await apiGet<{ session: AgentSessionDetail }>(
@@ -248,7 +248,7 @@ export async function fetchAgentSessionPart(id: string, partIndex: number): Prom
   return res.data.session;
 }
 
-// 同步校验：传本地已加载的用户消息条数(localCount)，后端用「云端回合数 > localCount」判断是否需拉取
+
 export async function fetchAgentSessionCheck(
   id: string,
   _localUpdated: number,
@@ -272,19 +272,19 @@ export async function clearAgentSessions(): Promise<boolean> {
   return res.code === 0;
 }
 
-// 对挂起中的写操作确认/取消：返回后同一 SSE 流会继续执行并回传结果
+
 export async function confirmAgentAction(token: string, approved: boolean): Promise<boolean> {
   const res = await apiPost<{ ok: boolean }>('/api/v1/admin/ai/agent/confirm', { token, approved });
   return res.code === 0;
 }
 
-// 回滚 AI 已执行的写操作（24 小时内有效，仅本人可回滚）
+
 export async function undoAgentWrite(undoId: string): Promise<{ ok: boolean; msg?: string }> {
   const res = await apiPost<{ ok: boolean }>('/api/v1/admin/ai/agent/undo', { undoId });
   return { ok: res.code === 0, msg: res.msg };
 }
 
-// ---- 管理后台：AI 写操作回滚记录管理（云端持久化，跨设备可见） ----
+
 export interface AiUndoLog {
   id: string;
   skill: string;

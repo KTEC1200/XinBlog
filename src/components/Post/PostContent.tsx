@@ -23,7 +23,7 @@ interface PostContentProps {
 
 const headingLevels = [1, 2, 3, 4, 5, 6] as const;
 
-/** 将 React children 扁平化为纯文本，用于生成稳定且可读的标题 id */
+
 function flattenText(
   children: React.ReactNode,
   out: string[] = []
@@ -39,7 +39,7 @@ function flattenText(
   return out;
 }
 
-/** 生成 URL/选择器安全的 slug；保留中文汉字 */
+
 function slugify(text: string): string {
   return (
     text
@@ -49,20 +49,11 @@ function slugify(text: string): string {
   );
 }
 
-/**
- * 生成【稳定的、跨渲染一致】的标题 id。
- *
- * 关键：每个渲染周期开始时都重置出现次数的计数。
- * 因为 remark-math / rehype-katex 是异步动态加载的，插件就绪后会触发
- * ReactMarkdown 二次渲染。若计数在渲染间累积（只用 content 变化时重置），
- * 二次渲染会把同一批标题的 id 依次递增（...-1、...-2），导致目录里
- * 已提取的旧 id 在 DOM 中再也找不到，点击锚点全部失效。
- * 这里改为“每次渲染清零”，则首次渲染与二次渲染生成的 id 数组完全一致。
- */
+
 function useHeadingIds() {
   const seenRef = useRef<Record<string, number>>({});
 
-  // 直接在当前渲染周期对齐：保证本次渲染内所有标题 id 从同一基线推导
+  
   seenRef.current = {};
 
   return {
@@ -111,8 +102,8 @@ function PreBlock({ children }: { children?: React.ReactNode }) {
   const preRef = useRef<HTMLPreElement>(null);
 
   const handleCopy = async () => {
-    // 直接从渲染后的 DOM 取纯文本，避免语法高亮把 code 的 children
-    // 变成 <span> 元素数组时 String() 得到 "[object Object]"
+    
+    
     const codeText = preRef.current?.textContent ?? '';
     if (!codeText) return;
     try {
@@ -120,7 +111,7 @@ function PreBlock({ children }: { children?: React.ReactNode }) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // 复制失败静默处理
+      
     }
   };
 
@@ -146,9 +137,13 @@ function PreBlock({ children }: { children?: React.ReactNode }) {
         >
           {copied ? <Check fontSize="small" /> : <ContentCopy fontSize="small" />}
         </IconButton>
+
       </Tooltip>
+
       <pre ref={preRef} style={{ margin: 0 }}>{children}</pre>
+
     </Box>
+
   );
 }
 
@@ -164,7 +159,7 @@ export function PostContent({ content, onHeadingsExtracted }: PostContentProps) 
     rehypeKatex: unknown;
   } | null>(null);
 
-  // 动态加载 KaTeX 插件
+  
   useEffect(() => {
     if (!enableLatex) {
       setLatexPlugins(null);
@@ -194,9 +189,9 @@ export function PostContent({ content, onHeadingsExtracted }: PostContentProps) 
       ],
       attributes: {
         ...defaultSchema.attributes,
-        // 允许 KaTeX 输出的 span 携带 className（如 katex, katex-mathml, katex-html 等）
+        
         span: [...((defaultSchema.attributes && defaultSchema.attributes['*']) || []), 'className', 'style', 'ariaHidden'],
-        // 允许 MathML 元素携带 className
+        
         math: ['xmlns', 'display', 'className'],
         annotation: ['encoding', 'className'],
         mrow: ['className'],
@@ -216,7 +211,7 @@ export function PostContent({ content, onHeadingsExtracted }: PostContentProps) 
   const remarkPlugins = useMemo(() => {
     const plugins = [remarkGfm];
     if (latexPlugins?.remarkMath) {
-      // 显式启用 $ 行内公式和 $$ 块级公式
+      
       plugins.push([latexPlugins.remarkMath, {
         inlineMath: [['$', '$'], ['\\(', '\\)']],
         displayMath: [['$$', '$$'], ['\\[', '\\]']]
@@ -246,12 +241,12 @@ export function PostContent({ content, onHeadingsExtracted }: PostContentProps) 
   });
 
   useEffect(() => {
-    // DOM 渲染完成后提取标题信息，供目录组件使用
+    
     if (!rootRef.current) return;
     const headings = extractHeadings(rootRef.current);
     onHeadingsExtracted?.(headings);
-    // latexPlugins 变化表示 KaTeX 已异步加载完毕并重新渲染，
-    // 此时依赖最新的 DOM 重新提取一遍标题锚点，保证 id 与最终渲染一致
+    
+    
   }, [content, onHeadingsExtracted, latexPlugins]);
   const headingComponents: Components = {};
   headingLevels.forEach((level) => {
@@ -263,8 +258,9 @@ export function PostContent({ content, onHeadingsExtracted }: PostContentProps) 
       <Tag id={getId(flattenText(children).join(' '), level)} {...props}>
         {children}
       </Tag>
+
     );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    
     (headingComponents as any)[Tag] = Heading;
   });
 
@@ -403,8 +399,8 @@ export function PostContent({ content, onHeadingsExtracted }: PostContentProps) 
             fontWeight: 700,
           },
         },
-        // ========== KaTeX 公式排版 ==========
-        // 块级公式容器：溢出滚动 + 间距 + 背景区分
+        
+        
         '& .katex-display': {
           overflow: 'auto hidden',
           overflowWrap: 'normal',
@@ -428,12 +424,12 @@ export function PostContent({ content, onHeadingsExtracted }: PostContentProps) 
             borderRadius: 3,
           },
         },
-        // 包含行内公式的段落增加行高，避免上下标重叠
+        
         '& p:has(.katex)': {
           lineHeight: 2.2,
         },
-        // KaTeX 继承父级文字颜色，解决深色模式黑字问题
-        // vertical-align 补偿 1.21em 字号导致的基线偏移
+        
+        
         '& .katex': {
           fontFeatureSettings: '"kern"',
           color: 'inherit',
@@ -448,8 +444,8 @@ export function PostContent({ content, onHeadingsExtracted }: PostContentProps) 
           ...headingComponents,
           pre: PreBlock,
           a: ({ href, node, children, ...props }) => {
-            // http(s)、mailto、tel、锚点(#) → 新标签打开并加安全属性；
-            // 站内相对路径(/xxx, ./xxx, ../xxx) 保持当前页跳转。
+            
+            
             const openInNewTab = /^(https?:|mailto:|tel:|#)/i.test(href || '');
             return (
               <a
@@ -460,6 +456,7 @@ export function PostContent({ content, onHeadingsExtracted }: PostContentProps) 
               >
                 {children}
               </a>
+
             );
           },
           table: ({ children }) => (
@@ -468,12 +465,14 @@ export function PostContent({ content, onHeadingsExtracted }: PostContentProps) 
               onTouchMove={(e) => e.stopPropagation()}
             >
               <table>{children}</table>
+
             </Box>
+
           ),
           img: ({ src, alt }) =>
             imageDisplayMode === 'natural' ? (
-              // 自然模式：用 LazyImage，图片按真实比例渲染、完整显示、不强制固定占位。
-              // 长图宽度自动收窄、长度完整可见，视觉上最贴合原图。
+              
+              
               <Box
                 component="span"
                 sx={{ display: 'block', width: '100%', cursor: 'zoom-in' }}
@@ -495,11 +494,12 @@ export function PostContent({ content, onHeadingsExtracted }: PostContentProps) 
                   }}
                 />
               </Box>
+
             ) : (
-              // 固定模式（默认）：传统塌陷盒，外层只给定宽和 padding-top
-              // （固定 4/3 比例），高度 = 宽度 * 3/4，完全由本元素自身宽度决定，
-              // 不依赖任何父级高度。这是最可靠的“固定占位区”——图片加载前后
-              // 高度都恒定，目录锚点永远算得准。
+              
+              
+              
+              
               <Box
                 component="span"
                 sx={{
@@ -514,8 +514,7 @@ export function PostContent({ content, onHeadingsExtracted }: PostContentProps) 
                 }}
                 onClick={() => src && setLightbox({ open: true, src, alt: alt || '' })}
               >
-                {/* 图片绝对定位于 4/3 区域内，objectFit: contain 保证整张图完整显示、
-                    不会溢出、不会被裁剪；区域恒定所以绝不往外顶 */}
+                {}
                 <Box
                   component="img"
                   src={src}
@@ -533,11 +532,13 @@ export function PostContent({ content, onHeadingsExtracted }: PostContentProps) 
                   }}
                 />
               </Box>
+
             ),
         }}
       >
         {content}
       </ReactMarkdown>
+
       <ImageLightbox
         open={lightbox.open}
         src={lightbox.src}
@@ -545,6 +546,8 @@ export function PostContent({ content, onHeadingsExtracted }: PostContentProps) 
         onClose={() => setLightbox((prev) => ({ ...prev, open: false }))}
       />
     </Box>
+
     </Fade>
+
   );
 }

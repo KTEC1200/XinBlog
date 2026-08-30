@@ -12,7 +12,7 @@ interface TicketParams extends Record<string, unknown> {
   otherSharpCorner: BubbleCorners;
 }
 
-/** 票据气泡：暖色底 + 深色虚线描边，像一张入场券/票据 */
+
 export const ticketBubbleRenderer: ChatBubbleRenderer<TicketParams> = {
   id: 'ticket',
   name: '票据',

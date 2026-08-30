@@ -65,7 +65,7 @@ export async function fetchDatabases(): Promise<DatabasesResponse | null> {
   return res.data;
 }
 
-// ---------- 文章管理 ----------
+
 
 export interface AdminPost {
   id: number;
@@ -122,7 +122,7 @@ export async function deleteAdminPost(id: number): Promise<{ msg?: string }> {
   return {};
 }
 
-// ---------- 媒体管理 ----------
+
 
 export interface AdminMedia {
   id: number;
@@ -204,7 +204,7 @@ export async function updateAdminMedia(
   return { data: res.data };
 }
 
-// ---------- 友链管理 ----------
+
 
 export interface AdminTag {
   id: number;
@@ -244,7 +244,7 @@ export async function deleteAdminTag(id: number): Promise<{ msg?: string }> {
   return {};
 }
 
-// ---------- 认证/安全设置 ----------
+
 
 export interface AuthSettings {
   allowRegister: boolean;
@@ -273,7 +273,7 @@ export async function updateAuthSettings(settings: AuthSettings): Promise<boolea
   return res.code === 0;
 }
 
-// ---------- 邮箱设置 ----------
+
 
 export interface EmailSettings {
   provider: 'resend' | 'smtp';
@@ -298,7 +298,7 @@ export async function updateEmailSettings(settings: Partial<EmailSettings>): Pro
   return res.code === 0;
 }
 
-// ---------- 邮件模板 ----------
+
 
 export interface EmailTemplateSettings {
   subject: string;
@@ -335,7 +335,7 @@ export async function updateEmailTemplateSettings(
   return { subject, html, text };
 }
 
-// ---------- 评论邮件通知 ----------
+
 
 export interface CommentNotifySettings {
   enabled: boolean;
@@ -358,7 +358,7 @@ export async function updateCommentNotifySettings(settings: Partial<CommentNotif
   return res.code === 0;
 }
 
-// ---------- 用户管理 ----------
+
 
 export interface AdminUser {
   id: number;
@@ -394,7 +394,7 @@ export async function deleteAdminUser(id: number): Promise<{ msg?: string }> {
   return {};
 }
 
-// ---------- 主题管理 ----------
+
 
 export interface AdminTheme {
   id: string;

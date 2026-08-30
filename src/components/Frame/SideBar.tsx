@@ -50,8 +50,8 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
   const { config } = useSiteStore();
   const messageWallEnabled = useMessageWallEnabled();
   const chatEnabled = useChatEnabled();
-  // AI 助手入口走 site config（与友链/音乐一致），首次绘制即可见，避免条目晚插入造成闪烁；
-  // 且仅「管理员/站主」可见，普通用户与游客看不到。
+  
+  
   const agentEnabled = config.agentEnabled === true && isContentAdmin(user?.role);
   const [isAnimating, setIsAnimating] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
@@ -95,7 +95,7 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
   };
 
   const drawerContent = (collapsed: boolean) => {
-    // 收起状态：顶部展开按钮 + 图标导航
+    
     if (collapsed) {
       return (
         <Box
@@ -110,7 +110,7 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
             px: 1,
           }}
         >
-          {/* Expand button on top */}
+          {}
           <IconButton
             onClick={handleToggle}
             aria-label="展开侧边栏"
@@ -130,7 +130,8 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
             <ChevronRight />
           </IconButton>
 
-          {/* Mini Navigation */}
+
+          {}
           <Stack
             sx={{
               flexGrow: 1,
@@ -170,7 +171,9 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
                   >
                     {item.icon}
                   </IconButton>
+
                 </Tooltip>
+
               );
             })}
 
@@ -200,10 +203,14 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
                 >
                   <Settings fontSize="small" />
                 </IconButton>
+
               </Tooltip>
+
             )}
           </Stack>
+
         </Box>
+
       );
     }
 
@@ -217,11 +224,12 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
           overflow: 'hidden',
         }}
       >
-        {/* Header */}
+        {}
         <DrawerHeaderContainer>
           <Box sx={{ width: '100%', pl: 1.5, cursor: 'pointer', textDecoration: 'none' }} component={Link} to="/">
             <Logo />
           </Box>
+
           <Box>
             <IconButton
               onClick={() => {
@@ -235,10 +243,13 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
             >
               <ChevronLeft />
             </IconButton>
+
           </Box>
+
         </DrawerHeaderContainer>
 
-        {/* Navigation - 独立滚动区域 */}
+
+        {}
         <Stack
           sx={{
             flexGrow: 1,
@@ -275,14 +286,17 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
                 >
                   {item.icon}
                 </Box>
+
                 <Typography variant="body2" fontWeight={600} noWrap>
                   {item.title}
                 </Typography>
+
               </StyledNavButton>
+
             );
           })}
 
-          {/* Admin Entry - 仅超级管理员可见 */}
+          {}
           {isContentAdmin(user?.role) && (
             <StyledNavButton
               active={location.pathname.startsWith('/admin')}
@@ -305,14 +319,18 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
               >
                 <Settings fontSize="small" />
               </Box>
+
               <Typography variant="body2" fontWeight={600} noWrap>
                 管理后台
               </Typography>
+
             </StyledNavButton>
+
           )}
         </Stack>
 
-        {/* Footer: login/logout & user info */}
+
+        {}
         <Box
           sx={{
             px: 1.5,
@@ -342,12 +360,17 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
             >
               {isAuthenticated ? <Logout fontSize="small" /> : <Login fontSize="small" />}
             </Box>
+
             <Typography variant="body2" fontWeight={600} noWrap>
               {isAuthenticated && user ? user.username : '登录'}
             </Typography>
+
           </StyledNavButton>
+
         </Box>
+
       </Box>
+
     );
   };
 
@@ -355,7 +378,7 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
 
   return (
     <>
-      {/* 移动端抽屉 */}
+      {}
       <Drawer
         variant="temporary"
         open={mobileOpen}
@@ -375,7 +398,8 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
         {drawerContent(false)}
       </Drawer>
 
-      {/* 桌面端侧边栏；移动端保留一个 1px 的占位侧边栏，保持布局结构一致 */}
+
+      {}
       <Drawer
         variant="persistent"
         anchor="left"
@@ -384,7 +408,7 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
           display: 'block',
           width: { xs: `${mobileDrawerWidth}px`, md: currentWidth },
           flexShrink: 0,
-          // 根元素（flex 子项）也要有过渡：宽度逐帧变化 → flex 逐帧重排 → 主页内容被平滑推挤
+          
           transition: (theme) =>
             theme.transitions.create('width', {
               easing: theme.transitions.easing.sharp,
@@ -419,7 +443,9 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
             drawerContent(sidebarCollapsed)
           )}
         </Box>
+
       </Drawer>
+
       <LogoutConfirmDialog
         open={logoutOpen}
         onClose={() => setLogoutOpen(false)}
@@ -429,6 +455,7 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
         }}
       />
     </>
+
   );
 }
 

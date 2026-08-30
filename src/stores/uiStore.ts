@@ -30,7 +30,7 @@ export const useUIStore = create<UIState>()(
       loaded: false,
 
       loadConfig: async () => {
-        // 文章布局改为全局，直接读取已加载的站点配置，避免重复请求 /api/v1/site
+        
         const siteLayout = useSiteStore.getState().config.postLayout;
         if (siteLayout && ['grid', 'list', 'magazine'].includes(siteLayout)) {
           set({ postLayout: siteLayout, loaded: true });

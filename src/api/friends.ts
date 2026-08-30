@@ -43,7 +43,7 @@ export async function deleteAdminFriend(id: number): Promise<void> {
   }
 }
 
-// ---------- 友链申请 ----------
+
 
 export interface FriendApplyPayload {
   name: string;

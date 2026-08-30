@@ -12,7 +12,7 @@ interface StickyParams extends Record<string, unknown> {
   otherSharpCorner: BubbleCorners;
 }
 
-/** 手账便签：浅色底 + 右下角折角 + 轻投影，像贴在手账上的便利贴 */
+
 export const stickyBubbleRenderer: ChatBubbleRenderer<StickyParams> = {
   id: 'sticky',
   name: '手账',
@@ -58,7 +58,7 @@ export const stickyBubbleRenderer: ChatBubbleRenderer<StickyParams> = {
         borderRadius: `${mine['top-left']}px ${mine['top-right']}px ${mine['bottom-right']}px ${mine['bottom-left']}px`,
         boxShadow: '2px 3px 6px rgba(0,0,0,0.12)',
         border: 'none',
-        // 右下折角：用渐变切出的三角
+        
         background: `linear-gradient(135deg, ${mineBg} 0%, ${mineBg} 78%, rgba(0,0,0,0.12) 78%, rgba(0,0,0,0.06) 92%, transparent 92%), ${mineBg}`,
       },
       other: {

@@ -18,7 +18,7 @@ export function TagsWidget({ config }: { config: HeroWidgetConfig }) {
   const [tags, setTags] = useState<Tag[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // 根据组件尺寸决定展示密度
+  
   const { w, h } = config;
   const isTiny = w === 1 && h === 1;
   const isTall = w === 1 && h >= 2;
@@ -67,16 +67,20 @@ export function TagsWidget({ config }: { config: HeroWidgetConfig }) {
         <Typography variant="subtitle2" fontWeight={700}>
           文章标签
         </Typography>
+
       </Box>
+
 
       {loading ? (
         <Typography variant="body2" color="text.secondary">
           加载中...
         </Typography>
+
       ) : tags.length === 0 ? (
         <Typography variant="body2" color="text.secondary">
           暂无标签
         </Typography>
+
       ) : (
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, alignContent: 'flex-start', overflow: 'hidden' }}>
           {tags.map((tag) => (
@@ -100,7 +104,9 @@ export function TagsWidget({ config }: { config: HeroWidgetConfig }) {
             />
           ))}
         </Box>
+
       )}
     </Box>
+
   );
 }

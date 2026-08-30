@@ -31,7 +31,7 @@ export async function updateUserProfile(profile: UserProfile): Promise<boolean> 
   return updateUserSettings({ ui: { profile } });
 }
 
-/** 修改登录账号密码：校验当前密码后更新 */
+
 export async function changePassword(currentPassword: string, newPassword: string): Promise<{ ok: boolean; msg?: string }> {
   const res = await apiPost('/api/v1/user/change-password', { currentPassword, newPassword });
   return res.code === 0 ? { ok: true } : { ok: false, msg: res.msg || '修改失败' };

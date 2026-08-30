@@ -29,5 +29,6 @@ export function PostListHorizontal({ posts, theme }: PostListHorizontalProps) {
         />
       ))}
     </Box>
+
   );
 }

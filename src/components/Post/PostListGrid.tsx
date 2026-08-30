@@ -21,7 +21,9 @@ export function PostListGrid({ posts, theme }: PostListGridProps) {
         <Grid item xs={12} md={6} lg={4} key={post.id} sx={{ display: 'flex', flexDirection: 'column' }}>
           <PostCard post={post} theme={theme} />
         </Grid>
+
       ))}
     </Grid>
+
   );
 }

@@ -3,10 +3,7 @@ import { Box } from '@mui/material';
 import { useSiteStore } from '@/stores/siteStore';
 import { getSceneThemeRenderer } from '@/themes/scene/renderers';
 
-/**
- * 全局场景主题特效层。
- * 根据 site.config.sceneTheme 渲染对应的背景动效，挂载在页面最底层。
- */
+
 export const SceneThemeEffects = memo(function SceneThemeEffects() {
   const { config } = useSiteStore();
   const sceneTheme = config.sceneTheme;
@@ -34,5 +31,6 @@ export const SceneThemeEffects = memo(function SceneThemeEffects() {
     >
       <EffectComponent params={params} />
     </Box>
+
   );
 });

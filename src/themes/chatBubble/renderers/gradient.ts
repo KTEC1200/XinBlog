@@ -1,7 +1,7 @@
 import type { ChatBubbleRenderer } from './base';
 import { resolveThemeColor, bubbleRadius } from './base';
 
-/** 渐变彩色：自己对角渐变，对方浅色渐变 */
+
 export const gradientBubbleRenderer: ChatBubbleRenderer<{
   mineStart: string;
   mineEnd: string;

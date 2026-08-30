@@ -80,7 +80,7 @@ export default function AgentPanel({
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch {
-      /* 剪贴板不可用时静默忽略 */
+      
     }
   };
 
@@ -98,7 +98,7 @@ export default function AgentPanel({
             `linear-gradient(160deg, ${alpha(t.palette.primary.main, 0.05)}, ${alpha(t.palette.secondary.main, 0.03)})`,
         }}
       >
-        {/* 顶栏：返回 + 标题 + 状态 */}
+        {}
         <Box
           sx={{
             px: 2,
@@ -126,10 +126,12 @@ export default function AgentPanel({
           >
             <ArrowBackIcon sx={{ fontSize: 20 }} />
           </IconButton>
+
           <SmartToyIcon color="primary" sx={{ fontSize: 20, flexShrink: 0 }} />
           <Typography variant="subtitle1" sx={{ fontWeight: 700, flex: 1, minWidth: 0 }} noWrap>
             {title}
           </Typography>
+
           <ToggleButtonGroup
             size="small"
             exclusive
@@ -159,8 +161,10 @@ export default function AgentPanel({
               <ToggleButton key={m.value} value={m.value} sx={{ textTransform: 'none', minWidth: 44 }}>
                 {m.label}
               </ToggleButton>
+
             ))}
           </ToggleButtonGroup>
+
           {messages.length > 0 && (
             <Tooltip title={copied ? '已复制' : '复制全部对话'}>
               <IconButton
@@ -170,7 +174,9 @@ export default function AgentPanel({
               >
                 <CopyAllIcon sx={{ fontSize: 20 }} />
               </IconButton>
+
             </Tooltip>
+
           )}
           <Chip
             size="small"
@@ -180,7 +186,8 @@ export default function AgentPanel({
           />
         </Box>
 
-        {/* 消息列表 */}
+
+        {}
         <AgentMessageList
           messages={messages}
           loading={loading}
@@ -190,7 +197,7 @@ export default function AgentPanel({
           onUndoAction={onUndoAction}
         />
 
-        {/* 输入条 */}
+        {}
         <AgentInput
           disabled={loading}
           onSend={onSend}
@@ -201,6 +208,8 @@ export default function AgentPanel({
           onAutoCollapseChange={onAutoCollapseChange}
         />
       </Box>
+
     </Fade>
+
   );
 }

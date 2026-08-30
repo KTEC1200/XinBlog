@@ -60,6 +60,7 @@ function CardTags({
         />
       ))}
     </Box>
+
   );
 }
 
@@ -70,17 +71,21 @@ function CardMeta({ post, sx }: { post: Post; sx?: SxProps<Theme> }) {
         <AccessTime sx={{ fontSize: 16 }} />
         {dayjs(post.createdAt).format('YYYY-MM-DD')}
       </Box>
+
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
         <AccessTime sx={{ fontSize: 16 }} />
         {post.readingTime} 分钟阅读
       </Box>
+
       {post.views !== undefined && (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
           <Visibility sx={{ fontSize: 16 }} />
           {post.views}
         </Box>
+
       )}
     </Box>
+
   );
 }
 
@@ -114,46 +119,57 @@ export function PostCard({ post, theme, forcedLayout, height, index }: PostCardP
     borderRadius: config.theme?.borderRadius ?? 16,
   });
 
-  // 横排（图片在左/右、文字在另一侧）由下方横向分支渲染，不走 output 的竖排逻辑
+  
   if (output && cardTheme.layout !== 'horizontal') {
     const mediaAsBackground = output.mediaAsBackground ?? output.layout === 'overlay';
     const rootSx = height ? { ...output.root, height } : output.root;
 
-    // 3D翻书主题：文字介绍在前页，悬停翻开露出垫底图片
+    
     if (output.book) {
       return (
         <Fade in timeout={300} style={{ width: '100%', height: '100%' }}>
           <ButtonBase component={Link} to={`/post/${post.slug}`} sx={{ width: '100%', height: '100%', display: 'block', textAlign: 'left', borderRadius: 1 }}>
             <Paper elevation={0} sx={rootSx}>
               <Box sx={output.book.root}>
-                {/* 垫底图片层 */}
+                {}
                 <Box className="bc-base" sx={output.book.base}>
                   <Typography sx={{ fontWeight: 700, px: 1, textAlign: 'center', textShadow: '0 1px 4px rgba(0,0,0,0.25)' }}>
                     {post.title}
                   </Typography>
+
                 </Box>
-                {/* 文字介绍前页，悬停沿左缘翻开放出图片 */}
+
+                {}
                 <Box className="bc-cover" sx={output.book.cover}>
                   <CardContent sx={output.content}>
                     <CardTags post={post} visible={cardTheme.showTags} chipSx={output.tag} />
                     <Typography variant="h5" component="h2" sx={output.title}>
                       {post.title}
                     </Typography>
+
                     {cardTheme.showExcerpt && (
                       <Typography variant="body2" sx={output.excerpt}>
                         {post.excerpt}
                       </Typography>
+
                     )}
                     {cardTheme.showMeta && <CardMeta post={post} sx={output.meta} />}
                     <Typography sx={{ opacity: 0.6, fontSize: '0.7rem', textAlign: 'center', mt: 1.5 }}>
                       悬停翻阅
                     </Typography>
+
                   </CardContent>
+
                 </Box>
+
               </Box>
+
             </Paper>
+
           </ButtonBase>
+
         </Fade>
+
       );
     }
 
@@ -185,30 +201,37 @@ export function PostCard({ post, theme, forcedLayout, height, index }: PostCardP
                   <Typography variant="h5" component="h2" sx={output.title}>
                     {post.title}
                   </Typography>
+
                   {cardTheme.showExcerpt && (
                     <Typography variant="body2" sx={output.excerpt}>
                       {post.excerpt}
                     </Typography>
+
                   )}
                   {cardTheme.showMeta && <CardMeta post={post} sx={output.meta} />}
                 </CardContent>
+
               </>
+
             ) : (
               <>
                 {post.cover && (
                   <Box sx={output.media}>
                     <LazyImage src={post.cover} alt={post.title} objectFit="cover" placeholder="skeleton" />
                   </Box>
+
                 )}
                 <CardContent sx={output.content}>
                   <CardTags post={post} visible={cardTheme.showTags} chipSx={output.tag} />
                   <Typography className="post-card-title" variant="h5" component="h2" sx={output.title}>
                     {post.title}
                   </Typography>
+
                   {cardTheme.showExcerpt && (
                     <Typography variant="body1" sx={output.excerpt}>
                       {post.excerpt}
                     </Typography>
+
                   )}
                   {cardTheme.showMeta && <CardMeta post={post} sx={output.meta} />}
                   {output.action && (
@@ -217,20 +240,27 @@ export function PostCard({ post, theme, forcedLayout, height, index }: PostCardP
                       <span className="card-action-arrow" aria-hidden="true">
                         →
                       </span>
+
                     </Box>
+
                   )}
                 </CardContent>
+
               </>
+
             )}
           </Paper>
+
         </ButtonBase>
+
       </Fade>
+
     );
   }
 
   const horizontal = forcedLayout === 'horizontal';
   if (horizontal) {
-    // 横排下的 3D翻书：文字介绍前页，悬停向上翻开露出垫底图片。此处复用 output 主题样式。
+    
     if (output?.book) {
       return (
         <Fade in timeout={300} style={{ width: '100%', height: '100%' }}>
@@ -250,38 +280,49 @@ export function PostCard({ post, theme, forcedLayout, height, index }: PostCardP
                   },
                 }}
               >
-                {/* 垫底图片层 */}
+                {}
                 <Box className="bc-base" sx={output.book.base ?? {}}>
                   <Typography sx={{ fontWeight: 700, px: 1, textAlign: 'center', textShadow: '0 1px 4px rgba(0,0,0,0.25)' }}>
                     {post.title}
                   </Typography>
+
                 </Box>
-                {/* 文字介绍前页，悬停向上翻开放出图片 */}
+
+                {}
                 <Box className="bc-cover" sx={{ ...(output.book.cover ?? {}), transformOrigin: '50% 0' }}>
                   <CardContent sx={{ ...(output.content ?? {}), height: '100%', justifyContent: 'center', p: { xs: 1.5, sm: 2 } }}>
                     <CardTags post={post} visible={cardTheme.showTags} chipSx={output.tag} />
                     <Typography variant="h5" component="h2" sx={output.title}>
                       {post.title}
                     </Typography>
+
                     {cardTheme.showExcerpt && (
                       <Typography variant="body2" sx={output.excerpt}>
                         {post.excerpt}
                       </Typography>
+
                     )}
                     {cardTheme.showMeta && <CardMeta post={post} sx={output.meta} />}
                     <Typography sx={{ opacity: 0.6, fontSize: '0.7rem', textAlign: 'center', mt: 1.5 }}>
                       悬停翻阅
                     </Typography>
+
                   </CardContent>
+
                 </Box>
+
               </Box>
+
             </Paper>
+
           </ButtonBase>
+
         </Fade>
+
       );
     }
 
-    // 原生默认主题在“横向列表”布局下：图片与文字左右排列（桌面端），移动端再堆叠
+    
     return (
       <Fade in timeout={300} style={{ width: '100%', height: '100%' }}>
         <ButtonBase component={Link} to={`/post/${post.slug}`} sx={{
@@ -327,15 +368,18 @@ export function PostCard({ post, theme, forcedLayout, height, index }: PostCardP
               >
                 <LazyImage src={post.cover} alt={post.title} objectFit="cover" placeholder="skeleton" />
               </Box>
+
             )}
             <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', minWidth: 0, px: { xs: 2, sm: 2.5 }, py: { xs: 1.5, sm: 2 } }}>
               <CardTags post={post} visible />
               <Typography className="post-card-title" variant="h6" component="h2" sx={{ ...(output?.title ?? {}), mb: 1, lineHeight: 1.35, fontSize: { xs: '1.125rem', sm: '1.35rem' }, overflowWrap: 'break-word' }}>
                 {post.title}
               </Typography>
+
               <Typography variant="body2" sx={{ ...(output?.excerpt ?? {}), mb: 1.5, flexGrow: 0, lineHeight: 1.6, fontSize: { xs: '0.875rem', sm: '1rem' }, overflowWrap: 'break-word', overflow: 'hidden' }}>
                 {post.excerpt}
               </Typography>
+
               <CardMeta post={post} sx={{ ...(output?.meta ?? {}), color: 'text.secondary' }} />
               <Box
                 component="span"
@@ -361,11 +405,17 @@ export function PostCard({ post, theme, forcedLayout, height, index }: PostCardP
                 <span className="card-action-arrow" aria-hidden="true">
                   →
                 </span>
+
               </Box>
+
             </CardContent>
+
           </Paper>
+
         </ButtonBase>
+
       </Fade>
+
     );
   }
 
@@ -418,6 +468,7 @@ export function PostCard({ post, theme, forcedLayout, height, index }: PostCardP
               >
                 <LazyImage src={post.cover} alt={post.title} objectFit="cover" placeholder="skeleton" />
               </Box>
+
               <Box
                 sx={{
                   position: 'absolute',
@@ -429,6 +480,7 @@ export function PostCard({ post, theme, forcedLayout, height, index }: PostCardP
                 }}
               />
             </>
+
           )}
           <CardContent
             sx={{
@@ -446,14 +498,20 @@ export function PostCard({ post, theme, forcedLayout, height, index }: PostCardP
             <Typography variant="h5" component="h2" sx={{ fontWeight: 700, mb: 1.5, lineHeight: 1.3, overflowWrap: 'break-word' }}>
               {post.title}
             </Typography>
+
             <Typography variant="body1" color="text.secondary" sx={{ mb: 2, lineHeight: 1.7, fontSize: { xs: '0.875rem', sm: '1rem' }, overflowWrap: 'break-word', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
               {post.excerpt}
             </Typography>
+
             <CardMeta post={post} sx={{ color: 'text.secondary', mt: 'auto' }} />
           </CardContent>
+
         </Paper>
+
       </ButtonBase>
+
     </Fade>
+
   );
 }
 
@@ -470,6 +528,8 @@ export function PostCardSkeleton() {
         <Skeleton variant="text" height={20} sx={{ mb: 0.5 }} />
         <Skeleton variant="text" width="60%" height={20} />
       </CardContent>
+
     </Paper>
+
   );
 }

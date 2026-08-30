@@ -53,6 +53,7 @@ export function AdminLayout() {
       <Box sx={{ display: adminNavHidden ? 'none' : 'block' }}>
         <AdminNavBar onMenuClick={handleDrawerToggle} />
       </Box>
+
       <AdminSideBar
         collapsed={collapsed}
         onToggle={() => setCollapsed(!collapsed)}
@@ -91,10 +92,16 @@ export function AdminLayout() {
               <Box sx={{ minWidth: 0, height: '100%' }}>
                 <Outlet />
               </Box>
+
             </Fade>
+
           </Box>
+
         </Box>
+
       </Box>
+
     </Box>
+
   );
 }

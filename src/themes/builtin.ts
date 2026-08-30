@@ -1,4 +1,4 @@
-// 渲染由 src/utils/themeRenderers 负责。
+
 import type { ThemePackage } from '@/types';
 
 export const BUILTIN_THEMES: ThemePackage[] = [

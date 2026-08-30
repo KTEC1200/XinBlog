@@ -1,7 +1,7 @@
 import type { ChatBubbleRenderer } from './base';
 import { resolveThemeColor, bubbleRadius } from './base';
 
-/** 极简边框：无填充，仅细边框，文字色用主题文字色 */
+
 export const minimalBubbleRenderer: ChatBubbleRenderer<{
   mineBorder: string;
   mineText: string;

@@ -29,9 +29,11 @@ export function ChatBubbleThemeCard({ theme, isSelected, isActive, onApply, onRe
       <Typography variant="subtitle2" fontWeight={700} noWrap sx={{ flexGrow: 1 }}>
         {theme.name}
       </Typography>
+
       <Typography variant="caption" color="text.secondary" sx={{ wordBreak: 'break-word' }}>
         {theme.description || theme.author || '聊天气泡主题'}
       </Typography>
+
       <Box sx={{ mt: 1.5, display: 'flex', gap: 1 }}>
         <Button
           variant={isSelected ? 'outlined' : 'contained'}
@@ -46,6 +48,7 @@ export function ChatBubbleThemeCard({ theme, isSelected, isActive, onApply, onRe
         >
           {isSelected ? (isActive ? '正在使用' : '已选中') : '应用'}
         </Button>
+
         {isSelected && (
           <Button
             variant="outlined"
@@ -59,8 +62,11 @@ export function ChatBubbleThemeCard({ theme, isSelected, isActive, onApply, onRe
           >
             恢复默认
           </Button>
+
         )}
       </Box>
+
     </Paper>
+
   );
 }

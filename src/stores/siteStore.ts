@@ -137,11 +137,11 @@ const defaultConfig: SiteConfig = {
 };
 
 const SITE_CACHE_KEY = 'site-config-cache';
-const SITE_CACHE_TTL = 3 * 60 * 60 * 1000; // 站点配置本地缓存 3 小时
+const SITE_CACHE_TTL = 3 * 60 * 60 * 1000; 
 
 function normalizeFontConfig(font: SiteConfig['font']): typeof DEFAULT_FONT_CONFIG {
   if (!font) return { ...DEFAULT_FONT_CONFIG };
-  // 兼容旧版 { source: 'system' | 'preset' | 'custom' } 结构
+  
   if ('source' in font) {
     return {
       ...DEFAULT_FONT_CONFIG,
@@ -185,7 +185,7 @@ function normalizeLive2dConfig(live2d: SiteConfig['live2d']): Live2dConfig {
   return {
     ...DEFAULT_LIVE2D_CONFIG,
     ...live2d,
-    // 路径相关配置不再暴露给用户，强制使用本地默认路径，由组件自动检测是否回退到官方 CDN
+    
     waifuPath: DEFAULT_LIVE2D_CONFIG.waifuPath,
     cdnPath: DEFAULT_LIVE2D_CONFIG.cdnPath,
     cubism2Path: DEFAULT_LIVE2D_CONFIG.cubism2Path,
@@ -241,7 +241,7 @@ function getCachedSiteConfig(): SiteConfig | null {
       }
     }
   } catch {
-    // ignore
+    
   }
   return null;
 }
@@ -251,7 +251,7 @@ export function setCachedSiteConfig(config: SiteConfig) {
   try {
     localStorage.setItem(SITE_CACHE_KEY, JSON.stringify({ config, ts: Date.now() }));
   } catch {
-    // ignore
+    
   }
 }
 
@@ -479,11 +479,11 @@ function applySiteCursor(cursor: SiteConfig['cursor']) {
   const buildRules = async () => {
     const rules: string[] = [];
     for (const file of activeCursor.files) {
-      if (file.format === 'ani') continue; // .ani 跨浏览器兼容性差，暂不注入
+      if (file.format === 'ani') continue; 
       const mapping = roleMap[file.role];
       if (!mapping) continue;
       const { url, originalWidth, originalHeight } = await resizeCursorToDataUrl(file.url, size);
-      // 按缩放比例调整热点坐标
+      
       const scaleX = originalWidth > 0 ? size / originalWidth : 1;
       const scaleY = originalHeight > 0 ? size / originalHeight : 1;
       const hotspotX = Math.round((file.hotspotX ?? 0) * scaleX);
@@ -532,8 +532,8 @@ export const useSiteStore = create<SiteState>((set, get) => ({
   setConfig: (newConfig) => set((state) => ({ config: { ...state.config, ...newConfig } })),
 
   loadConfig: async (forceRefresh = false) => {
-    // 本地缓存秒开：命中即立即应用并返回，云端仅作后台静默校验/刷新，绝不阻塞 UI
-    // （避免每次进页面都转圈）。带时间戳绕过 CDN 陈旧缓存（stale-while-revalidate=86400）。
+    
+    
     const cached = getCachedSiteConfig();
     if (cached && !forceRefresh) {
       const merged = normalizeSiteConfig({ ...defaultConfig, ...cached });
@@ -551,7 +551,7 @@ export const useSiteStore = create<SiteState>((set, get) => ({
         .catch(() => {});
       return;
     }
-    // 无本地缓存（首次访问）：仍需等云端返回
+    
     const url = `/api/v1/site?_=${Date.now()}`;
     try {
       const res = await apiGet<{ site: SiteConfig }>(url);

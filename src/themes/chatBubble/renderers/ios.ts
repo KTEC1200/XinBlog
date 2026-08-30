@@ -1,7 +1,7 @@
 import type { ChatBubbleRenderer } from './base';
 import { resolveThemeColor, bubbleRadius } from './base';
 
-/** iOS 蓝：自己主题色实底 + 白字，对方灰白 + 主题文字色 */
+
 export const iosBubbleRenderer: ChatBubbleRenderer<{
   mineBg: string;
   mineText: string;

@@ -75,6 +75,7 @@ export function BasicSettings() {
         基础设置
       </Typography>
 
+
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         <FormControlLabel
           control={
@@ -105,8 +106,11 @@ export function BasicSettings() {
         />
       </Box>
 
+
       <FloatingSaveButton show={isDirty} saving={saving} onClick={handleSave} label="保存设置" />
     </Paper>
+
     </Fade>
+
   );
 }

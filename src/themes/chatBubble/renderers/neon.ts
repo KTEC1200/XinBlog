@@ -14,7 +14,7 @@ interface NeonParams extends Record<string, unknown> {
   otherSharpCorner: BubbleCorners;
 }
 
-/** 霓虹风：深色底 + 四周彩色外发光，赛博霓虹夜感 */
+
 export const neonBubbleRenderer: ChatBubbleRenderer<NeonParams> = {
   id: 'neon',
   name: '霓虹',

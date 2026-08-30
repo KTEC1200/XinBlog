@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { agentChatStream, confirmAgentAction, undoAgentWrite } from '@/api/ai';
 
-// AI 写操作的确认卡 / 结果卡（内嵌为消息的一部分，对话不截断）
+
 export interface AgentConfirmAction {
   token: string;
   skill: string;
   target: string;
   params?: string;
-  message?: string; // 执行完成后的结果文案
-  undoPreview?: string; // 回滚预览：回滚将恢复到什么状态
+  message?: string; 
+  undoPreview?: string; 
   status: 'waiting' | 'rejected' | 'resolved' | 'done' | 'failed' | 'rolling_back' | 'rolled_back';
   undoId?: string;
 }
@@ -23,7 +23,7 @@ export interface AgentStep {
   summary?: string;
   params?: string;
   output?: string;
-  /** 仅 kind === 'action' 时存在：写操作确认/结果数据 */
+  
   action?: AgentConfirmAction;
 }
 
@@ -32,7 +32,7 @@ export interface AgentMessage {
   role: 'user' | 'assistant';
   content: string;
   steps?: AgentStep[];
-  /** AI 发起的写操作确认/结果卡（作为该条 AI 消息的一部分，随消息持久化） */
+  
   action?: AgentConfirmAction;
   rounds?: number;
   usage?: { prompt: number; completion: number; total: number };
@@ -60,7 +60,7 @@ function makeDialog(): AgentDialog {
   return { id: nextId('dlg'), title: '新对话', messages: [], createdAt: now, updatedAt: now };
 }
 
-// 有效对话判定：本地发过任意消息才算对话，空壳不保存 / 不展示
+
 function isMeaningfulDialog(d: AgentDialog | null | undefined): boolean {
   if (!d) return false;
   return Array.isArray(d.messages) && d.messages.some((m) => m.content);
@@ -84,7 +84,7 @@ function persistDialogs(dialogs: AgentDialog[]) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(dialogs.filter(isMeaningfulDialog)));
   } catch {
-    /* 存储失败（隐私模式/超限）静默忽略 */
+    
   }
 }
 
@@ -109,7 +109,7 @@ export function useAgentDialogs(bootstrap = true) {
     });
   }, [bootstrap]);
 
-  // 持久化到 localStorage
+  
   useEffect(() => {
     persistDialogs(dialogs);
   }, [dialogs]);
@@ -123,7 +123,7 @@ export function useAgentDialogs(bootstrap = true) {
     return dlg.id;
   }, []);
 
-  // 确保某个 id 存在一个（空）对话：用于"新建对话"跳转后本地还没该壳时
+  
   const ensureDialog = useCallback((id: string) => {
     setDialogs((prev) => {
       if (prev.some((d) => d.id === id)) return prev;
@@ -188,7 +188,7 @@ export function useAgentDialogs(bootstrap = true) {
         timestamp: Date.now(),
       };
 
-      // 全量历史随请求发出（无状态后端，不落库）
+      
       const history = [...dlg.messages, userMsg];
       const payload = history.filter((m) => m.content).map((m) => ({ role: m.role, content: m.content }));
 
@@ -316,7 +316,7 @@ export function useAgentDialogs(bootstrap = true) {
                 };
               });
             } else if (type === 'confirm_request') {
-              // 确认卡内嵌为当前 AI 消息的 action（对话不截断）
+              
               patch((m) => ({
                 ...m,
                 action: {
@@ -328,7 +328,7 @@ export function useAgentDialogs(bootstrap = true) {
                 },
               }));
             } else if (type === 'write_result') {
-              // 写操作执行完成（成功/失败）：成功携带 undoId 可回滚，失败展示错误
+              
               const failed = data.ok === false;
               patch((m) =>
                 m.action && m.action.token === data.token
@@ -350,7 +350,7 @@ export function useAgentDialogs(bootstrap = true) {
                 content: m.content || `出错了：${data.message ?? '未知错误'}`,
               }));
             } else if (type === 'done') {
-              // 无状态：无需回填会话，流结束
+              
               break;
             }
           }
@@ -389,7 +389,7 @@ export function useAgentDialogs(bootstrap = true) {
     return ok;
   }, []);
 
-  // 回滚已执行的写操作：成功后把对应结果卡标记为已回滚
+  
   const undoAction = useCallback(async (undoId: string, token?: string): Promise<{ ok: boolean; msg?: string }> => {
     const res = await undoAgentWrite(undoId).catch(() => ({ ok: false, msg: '回滚请求失败' }));
     if (res.ok) {

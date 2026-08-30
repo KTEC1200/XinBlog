@@ -2,7 +2,7 @@ import { useState } from 'react';
 import data from '@emoji-mart/data/sets/15/native.json';
 import { Box, Tab, Tabs, alpha, useTheme } from '@mui/material';
 
-/** emoji-mart 的分类 id → 中文名 */
+
 const CATEGORY_LABELS: Record<string, string> = {
   smileys: '表情',
   people: '人物',
@@ -19,7 +19,7 @@ interface EmojiPickerProps {
   onEmoji: (emoji: string) => void;
 }
 
-/** 从 native.json 里取某个 emoji 的实际字符（取第一个肤色版本） */
+
 function nativeOf(hexId: string): string | undefined {
   const emoji = data.emojis[hexId];
   return emoji?.skins?.[0]?.native;
@@ -64,6 +64,7 @@ export default function EmojiPicker({ onEmoji }: EmojiPickerProps) {
         ))}
       </Tabs>
 
+
       <Box sx={{ flex: 1, overflowY: 'auto', p: 0.5 }}>
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.25 }}>
           {gridEmojis.map((emoji) => (
@@ -91,9 +92,13 @@ export default function EmojiPicker({ onEmoji }: EmojiPickerProps) {
             >
               {emoji}
             </Box>
+
           ))}
         </Box>
+
       </Box>
+
     </Box>
+
   );
 }

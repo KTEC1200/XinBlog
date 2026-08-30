@@ -7,18 +7,10 @@ import rehypeHighlight from 'rehype-highlight';
 import rehypeSanitize from 'rehype-sanitize';
 import type { Components } from 'react-markdown';
 
-/**
- * Agent 消息的 Markdown 渲染。
- *
- * 这是一套「聊天专用」的紧凑渲染，而不是文章查看器那套排版：
- * - 行距紧凑（line-height）、块间距小，符合聊天气泡的观感；
- * - 完整解析 GFM：标题 / 列表 / 引用 / 表格 / 任务列表 / 删除线 / 行内与块级代码 / 链接 / 图片；
- * - 代码块带语法高亮 + 一键复制；
- * - 通过 rehype-sanitize 过滤危险 HTML。
- */
 
-// 代码块固定使用深色面板，因此无论站点处于明/暗模式、或使用何种气泡主题，
-// 语法高亮统一用 github-dark，保证浅色文字在深色面板上始终可读。
+
+
+
 function useHighlightTheme() {
   useEffect(() => {
     const linkId = 'hljs-theme';
@@ -33,7 +25,7 @@ function useHighlightTheme() {
   }, []);
 }
 
-// 代码块：复制按钮 + 紧凑排版
+
 function CodeBlock({ children, className }: { children?: React.ReactNode; className?: string }) {
   const [copied, setCopied] = useState(false);
   const preRef = useRef<HTMLPreElement>(null);
@@ -46,7 +38,7 @@ function CodeBlock({ children, className }: { children?: React.ReactNode; classN
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch {
-      // 复制失败静默忽略
+      
     }
   };
 
@@ -70,7 +62,9 @@ function CodeBlock({ children, className }: { children?: React.ReactNode; classN
         >
           {copied ? <Check fontSize="small" /> : <ContentCopy fontSize="small" />}
         </IconButton>
+
       </Tooltip>
+
       <Box
         component="pre"
         ref={preRef}
@@ -90,8 +84,11 @@ function CodeBlock({ children, className }: { children?: React.ReactNode; classN
         <Box component="code" className={className} sx={{ fontFamily: 'inherit', color: 'inherit' }}>
           {children}
         </Box>
+
       </Box>
+
     </Box>
+
   );
 }
 
@@ -101,7 +98,7 @@ export default memo(function AgentMessageContent({ content }: { content: string 
   useHighlightTheme();
 
   const components: Components = {
-    // 标题：紧凑，聊天气泡里 h1 不宜过大
+    
     h1: (props) => <Box component="h1" {...props} sx={{ m: '0.5em 0 0.3em', fontSize: '1.15em', fontWeight: 800, lineHeight: 1.4 }} />,
     h2: (props) => <Box component="h2" {...props} sx={{ m: '0.5em 0 0.3em', fontSize: '1.1em', fontWeight: 800, lineHeight: 1.4 }} />,
     h3: (props) => <Box component="h3" {...props} sx={{ m: '0.45em 0 0.25em', fontSize: '1.05em', fontWeight: 800, lineHeight: 1.4 }} />,
@@ -149,7 +146,7 @@ export default memo(function AgentMessageContent({ content }: { content: string 
     em: (props) => <Box component="em" {...props} />,
     del: (props) => <Box component="del" sx={{ opacity: 0.7 }} {...props} />,
 
-    // 行内代码
+    
     code: ({ node, className, children, ...props }: any) => {
       const languageMatch = /language-(\w+)/.exec(className || '');
       const isBlock =
@@ -157,6 +154,7 @@ export default memo(function AgentMessageContent({ content }: { content: string 
         (!!node?.position && node.position.start.line !== node.position.end.line);
       if (isBlock) {
         return <CodeBlock className={className}>{children}</CodeBlock>;
+
       }
       return (
         <Box
@@ -174,10 +172,11 @@ export default memo(function AgentMessageContent({ content }: { content: string 
         >
           {children}
         </Box>
+
       );
     },
 
-    // 表格（带横向滚动）
+    
     table: (props) => (
       <Box sx={{ overflowX: 'auto', my: 0.5, borderRadius: 1 }}>
         <Box
@@ -186,6 +185,7 @@ export default memo(function AgentMessageContent({ content }: { content: string 
           {...props}
         />
       </Box>
+
     ),
     th: (props) => (
       <Box
@@ -222,6 +222,8 @@ export default memo(function AgentMessageContent({ content }: { content: string 
       <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize, rehypeHighlight]} components={components}>
         {content}
       </ReactMarkdown>
+
     </Box>
+
   );
 });

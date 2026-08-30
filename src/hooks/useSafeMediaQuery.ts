@@ -1,11 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTheme, type Theme } from '@mui/material/styles';
 
-/**
- * 安全的 useMediaQuery 实现，避免 MUI v6 + React 19 下
- * useSyncExternalStore getSnapshot 为 null 的运行时崩溃。
- * 使用原生 matchMedia + useState/useEffect 替代 MUI 的 useSyncExternalStore。
- */
+
 export function useSafeMediaQuery(queryFn: (theme: Theme) => string, defaultMatches = false): boolean {
   const theme = useTheme();
   const query = queryFn(theme);

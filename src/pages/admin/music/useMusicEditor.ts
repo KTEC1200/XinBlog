@@ -13,10 +13,7 @@ export const tabList: { value: MusicTab; label: string }[] = [
 
 export type MusicEditor = ReturnType<typeof useMusicEditor>;
 
-/**
- * 音乐播放器设置页的统一逻辑层：
- * 管理所有配置 state / dirty 追踪 / 保存（参照 useLive2dEditor 模式）。
- */
+
 export function useMusicEditor() {
   const site = useSiteStore();
   const { enqueueSnackbar } = useSnackbar();
@@ -72,7 +69,7 @@ export function useMusicEditor() {
 
   const buildConfig = (): MusicPlayerConfig => ({
     enabled,
-    // API 地址写死使用默认服务，不提供修改入口
+    
     apiUrl: DEFAULT_MUSIC_CONFIG.apiUrl,
     playlistId: playlistId.trim(),
     volume: Math.max(0, Math.min(1, Number(volume) || 0)),
@@ -103,7 +100,7 @@ export function useMusicEditor() {
 
   const save = async () => {
     if (!isDirty) return true;
-    // 保存前校验：歌单 ID 必须是纯数字
+    
     const id = playlistId.trim();
     if (id && !isValidPlaylistId(id)) {
       setInputError('歌单 ID 格式不正确，请输入纯数字 ID');

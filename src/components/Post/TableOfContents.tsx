@@ -25,7 +25,7 @@ function getScrollContainer(): HTMLElement | null {
   return document.querySelector('main') as HTMLElement | null;
 }
 
-// 计算标题相对滚动容器的内容偏移，避免依赖 offsetParent 链
+
 function getHeadingTop(id: string): number | null {
   const container = getScrollContainer();
   const el = document.getElementById(id);
@@ -44,7 +44,7 @@ export function TableOfContents({ headings }: TableOfContentsProps) {
 
   const hasHeadings = headings.length > 0;
 
-  // 根据当前滚动位置高亮对应标题
+  
   useEffect(() => {
     if (!hasHeadings) return;
 
@@ -72,7 +72,7 @@ export function TableOfContents({ headings }: TableOfContentsProps) {
       if (el) observer.observe(el);
     });
 
-    // 初始化：找到第一个位于视口上方的标题作为高亮项
+    
     const init = () => {
       const scrollTop = container.scrollTop;
       let current = headings[0]?.id || '';
@@ -89,7 +89,7 @@ export function TableOfContents({ headings }: TableOfContentsProps) {
     return () => observer.disconnect();
   }, [headings, hasHeadings]);
 
-  // 打开抽屉后自动滚动高亮项到可视区域
+  
   useEffect(() => {
     if (open && activeItemRef.current && listRef.current) {
       const list = listRef.current;
@@ -119,12 +119,12 @@ export function TableOfContents({ headings }: TableOfContentsProps) {
     const target = computeTarget();
     if (target === null) return;
 
-    // lerp 平滑滚动可用（非触摸设备 has useSmoothScroll 注册）时直接交由其接管
+    
     if (smoothScrollTo(target)) return;
 
-    // 触摸设备（移动端）：useSmoothScroll 因 disableOnTouch 未注册 lerp，
-    // smoothScrollTo 返回 false。此时 Drawer 正处于关闭动画，布局未稳定，
-    // 直接测/滚会停在错误位置。等动画结束（约 260ms）后做一次性精确瞬移。
+    
+    
+    
     window.setTimeout(() => {
       const finalTarget = computeTarget();
       if (finalTarget !== null) {
@@ -171,7 +171,9 @@ export function TableOfContents({ headings }: TableOfContentsProps) {
         >
           <MenuBook />
         </Fab>
+
       </Tooltip>
+
 
       <Drawer
         anchor="right"
@@ -206,6 +208,7 @@ export function TableOfContents({ headings }: TableOfContentsProps) {
           <Typography variant="subtitle1" fontWeight={700}>
             目录
           </Typography>
+
           <Box
             component="button"
             onClick={() => setOpen(false)}
@@ -233,7 +236,9 @@ export function TableOfContents({ headings }: TableOfContentsProps) {
           >
             <Close fontSize="small" />
           </Box>
+
         </Box>
+
 
         <Box
           ref={listRef}
@@ -290,11 +295,16 @@ export function TableOfContents({ headings }: TableOfContentsProps) {
                 >
                   {h.text}
                 </Typography>
+
               </Box>
+
             );
           })}
         </Box>
+
       </Drawer>
+
     </>
+
   );
 }

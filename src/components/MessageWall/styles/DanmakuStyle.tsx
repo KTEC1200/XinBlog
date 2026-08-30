@@ -7,12 +7,12 @@ const PAGE_SIZE = 100;
 
 const COLORS = ['#ff6b6b', '#ffd93d', '#6bcb77', '#4d96ff', '#ff8fb1', '#a66cff', '#ff9f43', '#00d2d3'];
 
-// 弹幕显示内容最大长度（字）
+
 const MAX_LEN = 50;
-// 当所有留言都在冷却期内时，等待的最短间隔（毫秒）
+
 const COOLDOWN_WAIT = 3 * 1000;
 
-// 内容截断：超过 50 字时截断
+
 function truncate(content: string) {
   return content.length > MAX_LEN ? `${content.slice(0, MAX_LEN)}…` : content;
 }
@@ -43,16 +43,16 @@ export default function DanmakuStyle({
 }: DanmakuStyleProps) {
   const [loading, setLoading] = useState(true);
   const [active, setActive] = useState<ActiveDanmaku[]>([]);
-  // 全部已通过留言：进入页面时一次性拉取，循环推送
+  
   const allRef = useRef<Message[]>([]);
-  // 每条留言最近一次上屏的时间戳（用于冷却，避免同一条反复刷屏）
+  
   const lastShownRef = useRef<Map<number, number>>(new Map());
-  // 每条轨道预设一个随机速度（秒），进入页面时确定一次
+  
   const trackSpeedsRef = useRef(
     Array.from({ length: trackCount }, () => speedMin + Math.random() * (speedMax - speedMin))
   );
 
-  // 首次进入：分批拉取全部留言
+  
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -77,7 +77,7 @@ export default function DanmakuStyle({
     };
   }, []);
 
-  // 每条轨道独立推送循环：间隔在 [MIN_INTERVAL, MAX_INTERVAL] 内随机，全部留言循环播放，永不间断
+  
   useEffect(() => {
     if (loading) return;
     let stopped = false;
@@ -93,7 +93,7 @@ export default function DanmakuStyle({
       }
 
       const now = Date.now();
-      // 从冷却期已过的留言中挑选；若全部都在冷却，则本次不推送，稍后重试
+      
       const due = all.filter((m) => !lastShownRef.current.has(m.id) || now - lastShownRef.current.get(m.id)! >= repeatSec * 1000);
       if (due.length === 0) {
         timers.push(window.setTimeout(() => loop(track), COOLDOWN_WAIT));
@@ -118,7 +118,7 @@ export default function DanmakuStyle({
       timers.push(window.setTimeout(() => loop(track), interval));
     };
 
-    // 每条轨道独立启动，初始随机错开
+    
     for (let track = 0; track < trackCount; track++) {
       timers.push(window.setTimeout(() => loop(track), Math.random() * 4000));
     }
@@ -145,12 +145,15 @@ export default function DanmakuStyle({
         <Box sx={{ p: 2 }}>
           <Skeleton variant="rectangular" height={380} sx={{ borderRadius: 1 }} />
         </Box>
+
       ) : allRef.current.length === 0 ? (
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
           <Typography variant="body2" color="text.secondary">
             暂无留言
           </Typography>
+
         </Box>
+
       ) : (
         <Box sx={{ position: 'relative', width: '100%', height: '100%' }}>
           {active.map((item) => (
@@ -190,6 +193,7 @@ export default function DanmakuStyle({
                   >
                     {item.username || '用户'}
                   </Typography>
+
                 ) : (
                   <>
                     <Chip
@@ -211,8 +215,10 @@ export default function DanmakuStyle({
                       >
                         {item.nickname}
                       </Typography>
+
                     )}
                   </>
+
                 )}
                 <Typography
                   variant="body2"
@@ -226,11 +232,16 @@ export default function DanmakuStyle({
                 >
                   {truncate(item.content)}
                 </Typography>
+
               </Box>
+
             </Box>
+
           ))}
         </Box>
+
       )}
     </Box>
+
   );
 }

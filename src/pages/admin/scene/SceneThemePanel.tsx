@@ -21,10 +21,7 @@ import type { SceneThemeConfig, ThemePackage } from '@/types';
 
 const DEFAULT_SCENE_THEME: SceneThemeConfig = { variant: 'default' };
 
-/**
- * 将内置场景主题包与已保存配置合并，
- * 使设置面板重新进入时显示真实的已保存参数。
- */
+
 function buildEditingTheme(
   id: string,
   saved?: SceneThemeConfig
@@ -89,7 +86,7 @@ export function SceneThemePanel() {
     return () => {
       mounted = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, []);
 
   const handleSelectTheme = (id: string) => {
@@ -183,6 +180,7 @@ export function SceneThemePanel() {
       <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
         所有场景主题
       </Typography>
+
       <Grid container spacing={2}>
         <Grid item xs={12} sm={6} md={4} sx={{ display: 'flex' }}>
           <Paper
@@ -228,10 +226,12 @@ export function SceneThemePanel() {
                   }}
                 />
               </Box>
+
               <Box sx={{ flex: 1, minWidth: 0 }}>
                 <Typography variant="subtitle2" fontWeight={700} noWrap>
                   默认主题
                 </Typography>
+
                 <Typography
                   variant="caption"
                   color="text.secondary"
@@ -239,8 +239,11 @@ export function SceneThemePanel() {
                 >
                   不使用场景动态特效
                 </Typography>
+
               </Box>
+
             </Box>
+
             <Box sx={{ mt: 1.5 }}>
               <Button
                 variant={pendingThemeId === '' ? 'outlined' : 'contained'}
@@ -255,9 +258,13 @@ export function SceneThemePanel() {
               >
                 {pendingThemeId === '' ? '已选中' : '恢复默认'}
               </Button>
+
             </Box>
+
           </Paper>
+
         </Grid>
+
         {BUILTIN_SCENE_THEMES.map((theme) => (
           <Grid item xs={12} sm={6} md={4} key={theme.id} sx={{ display: 'flex' }}>
             <SceneThemeCard
@@ -268,9 +275,12 @@ export function SceneThemePanel() {
               onReset={handleResetToDefault}
             />
           </Grid>
+
         ))}
       </Grid>
+
     </Paper>
+
   );
 
   const renderEditor = () => {
@@ -319,8 +329,10 @@ export function SceneThemePanel() {
                   >
                     正在使用
                   </Box>
+
                 )}
               </Typography>
+
               <Button
                 variant="outlined"
                 size="small"
@@ -330,13 +342,16 @@ export function SceneThemePanel() {
               >
                 恢复默认
               </Button>
+
             </Box>
+
             <SceneThemeParamEditor
               schema={activeSchema}
               config={editingTheme.config}
               onChange={handleUpdateConfig}
             />
           </Paper>
+
 
           <Paper
             elevation={0}
@@ -352,6 +367,7 @@ export function SceneThemePanel() {
             <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
               实时预览
             </Typography>
+
             <Box
               sx={{
                 position: 'relative',
@@ -362,7 +378,7 @@ export function SceneThemePanel() {
                 bgcolor: 'background.default',
                 border: '1px solid',
                 borderColor: 'divider',
-                // transform 创建包含块，使 position:fixed 的特效被限制在预览框内
+                
                 transform: 'scale(1)',
               }}
             >
@@ -374,9 +390,13 @@ export function SceneThemePanel() {
                 return <EffectComponent params={params} />;
               })()}
             </Box>
+
           </Paper>
+
         </Box>
+
       </Fade>
+
     );
   };
 
@@ -384,7 +404,9 @@ export function SceneThemePanel() {
     return (
       <Box sx={{ textAlign: 'center', py: 6, color: 'text.secondary' }}>
         <Typography>加载场景主题配置中...</Typography>
+
       </Box>
+
     );
   }
 
@@ -399,5 +421,6 @@ export function SceneThemePanel() {
         label="保存场景主题"
       />
     </Stack>
+
   );
 }

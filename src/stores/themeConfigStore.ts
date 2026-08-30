@@ -40,7 +40,7 @@ export const useThemeConfigStore = create<CustomThemeConfig>()(
       ...initialState,
 
       loadConfig: async () => {
-        // 主题配置改为全局，直接读取已加载的站点配置，避免重复请求 /api/v1/site
+        
         const siteTheme = useSiteStore.getState().config.theme;
         if (siteTheme) {
           set(applyThemePatch(siteTheme));
@@ -58,7 +58,7 @@ export const useThemeConfigStore = create<CustomThemeConfig>()(
           ...newConfig,
         };
 
-        // 主题配置改为全局，由调用方（外观设置页）统一保存到站点配置
+        
         set({ ...merged, loaded: true });
         return true;
       },
@@ -67,7 +67,7 @@ export const useThemeConfigStore = create<CustomThemeConfig>()(
       name: 'theme-config',
       merge: (persistedState, currentState) => {
         const merged = { ...currentState, ...(persistedState as CustomThemeConfig) };
-        // 全局圆角最大值限制为 32
+        
         if (merged.borderRadius > 32) {
           merged.borderRadius = 32;
         }

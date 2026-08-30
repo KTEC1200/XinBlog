@@ -88,6 +88,7 @@ export default function CommentItem({ comment, slug, onDeleted, onReplied }: Com
               <Typography variant="subtitle2" sx={{ fontWeight: 700, overflowWrap: 'break-word', minWidth: 0 }}>
                 {comment.username || '未知用户'}
               </Typography>
+
               {status && (
                 <Box
                   sx={{
@@ -103,8 +104,10 @@ export default function CommentItem({ comment, slug, onDeleted, onReplied }: Com
                 >
                   {status.text}
                 </Box>
+
               )}
             </Box>
+
             {canDelete && (
               <IconButton
                 size="small"
@@ -117,11 +120,14 @@ export default function CommentItem({ comment, slug, onDeleted, onReplied }: Com
               >
                 <DeleteOutlineIcon fontSize="small" />
               </IconButton>
+
             )}
           </Box>
+
           <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
             {formatTime(comment.createdAt)}
           </Typography>
+
           {comment.replyToUsername && (
             <Typography
               variant="caption"
@@ -135,6 +141,7 @@ export default function CommentItem({ comment, slug, onDeleted, onReplied }: Com
             >
               回复 @{comment.replyToUsername}
             </Typography>
+
           )}
           <Typography
             variant="body2"
@@ -147,6 +154,7 @@ export default function CommentItem({ comment, slug, onDeleted, onReplied }: Com
           >
             {comment.content}
           </Typography>
+
           {comment.status === 'approved' && isAuthenticated && (
             <Box sx={{ mt: 1 }}>
               <Button
@@ -166,7 +174,9 @@ export default function CommentItem({ comment, slug, onDeleted, onReplied }: Com
               >
                 {showReply ? '取消回复' : '回复'}
               </Button>
+
             </Box>
+
           )}
           {showReply && (
             <Box sx={{ mt: 2, ml: { xs: 0, sm: 2 } }}>
@@ -182,9 +192,12 @@ export default function CommentItem({ comment, slug, onDeleted, onReplied }: Com
                 compact
               />
             </Box>
+
           )}
         </Box>
+
       </Box>
+
 
       <ConfirmDialog
         open={deleteDialogOpen}
@@ -197,6 +210,8 @@ export default function CommentItem({ comment, slug, onDeleted, onReplied }: Com
         onConfirm={handleConfirmDelete}
       />
     </Paper>
+
     </Fade>
+
   );
 }

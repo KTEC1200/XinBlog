@@ -2,7 +2,7 @@ import { apiGet, apiPatch } from './client';
 import type { InteractionSettings, ApiResult } from '../types/interaction';
 
 const INTERACTION_CACHE_KEY = 'interaction-settings-cache';
-const CACHE_TTL = 5 * 60 * 1000; // 本地缓存 5 分钟
+const CACHE_TTL = 5 * 60 * 1000; 
 
 interface CachedInteraction {
   data: InteractionSettings;
@@ -30,7 +30,7 @@ function writeLocalCache(data: InteractionSettings) {
   try {
     localStorage.setItem(INTERACTION_CACHE_KEY, JSON.stringify({ data, ts: Date.now() }));
   } catch {
-    // ignore
+    
   }
 }
 
@@ -39,7 +39,7 @@ function clearLocalCache() {
   try {
     localStorage.removeItem(INTERACTION_CACHE_KEY);
   } catch {
-    // ignore
+    
   }
 }
 

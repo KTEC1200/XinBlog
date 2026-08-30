@@ -5,14 +5,7 @@ import { AgentConversationList } from '@/components/Agent/AgentConversationList'
 import { useAgentDialogs } from '@/hooks/useAgentChat';
 import { useSiteStore } from '@/stores/siteStore';
 
-/**
- * AI 助手对话列表页。
- * 整个页面即对话列表（作为页面背景填满），每条对话是一张明显的卡片。
- * 采用与聊天室一致的两级结构：
- *   - /agent            对话列表
- *   - /agent/:dialogId  具体对话（沉浸式，左上角返回）
- * 删除/重命名通过列表项的右键或长按唤出菜单操作。
- */
+
 export default function Agent() {
   const navigate = useNavigate();
   const site = useSiteStore();
@@ -32,6 +25,7 @@ export default function Agent() {
         <Skeleton variant="rectangular" height={96} sx={{ borderRadius: 2, mb: 1.5 }} />
         <Skeleton variant="rectangular" height={96} sx={{ borderRadius: 2 }} />
       </Box>
+
     );
   }
 
@@ -41,7 +35,9 @@ export default function Agent() {
         <Typography variant="body2" color="text.secondary">
           AI 助手功能暂未开放，请先在后台开启后刷新。
         </Typography>
+
       </Box>
+
     );
   }
 
@@ -55,5 +51,6 @@ export default function Agent() {
         onRename={renameDialog}
       />
     </Box>
+
   );
 }

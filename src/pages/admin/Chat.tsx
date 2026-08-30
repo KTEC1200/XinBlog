@@ -58,13 +58,13 @@ export function AdminChat() {
   const [settingsLoading, setSettingsLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // 自定义房间列表
+  
   const [rooms, setRooms] = useState<CustomChatRoom[]>([]);
   const [roomsLoading, setRoomsLoading] = useState(true);
   const [roomsTotal, setRoomsTotal] = useState(0);
   const [roomsPage, setRoomsPage] = useState(1);
   const roomPageSize = 10;
-  // 房间编辑弹窗 / 删除确认
+  
   const [roomDialogOpen, setRoomDialogOpen] = useState(false);
   const [editingRoom, setEditingRoom] = useState<CustomChatRoom | null>(null);
   const [deletingRoom, setDeletingRoom] = useState<CustomChatRoom | null>(null);
@@ -103,7 +103,7 @@ export function AdminChat() {
     if (res.code === 0) {
       enqueueSnackbar('房间已删除', { variant: 'success' });
       setDeletingRoom(null);
-      // 若当前页删空则回退一页
+      
       const targetPage = rooms.length <= 1 && roomsPage > 1 ? roomsPage - 1 : roomsPage;
       setRoomsPage(targetPage);
       await loadRooms(targetPage);
@@ -185,7 +185,9 @@ export function AdminChat() {
               <Typography variant="caption" color="text.secondary" sx={{ display: 'block', pl: 0.5 }}>
                 控制主页侧边栏是否显示「聊天室」入口
               </Typography>
+
             </Box>
+
             <Box>
               <FormControlLabel
                 control={
@@ -199,7 +201,9 @@ export function AdminChat() {
               <Typography variant="caption" color="text.secondary" sx={{ display: 'block', pl: 0.5 }}>
                 关闭后，未登录访客进入聊天室将看到「暂未开放」提示
               </Typography>
+
             </Box>
+
             <Box>
               <FormControlLabel
                 control={
@@ -213,18 +217,23 @@ export function AdminChat() {
               <Typography variant="caption" color="text.secondary" sx={{ display: 'block', pl: 0.5 }}>
                 仅登录用户的聊天房；关闭后未登录访客无法进入，登录用户同样不可用
               </Typography>
+
             </Box>
+
             <FloatingSaveButton show={settingsDirty} saving={saving} onClick={handleSaveSettings} label="保存" />
           </Box>
+
         </Fade>
+
       )}
     </Paper>
+
   );
 
   const renderRooms = () => (
     <Fade in timeout={400}>
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-        {/* 面板头部：标题 + 创建按钮 */}
+        {}
         <Paper
           elevation={0}
           sx={{ p: 2.5, borderRadius: 1, ...paperShadow }}
@@ -246,34 +255,45 @@ export function AdminChat() {
               >
                 <MeetingRoomIcon />
               </Box>
+
               <Box sx={{ minWidth: 0 }}>
                 <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
                   专属聊天房
                 </Typography>
+
                 <Typography variant="caption" color="text.secondary">
                   按成员授权的自定义房间：可设置封面、简介与最大进入人数。
                 </Typography>
+
               </Box>
+
             </Box>
+
             <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenCreate} sx={{ textTransform: 'none' }}>
               创建房间
             </Button>
+
           </Box>
+
         </Paper>
 
-        {/* 房间列表 */}
+
+        {}
         <Paper elevation={0} sx={{ borderRadius: 1, overflow: 'hidden', ...paperShadow }}>
           {roomsLoading ? (
             <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
               <Skeleton variant="rectangular" height={56} />
               <Skeleton variant="rectangular" height={56} />
             </Box>
+
           ) : rooms.length === 0 ? (
             <Box sx={{ p: 4, textAlign: 'center' }}>
               <Typography variant="body2" color="text.secondary">
                 还没有专属聊天房，点击右上角「创建房间」开始吧
               </Typography>
+
             </Box>
+
           ) : (
             <>
               {rooms.map((room) => (
@@ -312,11 +332,13 @@ export function AdminChat() {
                         <MeetingRoomIcon sx={{ fontSize: 26, opacity: 0.8 }} />
                       )}
                     </Box>
+
                     <Box sx={{ flex: 1, minWidth: 0 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                         <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
                           {room.name}
                         </Typography>
+
                         <Chip
                           size="small"
                           color={room.enabled ? 'success' : 'default'}
@@ -324,29 +346,40 @@ export function AdminChat() {
                           variant="outlined"
                         />
                       </Box>
+
                       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', mt: 0.25 }}>
                         {room.description || '暂无简介'}
                       </Typography>
+
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.75, flexWrap: 'wrap' }}>
                         <Chip size="small" variant="outlined" label={`成员 ${room.member_count ?? 0}`} />
                         <Chip size="small" variant="outlined" color={room.max_users > 0 ? 'secondary' : 'default'} label={room.max_users > 0 ? `上限 ${room.max_users}` : '不限人数'} />
                         <Typography variant="caption" color="text.secondary">
                           {room.room_key}
                         </Typography>
+
                       </Box>
+
                     </Box>
+
                     <Box sx={{ display: 'flex', gap: 0.5, flexShrink: 0 }}>
                       <Button size="small" onClick={() => handleOpenEdit(room)} sx={{ textTransform: 'none' }}>
                         编辑
                       </Button>
+
                       <IconButton size="small" color="error" onClick={() => setDeletingRoom(room)}>
                         <DeleteOutline fontSize="small" />
                       </IconButton>
+
                     </Box>
+
                   </Box>
+
                 </Box>
+
               ))}
             </>
+
           )}
           {roomsTotal > roomPageSize && (
             <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
@@ -360,10 +393,12 @@ export function AdminChat() {
                 }}
               />
             </Box>
+
           )}
         </Paper>
 
-        {/* 房间编辑/创建弹窗 */}
+
+        {}
         <RoomDialog
           open={roomDialogOpen}
           editing={editingRoom}
@@ -374,7 +409,7 @@ export function AdminChat() {
           }}
         />
 
-        {/* 删除确认 */}
+        {}
         <ConfirmDialog
           open={!!deletingRoom}
           title="删除专属聊天房？"
@@ -383,6 +418,7 @@ export function AdminChat() {
               <span>
                 确认删除「{deletingRoom.name}」？该房间及其成员关系将被永久移除，房间内的聊天记录由聊天服务另行管理，不可恢复。
               </span>
+
             ) : null
           }
           confirmText="删除"
@@ -392,7 +428,9 @@ export function AdminChat() {
           onConfirm={handleDelete}
         />
       </Box>
+
     </Fade>
+
   );
 
   return (
@@ -401,6 +439,7 @@ export function AdminChat() {
         <Typography variant="h5" sx={{ mb: 2, fontWeight: 600 }}>
           聊天室管理
         </Typography>
+
 
         {isMobileAdmin ? (
           <FormControl size="small" sx={{ mb: 3, minWidth: 140, maxWidth: '100%' }}>
@@ -423,9 +462,12 @@ export function AdminChat() {
                 <MenuItem key={item.value} value={item.value}>
                   {item.label}
                 </MenuItem>
+
               ))}
             </Select>
+
           </FormControl>
+
         ) : (
           <Box
             onWheel={(e) => {
@@ -495,9 +537,12 @@ export function AdminChat() {
                 >
                   {item.label}
                 </Button>
+
               ))}
             </Box>
+
           </Box>
+
         )}
 
         <Fade in timeout={300} key={tab}>
@@ -506,8 +551,12 @@ export function AdminChat() {
             {tab === 'rooms' && renderRooms()}
             {tab === 'do' && <ChatDoPanel />}
           </Box>
+
         </Fade>
+
       </Box>
+
     </Fade>
+
   );
 }

@@ -17,6 +17,7 @@ export function ChatBubbleParamEditor({ schema, config, onChange }: ChatBubblePa
 
   if (schema.length === 0) {
     return <Typography color="text.secondary">该聊天气泡主题暂无可调参数。</Typography>;
+
   }
 
   return (
@@ -31,6 +32,7 @@ export function ChatBubbleParamEditor({ schema, config, onChange }: ChatBubblePa
               <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
                 {item.label} {numeric}px
               </Typography>
+
               <Slider
                 value={numeric}
                 onChange={(_, v) => updateParam(item.key, v as number)}
@@ -40,6 +42,7 @@ export function ChatBubbleParamEditor({ schema, config, onChange }: ChatBubblePa
                 valueLabelDisplay="auto"
               />
             </Box>
+
           );
         }
 
@@ -59,6 +62,7 @@ export function ChatBubbleParamEditor({ schema, config, onChange }: ChatBubblePa
               <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
                 {item.label}
               </Typography>
+
               <ToggleButtonGroup
                 value={String(value ?? '')}
                 exclusive
@@ -88,9 +92,12 @@ export function ChatBubbleParamEditor({ schema, config, onChange }: ChatBubblePa
                   <ToggleButton key={opt.value} value={opt.value}>
                     {opt.label}
                   </ToggleButton>
+
                 ))}
               </ToggleButtonGroup>
+
             </Box>
+
           );
         }
 
@@ -100,6 +107,7 @@ export function ChatBubbleParamEditor({ schema, config, onChange }: ChatBubblePa
               <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
                 {item.label}
               </Typography>
+
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
                 <ColorPicker value={String(value || '#000000')} onChange={(v) => updateParam(item.key, v)} />
                 <Button
@@ -110,13 +118,17 @@ export function ChatBubbleParamEditor({ schema, config, onChange }: ChatBubblePa
                 >
                   使用主题色
                 </Button>
+
               </Box>
+
             </Box>
+
           );
         }
 
         return null;
       })}
     </Stack>
+
   );
 }

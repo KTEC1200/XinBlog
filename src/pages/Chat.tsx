@@ -23,13 +23,7 @@ import {
 import { useAuthStore } from '@/stores/authStore';
 import type { ChatSettings, CustomChatRoom } from '@/types/interaction';
 
-/**
- * 聊天室列表页（正常页面，带导航栏/页脚）。
- *
- * 聊天拆成两级：/chat 是房间列表，/chat/:roomKey 才是聊天房间（沉浸式）。
- * 列表页只展示房间入口、不发起任何 WebSocket 连接；
- * 只有点击房间进入后，才会在房间页建立连接。
- */
+
 export default function Chat() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
@@ -51,7 +45,7 @@ export default function Chat() {
       if (!cancelled && res.code === 0 && res.data) setSettings(res.data);
       finish();
     });
-    // 自定义房：仅当前登录用户可见（自己是成员且已启用）
+    
     if (isLoggedIn) {
       getMyChatRooms().then((res) => {
         if (!cancelled && res.code === 0 && res.data?.list) setCustomRooms(res.data.list);
@@ -71,6 +65,7 @@ export default function Chat() {
         <Skeleton variant="text" width={140} sx={{ fontSize: '1.5rem' }} />
         <Skeleton variant="rectangular" height={96} sx={{ mt: 2, borderRadius: 1 }} />
       </Container>
+
     );
   }
 
@@ -90,7 +85,7 @@ export default function Chat() {
     maxUsers?: number;
   }
 
-  // 每个房间一张卡片（横向排版，全宽铺开，分隔清晰但不厚重）
+  
   const roomCard = (info: RoomRowInfo) => {
     const clickable = info.open;
     return (
@@ -107,7 +102,7 @@ export default function Chat() {
           onClick={clickable ? () => navigate(`/chat/${encodeURIComponent(info.key)}`) : undefined}
           sx={{ display: 'flex', alignItems: 'center', p: { xs: 1.75, sm: 2.25 }, textAlign: 'left' }}
         >
-          {/* 封面缩略图：有封面显示图；无封面用默认封面兜底；内置房用图标 */}
+          {}
           <Box
             sx={{
               width: 56,
@@ -145,14 +140,17 @@ export default function Chat() {
               >
                 {info.icon || <MeetingRoom sx={{ fontSize: 24, opacity: 0.85 }} />}
               </Box>
+
             )}
           </Box>
+
 
           <Box sx={{ flex: 1, minWidth: 0, ml: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
               <Typography variant="subtitle1" sx={{ fontWeight: 700, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {info.name}
               </Typography>
+
               {info.locked &&
                 (isLoggedIn ? (
                   <Chip size="small" label="仅登录" color="primary" variant="outlined" sx={{ height: 20, fontSize: 11 }} />
@@ -160,34 +158,44 @@ export default function Chat() {
                   <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.3, color: 'text.secondary' }}>
                     <LockOutlined sx={{ fontSize: 14 }} />
                     <Typography variant="caption">登录后进入</Typography>
+
                   </Box>
+
                 ))}
             </Box>
+
             {!clickable ? (
               <Typography variant="caption" color="text.secondary">
                 暂未开放
               </Typography>
+
             ) : (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', mt: 0.15 }}>
                 <Typography variant="caption" color="text.secondary" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0, flex: 1 }}>
                   {info.desc}
                 </Typography>
+
                 {(info.memberCount !== undefined || info.maxUsers !== undefined) && (
                   <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>
                     {info.memberCount !== undefined && `${info.memberCount} 人`}
                     {info.maxUsers! > 0 && ` / 上限 ${info.maxUsers}`}
                   </Typography>
+
                 )}
               </Box>
+
             )}
           </Box>
+
           <ChevronRight color="disabled" sx={{ flexShrink: 0, ml: 1 }} />
         </CardActionArea>
+
       </Card>
+
     );
   };
 
-  // 统一房间列表（无需区分"专属/公共"区块，全部按顺序排下来）
+  
   const allRooms: RoomRowInfo[] = [];
   for (const r of customRooms) {
     allRooms.push({
@@ -212,9 +220,11 @@ export default function Chat() {
         <Typography variant="h5" component="h1" sx={{ fontWeight: 800, mb: 1 }}>
           全部房间
         </Typography>
+
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>
           只有你被邀请加入的房间才会显示在这里
         </Typography>
+
 
         {!roomEnabled ? (
           <ChatEmptyState title="聊天室功能暂未开放" description="管理员尚未开启聊天室，请耐心等待~" />
@@ -225,13 +235,19 @@ export default function Chat() {
                 <Typography variant="body2" color="text.secondary">
                   {isLoggedIn ? '暂时没有你加入的聊天房' : '登录后可见你被邀请加入的聊天房'}
                 </Typography>
+
               </Box>
+
             ) : (
               allRooms.map((row) => <Box key={row.key}>{roomCard(row)}</Box>)
+
             )}
           </Box>
+
         )}
       </Container>
+
     </Fade>
+
   );
 }

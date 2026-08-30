@@ -16,7 +16,7 @@ interface VersionInfo {
   logs?: VersionLog[];
 }
 
-// 简单语义化版本比较：返回值 > 0 表示 a 比 b 新
+
 function compareVersions(a: string, b: string): number {
   const pa = a.replace(/^v/i, '').split('.').map((n) => parseInt(n, 10) || 0);
   const pb = b.replace(/^v/i, '').split('.').map((n) => parseInt(n, 10) || 0);
@@ -30,8 +30,8 @@ function compareVersions(a: string, b: string): number {
   return 0;
 }
 
-// 进入管理后台时请求官网根目录 version.json，比对当前版本与最新版本，
-// 若存在新版本则在后台顶部展示更新提示与更新日志。
+
+
 export function AdminVersionNotice() {
   const theme = useTheme();
   const [info, setInfo] = useState<VersionInfo | null>(null);
@@ -46,7 +46,7 @@ export function AdminVersionNotice() {
         if (mounted) setInfo(data);
       })
       .catch(() => {
-        // 官网不可达或解析失败时静默忽略，不打扰用户
+        
         if (mounted) setFailed(true);
       });
     return () => {
@@ -58,7 +58,7 @@ export function AdminVersionNotice() {
   if (failed || !info || !info.latest) return null;
 
   const latest = String(info.latest).replace(/^v/i, '');
-  // 当前版本不低于最新版本时不提示（含无更新 / 当前版本更新的情况）
+  
   if (compareVersions(APP_VERSION, latest) >= 0) return null;
 
   const log = info.logs?.find((l) => String(l.version).replace(/^v/i, '') === latest);
@@ -76,6 +76,7 @@ export function AdminVersionNotice() {
       <AlertTitle sx={{ fontWeight: 700 }}>
         发现新版本 v{latest}（当前版本 v{APP_VERSION}）
       </AlertTitle>
+
       {log?.content?.length ? (
         <List dense disablePadding sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mb: 1 }}>
           {log.content.map((item, i) => (
@@ -83,6 +84,7 @@ export function AdminVersionNotice() {
               <ListItemIcon sx={{ minWidth: 28, mt: 0.25 }}>
                 <CheckCircleIcon fontSize="small" color="primary" />
               </ListItemIcon>
+
               <ListItemText
                 primary={item}
                 primaryTypographyProps={{
@@ -91,8 +93,10 @@ export function AdminVersionNotice() {
                 }}
               />
             </ListItem>
+
           ))}
         </List>
+
       ) : null}
       <Button
         component="a"
@@ -106,6 +110,8 @@ export function AdminVersionNotice() {
       >
         查看更新日志
       </Button>
+
     </Alert>
+
   );
 }

@@ -123,7 +123,9 @@ export function NavBar({ onMenuClick, drawerOpen = false, drawerWidth = 0, scrol
           >
             <MenuIcon />
           </IconButton>
+
         </Box>
+
 
         {isMobile ? (
           <Box
@@ -189,6 +191,7 @@ export function NavBar({ onMenuClick, drawerOpen = false, drawerWidth = 0, scrol
               }}
             />
           </Box>
+
         ) : (
           <Box
             sx={{
@@ -203,9 +206,11 @@ export function NavBar({ onMenuClick, drawerOpen = false, drawerWidth = 0, scrol
           <Box sx={{ display: { xs: 'none', md: 'flex' }, flex: 1, minWidth: 0, maxWidth: { md: '80%', lg: '85%' } }}>
             <NavLinks items={config.nav?.items || []} navTheme={navTheme} />
           </Box>
+
           <Box sx={{ display: { md: 'none' } }}>
             <NavLinks items={config.nav?.items || []} forceMobile navTheme={navTheme} />
           </Box>
+
           <Tooltip title="搜索文章">
             <IconButton
               onClick={handleMobileSearchOpen}
@@ -221,10 +226,13 @@ export function NavBar({ onMenuClick, drawerOpen = false, drawerWidth = 0, scrol
             >
               <Search />
             </IconButton>
+
           </Tooltip>
+
           <Box sx={{ color: navTheme.textColor || 'inherit' }}>
             <ThemeToggle />
           </Box>
+
 
           {isAuthenticated && user ? (
             <>
@@ -257,8 +265,11 @@ export function NavBar({ onMenuClick, drawerOpen = false, drawerWidth = 0, scrol
                   >
                     {user.username.charAt(0).toUpperCase()}
                   </Avatar>
+
                 </IconButton>
+
               </Tooltip>
+
               <Menu
                 id="user-menu"
                 anchorEl={anchorEl}
@@ -286,6 +297,7 @@ export function NavBar({ onMenuClick, drawerOpen = false, drawerWidth = 0, scrol
                   <AccountCircle fontSize="small" sx={{ mr: 1.5 }} />
                   个人中心
                 </MenuItem>
+
                 {isContentAdmin(user?.role) && (
                   <MenuItem
                     component={Link}
@@ -295,6 +307,7 @@ export function NavBar({ onMenuClick, drawerOpen = false, drawerWidth = 0, scrol
                     <Settings fontSize="small" sx={{ mr: 1.5 }} />
                     管理后台
                   </MenuItem>
+
                 )}
                 <MenuItem
                   onClick={() => {
@@ -305,8 +318,11 @@ export function NavBar({ onMenuClick, drawerOpen = false, drawerWidth = 0, scrol
                   <Logout fontSize="small" sx={{ mr: 1.5 }} />
                   退出登录
                 </MenuItem>
+
               </Menu>
+
             </>
+
           ) : (
             <Tooltip title="登录">
               <IconButton
@@ -323,10 +339,14 @@ export function NavBar({ onMenuClick, drawerOpen = false, drawerWidth = 0, scrol
               >
                 <Person />
               </IconButton>
+
             </Tooltip>
+
           )}
         </Box>
+
       </Toolbar>
+
 
       {mobileSearchOpen && (
         <Toolbar
@@ -361,6 +381,7 @@ export function NavBar({ onMenuClick, drawerOpen = false, drawerWidth = 0, scrol
           >
             <ArrowBack />
           </IconButton>
+
           <Box
             component="form"
             onSubmit={handleSearchSubmit}
@@ -409,7 +430,9 @@ export function NavBar({ onMenuClick, drawerOpen = false, drawerWidth = 0, scrol
               }}
             />
           </Box>
+
         </Toolbar>
+
       )}
 
       <LogoutConfirmDialog
@@ -421,5 +444,6 @@ export function NavBar({ onMenuClick, drawerOpen = false, drawerWidth = 0, scrol
         }}
       />
     </AppBar>
+
   );
 }

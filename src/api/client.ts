@@ -9,7 +9,7 @@ interface ApiResult<T = unknown> {
   msg: string;
 }
 
-// ---------- 前端请求缓存（减少 Worker 请求次数） ----------
+
 
 interface CacheEntry<T> {
   data: ApiResult<T>;
@@ -19,20 +19,20 @@ interface CacheEntry<T> {
 
 const memoryCache = new Map<string, CacheEntry<unknown>>();
 
-// 不同接口的缓存有效期（毫秒）
+
 const CACHE_TTL: Record<string, number> = {
-  '/api/v1/site': 3 * 60 * 60 * 1000, // 站点配置 3 小时
-  '/api/v1/tags': 60 * 60 * 1000, // 标签列表 1 小时
-  '/api/v1/posts': 30 * 60 * 1000, // 文章列表 30 分钟
-  '/api/v1/user/settings': 30 * 60 * 1000, // 用户设置 30 分钟
-  '/api/v1/settings/interaction': 0, // 互动开关由业务层自行缓存，不走内存缓存
-  '/api/v1/admin/posts': 10 * 60 * 1000, // 管理后台文章列表 10 分钟
-  '/api/v1/admin/tags': 10 * 60 * 1000, // 管理后台标签列表 10 分钟
-  '/api/v1/admin/media': 5 * 60 * 1000, // 管理后台媒体列表 5 分钟
-  '/api/v1/admin/dashboard': 5 * 60 * 1000, // 仪表盘 5 分钟
+  '/api/v1/site': 3 * 60 * 60 * 1000, 
+  '/api/v1/tags': 60 * 60 * 1000, 
+  '/api/v1/posts': 30 * 60 * 1000, 
+  '/api/v1/user/settings': 30 * 60 * 1000, 
+  '/api/v1/settings/interaction': 0, 
+  '/api/v1/admin/posts': 10 * 60 * 1000, 
+  '/api/v1/admin/tags': 10 * 60 * 1000, 
+  '/api/v1/admin/media': 5 * 60 * 1000, 
+  '/api/v1/admin/dashboard': 5 * 60 * 1000, 
 };
 
-const DEFAULT_TTL = 5 * 60 * 1000; // 默认 5 分钟
+const DEFAULT_TTL = 5 * 60 * 1000; 
 
 function getCacheKey(method: string, path: string): string {
   return `${method}:${path}`;
@@ -40,7 +40,7 @@ function getCacheKey(method: string, path: string): string {
 
 function getCacheTtl(path: string): number {
   const cleanPath = path.split('?')[0];
-  // 评论/点赞/留言墙实时性要求高，不使用缓存（删除后列表必须立刻刷新）
+  
   if (
     cleanPath.includes('/comments') ||
     cleanPath.includes('/likes') ||
@@ -67,9 +67,9 @@ function stripQuery(path: string): string {
 
 function invalidateRelatedCaches(path: string) {
   const base = stripQuery(path);
-  // 把 /api/v1/admin/posts/123 转成 /api/v1/admin/posts
+  
   const segments = base.split('/').filter(Boolean);
-  const resourcePrefix = '/' + segments.slice(0, 4).join('/'); // e.g. /api/v1/admin/posts
+  const resourcePrefix = '/' + segments.slice(0, 4).join('/'); 
 
   const related: string[] = [resourcePrefix];
   if (resourcePrefix.startsWith('/api/v1/admin/posts')) {
@@ -79,10 +79,10 @@ function invalidateRelatedCaches(path: string) {
   } else if (base === '/api/v1/admin/settings/interaction') {
     related.push('/api/v1/settings/interaction');
   } else if (base.startsWith('/api/v1/admin/settings/')) {
-    // 管理后台保存的设置通常有对应的公开读取接口，需要一并失效
+    
     const settingKey = base.replace('/api/v1/admin/settings/', '');
     related.push(`/api/v1/settings/${settingKey}`);
-    // AI 设置的公开读取接口是 /settings/agent（读 agentEnabled 开关），一并失效
+    
     if (settingKey === 'ai') {
       related.push('/api/v1/settings/agent');
     }
@@ -124,7 +124,7 @@ async function refreshAccessToken(): Promise<boolean> {
     });
     const data = (await res.json()) as { code: number; data?: { accessToken: string; refreshToken: string; user: AuthUser }; msg?: string };
     if (data.code !== 0 || !data.data) {
-      // 刷新失败，同步登出以避免使用过期凭证
+      
       const { useAuthStore } = await import('@/stores/authStore');
       useAuthStore.getState().logout();
       return false;
@@ -137,7 +137,7 @@ async function refreshAccessToken(): Promise<boolean> {
       'auth-state-sync',
       JSON.stringify({ isAuthenticated: true, user, token: accessToken, refreshToken: newRefreshToken })
     );
-    // 同步更新 zustand store，确保 UI 状态与本地存储一致
+    
     const { useAuthStore } = await import('@/stores/authStore');
     useAuthStore.getState().setAuth(accessToken, newRefreshToken, user as AuthUser);
     return true;
@@ -196,7 +196,7 @@ export async function apiFetch<T = unknown>(path: string, options: CustomRequest
   const key = getCacheKey(method, path);
   const ttl = getCacheTtl(path);
 
-  // 非 GET 请求：直接请求，成功后清除相关缓存
+  
   if (method !== 'GET') {
     const result = await fetchInternal<T>(path, options);
     if (result.code === 401 && !isRetry) {
@@ -211,19 +211,19 @@ export async function apiFetch<T = unknown>(path: string, options: CustomRequest
     return result;
   }
 
-  // GET 请求：优先读取缓存
+  
   const cached = readCache<T>(key, ttl);
   if (cached) {
     return cached;
   }
 
-  // 并发请求去重：同一路径共享一个 Promise
+  
   const entry = memoryCache.get(key);
   if (entry?.promise) {
     return entry.promise as Promise<ApiResult<T>>;
   }
 
-  // 发起请求并暂存 promise
+  
   const promise = fetchInternal<T>(path, options);
   memoryCache.set(key, { data: { code: 0, data: null as T, msg: '' }, ts: Date.now(), promise });
 
@@ -236,7 +236,7 @@ export async function apiFetch<T = unknown>(path: string, options: CustomRequest
     }
   }
 
-  // 失败响应不进入内存缓存，避免一次网络/DB 抖动把错误状态固定住
+  
   if (result.code !== 0) {
     memoryCache.delete(key);
   } else {

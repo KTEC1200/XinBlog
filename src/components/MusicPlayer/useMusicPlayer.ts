@@ -33,16 +33,7 @@ export interface MusicPlayerApi {
   togglePlayMode: () => void;
 }
 
-/**
- * 音乐播放器核心逻辑（参照 pz-music-player.js 的实现 1:1 迁移）：
- * - 网易云歌单加载（apiUrl + playlistId）
- * - 歌曲 URL / 歌词拉取
- * - 播放/暂停/上一首/下一首/进度/音量/静音
- * - 播放模式：列表循环 / 单曲循环 / 随机
- * - 歌词解析与当前句高亮索引
- * - 记忆播放（localStorage 记录上次歌曲/进度/音量/模式）
- * - 音频加载失败自动跳下一首（连续失败 3 次停止）
- */
+
 export function useMusicPlayer(config?: Partial<MusicPlayerConfig>): MusicPlayerApi {
   const effective: MusicPlayerConfig = { ...DEFAULT_MUSIC_CONFIG, ...(config || {}) };
   const [isPlaying, setIsPlaying] = useState(false);
@@ -61,14 +52,14 @@ export function useMusicPlayer(config?: Partial<MusicPlayerConfig>): MusicPlayer
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const errorCountRef = useRef(0);
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // 保存最新的 playNext 函数引用，供 useEffect 内事件回调使用
+  
   const playNextRef = useRef<() => void>(() => {});
 
-  // 供事件回调读取的最新快照，避免闭包过期
+  
   const ctxRef = useRef({ config: effective, playMode, currentIndex, playlist, volume });
   ctxRef.current = { config: effective, playMode, currentIndex, playlist, volume };
 
-  // ---------- 音频元素 ----------
+  
   useEffect(() => {
     const audio = new Audio();
     audio.preload = 'auto';
@@ -77,8 +68,8 @@ export function useMusicPlayer(config?: Partial<MusicPlayerConfig>): MusicPlayer
 
     const onTimeUpdate = () => {
       setCurrentTime(audio.currentTime);
-      // 兜底：部分移动端浏览器 duration 在 loadedmetadata 后仍为 0/Infinity，
-      // 这里在 timeupdate 期间持续校正，避免进度条停留在 0。
+      
+      
       const d = audio.duration;
       if (isFinite(d) && d > 0) {
         setDuration((prev) => (Math.abs(prev - d) > 0.05 ? d : prev));
@@ -105,7 +96,7 @@ export function useMusicPlayer(config?: Partial<MusicPlayerConfig>): MusicPlayer
         });
       }
     };
-    // 移动端流式音频可能出现 duration 为 Infinity/NaN，统一用 isFinite 防御
+    
     const onLoadedMetadata = () => {
       const d = audio.duration;
       setDuration(isFinite(d) && d > 0 ? d : 0);
@@ -159,16 +150,16 @@ export function useMusicPlayer(config?: Partial<MusicPlayerConfig>): MusicPlayer
       document.body.removeChild(audio);
       audioRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, []);
 
-  // 歌词引用（供 audio 事件内使用）
+  
   const lyricsRef = useRef<LyricLine[]>([]);
   useEffect(() => {
     lyricsRef.current = lyrics;
   }, [lyrics]);
 
-  // 加载歌词
+  
   const loadLyric = useCallback(async (songId: number) => {
     const cfg = ctxRef.current.config;
     if (!cfg.showLyric) {
@@ -188,7 +179,7 @@ export function useMusicPlayer(config?: Partial<MusicPlayerConfig>): MusicPlayer
     }
   }, []);
 
-  // 加载单曲（songs 可选：传入则直接使用，不传从 ctxRef 读取）
+  
   const loadSong = useCallback(
     (index: number, autoplay = true, songsOverride?: Song[]) => {
       const songs = songsOverride || ctxRef.current.playlist;
@@ -207,7 +198,7 @@ export function useMusicPlayer(config?: Partial<MusicPlayerConfig>): MusicPlayer
         if (autoplay) {
           void audio.play().catch((err) => {
             if (err.name === 'NotAllowedError') {
-              // 浏览器未授权自动播放（未交互）——保持静默，等待用户点击
+              
               setIsPlaying(false);
               return;
             }
@@ -223,7 +214,7 @@ export function useMusicPlayer(config?: Partial<MusicPlayerConfig>): MusicPlayer
     [loadLyric]
   );
 
-  // 加载歌单
+  
   const loadPlaylist = useCallback(async () => {
     const cfg = ctxRef.current.config;
     if (!cfg.playlistId.trim()) {
@@ -255,7 +246,7 @@ export function useMusicPlayer(config?: Partial<MusicPlayerConfig>): MusicPlayer
         setLoading(false);
 
         if (songs.length > 0) {
-          // 记忆播放：歌单加载完成后恢复上次歌曲与进度
+          
           const memory = cfg.memory ? loadMusicMemory() : null;
           if (memory && memory.currentIndex !== undefined && memory.currentIndex < songs.length) {
             if (memory.volume !== undefined) {
@@ -269,7 +260,7 @@ export function useMusicPlayer(config?: Partial<MusicPlayerConfig>): MusicPlayer
               audioRef.current.currentTime = memory.currentTime;
             }
           } else {
-            // 默认加载第一首（是否自动播放由配置决定；未开启时也正常显示歌曲信息）
+            
             loadSong(0, cfg.autoplay, songs);
           }
         } else {
@@ -287,26 +278,26 @@ export function useMusicPlayer(config?: Partial<MusicPlayerConfig>): MusicPlayer
     }
   }, [loadSong]);
 
-  // 歌单/API 变化时重新加载
+  
   useEffect(() => {
     void loadPlaylist();
   }, [loadPlaylist]);
 
-  // 音量同步
+  
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.volume = volume;
     }
   }, [volume]);
 
-  // 静音同步
+  
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.muted = isMuted;
     }
   }, [isMuted]);
 
-  // 播放
+  
   const play = useCallback(() => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -337,7 +328,7 @@ export function useMusicPlayer(config?: Partial<MusicPlayerConfig>): MusicPlayer
     }
   }, [play, pause]);
 
-  // 下一首（对外：按模式选择）
+  
   const playNext = useCallback(() => {
     const songs = ctxRef.current.playlist;
     if (songs.length === 0) return;
@@ -350,10 +341,10 @@ export function useMusicPlayer(config?: Partial<MusicPlayerConfig>): MusicPlayer
     loadSong(index);
   }, [loadSong]);
 
-  // 同步 ref 供 useEffect 内事件回调使用
+  
   playNextRef.current = playNext;
 
-  // 上一首
+  
   const playPrev = useCallback(() => {
     const songs = ctxRef.current.playlist;
     if (songs.length === 0) return;
@@ -370,7 +361,7 @@ export function useMusicPlayer(config?: Partial<MusicPlayerConfig>): MusicPlayer
 
   const prev = useCallback(() => playPrev(), [playPrev]);
 
-  // 播放指定歌曲
+  
   const playAt = useCallback(
     (index: number) => {
       const songs = ctxRef.current.playlist;
@@ -380,7 +371,7 @@ export function useMusicPlayer(config?: Partial<MusicPlayerConfig>): MusicPlayer
     [loadSong]
   );
 
-  // 进度跳转
+  
   const setProgress = useCallback((percent: number) => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -391,7 +382,7 @@ export function useMusicPlayer(config?: Partial<MusicPlayerConfig>): MusicPlayer
     setCurrentTime(audio.currentTime);
   }, []);
 
-  // 音量
+  
   const setVolume = useCallback((percent: number) => {
     const p = Math.max(0, Math.min(1, percent));
     setVolumeState(p);
@@ -415,7 +406,7 @@ export function useMusicPlayer(config?: Partial<MusicPlayerConfig>): MusicPlayer
     setIsMuted(audio.muted);
   }, []);
 
-  // 播放模式切换
+  
   const togglePlayMode = useCallback(() => {
     const modes: MusicPlayMode[] = ['list', 'single', 'random'];
     const current = modes.indexOf(ctxRef.current.playMode);

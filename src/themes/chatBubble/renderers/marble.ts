@@ -10,7 +10,7 @@ interface MarbleParams extends Record<string, unknown> {
   otherSharpCorner: BubbleCorners;
 }
 
-/** 石纹：近白底 + 极淡理石灰纹，低调质感 */
+
 export const marbleBubbleRenderer: ChatBubbleRenderer<MarbleParams> = {
   id: 'marble',
   name: '石纹',

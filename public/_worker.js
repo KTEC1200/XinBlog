@@ -1,13 +1,13 @@
-// my-blog 后端 API（单文件 Worker）
-// 部署方式：Cloudflare Pages + _routes.json + 4 个 D1 数据库
-// 注意：表结构由用户在 Cloudflare Dashboard 或 wrangler 中手动执行 SQL 初始化，Worker 只处理 API。
+
+
+
 
 import { connect } from 'cloudflare:sockets';
 
 const VERSION = '1.0.0';
-const GLOBAL_DAILY_EMAIL_LIMIT = 200; // 全局每日邮件发送总量上限
+const GLOBAL_DAILY_EMAIL_LIMIT = 200; 
 
-// ---------- 工具函数 ----------
+
 
 function jsonResponse(code, data, msg = 'ok', status = 200) {
   return new Response(JSON.stringify({ code, data, msg }), {
@@ -44,7 +44,7 @@ function readingTime(content) {
   return Math.max(1, Math.ceil(chars / 300));
 }
 
-// ---------- Web Crypto 工具 ----------
+
 
 function bufToHex(buf) {
   return Array.from(new Uint8Array(buf))
@@ -182,7 +182,7 @@ async function verifyJWT(token, secret) {
   return payload;
 }
 
-// ---------- 数据库辅助 ----------
+
 
 function ensureDbConfig(env) {
   if (!env || !env.DB_CONFIG || typeof env.DB_CONFIG.prepare !== 'function') {
@@ -195,18 +195,15 @@ function ensureDbConfig(env) {
   }
 }
 
-// ---------- Agent 持久会话（对标 dsh-edge SessionPersistence） ----------
-// 会话与消息保存在 DB_CONFIG（settings 库），跨刷新/换设备不丢、可重放、可续聊。
-// 表 agent_sessions 存会话元数据；会话消息按 JSON 存 setting `_agent_session_msg:<id>`。
+
+
+
 
 let _agentSessionInitialized = false;
-// 每片最多保存的消息条数（10 条一片，自动切分，支持分片加载）
+
 const AGENT_SESSION_PART_SIZE = 10;
 
-/**
- * 把扁平消息数组按顺序切分为若干片（含其内容/trail）。
- * 返回 [{ messages: [...] }] 数组，index 即 part_index。
- */
+
 function chunkAgentMessages(messages) {
   const chunks = [];
   for (let i = 0; i < messages.length; i += AGENT_SESSION_PART_SIZE) {
@@ -216,20 +213,20 @@ function chunkAgentMessages(messages) {
 }
 
 async function ensureAgentSessionTable(env) {
-  // 建表/迁移只做一次：进程级 _agentSessionInitialized 标记 + 完成后写 system.agent_sessions_init 标记。
-  // 关键：以真实表结构为准（sqlite_master / PRAGMA），不信任旧标记 ——
-  // 防止旧库标记已置 1 但子表缺失时提前返回，导致子表永远建不出来、消息存不进去。
+  
+  
+  
   if (_agentSessionInitialized) return;
   const db = getConfigDb(env);
   try {
     const hasSessions = await tableExists(db, 'agent_sessions');
     const hasSub = await tableExists(db, 'agent_session_messages');
-    // 结构完整（主表+子表都在）→ 无需任何改动，幂等早退
+    
     if (hasSessions && hasSub) {
       _agentSessionInitialized = true;
       return;
     }
-    // —— 首次初始化 / 结构缺失（如旧库只有 agent_sessions.messages 列、没有子表）：自动修复 ——
+    
     await db
       .prepare(
         `CREATE TABLE IF NOT EXISTS agent_sessions (
@@ -240,7 +237,7 @@ async function ensureAgentSessionTable(env) {
         )`
       )
       .run();
-    // 分片存储：每片固定条数消息，避免单行 JSON 随会话无限膨胀（自动切分 + 分片加载）
+    
     await db
       .prepare(
         `CREATE TABLE IF NOT EXISTS agent_session_messages (
@@ -254,8 +251,8 @@ async function ensureAgentSessionTable(env) {
     await db.prepare('CREATE INDEX IF NOT EXISTS idx_agent_sessions_updated ON agent_sessions(updated_at DESC)').run();
     await db.prepare('CREATE INDEX IF NOT EXISTS idx_agent_sm_session ON agent_session_messages(session_id)').run();
 
-    // 旧库迁移：agent_sessions 若还带旧 messages 列（整段 JSON 存对话），
-    // 先把数据分片搬进子表，再删掉旧列，让表结构对齐运行时新 schema。
+    
+    
     if (hasSessions && (await columnExists(db, 'agent_sessions', 'messages'))) {
       const old = await db
         .prepare("SELECT id, messages FROM agent_sessions WHERE messages IS NOT NULL AND messages != '' AND messages != '[]'")
@@ -269,7 +266,7 @@ async function ensureAgentSessionTable(env) {
           await migrateAgentMessagesToParts(db, row.id, arr);
         }
       }
-      // 删掉旧列（不支持 DROP COLUMN 的环境静默保留，该列此后不再使用）
+      
       try {
         await db.prepare('ALTER TABLE agent_sessions DROP COLUMN messages').run();
       } catch (e) {
@@ -277,30 +274,30 @@ async function ensureAgentSessionTable(env) {
       }
     }
 
-    // 写标记（迁移成功完成后才写，保证只迁移一次）
+    
     await db
       .prepare('INSERT OR REPLACE INTO system (key, value, updated_at) VALUES (\'agent_sessions_init\', \'1\', datetime(\'now\'))')
       .run();
     _agentSessionInitialized = true;
   } catch (e) {
-    // 建表/迁移失败打日志（会话可能不可用），但不抛到请求链路；不置位，下次请求会重试
+    
     console.error('ensureAgentSessionTable:', e && e.message);
   }
 }
 
-// 检测表是否存在（以 sqlite_master 真实结构为准）
+
 async function tableExists(db, name) {
   const r = await db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?").bind(name).first();
   return !!r;
 }
 
-// 检测表中是否存在某列（PRAGMA table_info 不支持绑定表名，表名来自代码内常量，安全）
+
 async function columnExists(db, table, col) {
   const r = await db.prepare(`PRAGMA table_info(${table})`).all();
   return (r.results || []).some((c) => c.name === col);
 }
 
-// 把旧 schema 一整段 messages 切分写入子表（复用 chunkAgentMessages 分片规则）
+
 async function migrateAgentMessagesToParts(db, id, messages) {
   const chunks = chunkAgentMessages(messages);
   if (!chunks.length) return;
@@ -320,7 +317,7 @@ function normalizeAgentMessage(m) {
 }
 
 async function agentSessionGet(env, id) {
-  // 读取前确保结构完整（幂等）：旧库迁移/建表只发生一次，避免读到缺失的子表
+  
   await ensureAgentSessionTable(env);
   const db = getConfigDb(env);
   const row = await db
@@ -344,8 +341,8 @@ async function agentSessionGet(env, id) {
   return { id: row.id, title: row.title, messages, createdAt: row.created_at, updatedAt: row.updated_at };
 }
 
-// 分片加载。partIndex >= 0 按正序取第 N 片（0 为最早）；
-// partIndex < 0 按倒序取（-1 为最后/最新一片，-2 为倒数第二……），供前端"向上翻"加载更早历史。
+
+
 async function agentSessionGetPart(env, id, partIndex) {
   const db = getConfigDb(env);
   const row = await db
@@ -370,37 +367,37 @@ async function agentSessionGetPart(env, id, partIndex) {
   if (total === 0) {
     target = null;
   } else if (n < 0) {
-    // 前端统一用 -1 拉「全量」（本地再按 10 条一页分页展示）：
-    // 按回合分块存储后，这里把全部回合的消息按顺序合并成一份返回。
+    
+    
     const merged = [];
     for (const p of parts) merged.push(...p.data);
     return { total, partIndex: -1, messages: merged };
   } else {
-    // 正索引：取第 N 个回合（0 为最早）——保留按回合逐片拉取的扩展能力
+    
     target = parts.find((p) => p.index === n) || parts[parts.length - 1];
   }
   return { total, partIndex: target ? target.index : -1, messages: target ? target.data : [] };
 }
 
 async function agentSessionSave(env, id, title, messages) {
-  // 保存前确保会话表/分片子表已建（幂等，不重复建表）：
-  // 进程内 _agentSessionInitialized 标记 + system.agent_sessions_init 标记 + CREATE TABLE IF NOT EXISTS 三重保障。
-  // 防止 aiAgent 首次落库时子表尚未创建（旧库由 config.sql 初始化只有 messages 列、没有子表）而写入失败。
+  
+  
+  
   await ensureAgentSessionTable(env);
   const db = getConfigDb(env);
   const slug = String(title || '新对话').slice(0, 60);
   const nowIso = new Date().toISOString();
   const existing = await db.prepare('SELECT created_at FROM agent_sessions WHERE id = ?').bind(id).first();
   const createdAt = existing ? existing.created_at : nowIso;
-  // 保留足够历史，但设个总条数上限，防止无限膨胀撑爆存储
+  
   const capped = messages.slice(-2000);
   await db
     .prepare('INSERT OR REPLACE INTO agent_sessions (id, title, created_at, updated_at) VALUES (?, ?, ?, ?)')
     .bind(id, slug, createdAt, nowIso)
     .run();
-  // 按「每个回合」分块存储：一条用户消息及其后续的思考/工具调用/回复合为一个回合，存成一行。
-  // part_index 为该回合在会话内的序号（0 为最早）。这样数据库里不再是一条整段 JSON，
-  // 而是按问答回合逐行分开，读/看表都更清晰，也便于按回合分页拉取。
+  
+  
+  
   const blocks = splitAgentSessionMessages(capped);
   await db.prepare('DELETE FROM agent_session_messages WHERE session_id = ?').bind(id).run();
   for (let i = 0; i < blocks.length; i++) {
@@ -409,12 +406,12 @@ async function agentSessionSave(env, id, title, messages) {
       .bind(id, i, JSON.stringify(blocks[i]))
       .run();
   }
-  // 返回服务器落库时间戳，供前端作为"云端同步游标"（避免用客户端 Date.now() 造成时钟偏差）
+  
   return { updatedAt: nowIso };
 }
 
-// 把扁平消息序列切成「回合」块：role='user' 开启一个新回合，
-// 并把其后直到下一条用户消息之间的 assistant/tool 内容归入该回合。
+
+
 function splitAgentSessionMessages(messages) {
   const blocks = [];
   let cur = [];
@@ -429,8 +426,8 @@ function splitAgentSessionMessages(messages) {
   return blocks.length ? blocks : [[]];
 }
 
-// 构造「一条 assistant 展示记录」：正文 + 该轮完整 trail + 用量，供逐轮持久化。
-// 这样每一轮问答（思考/工具/正文）都作为独立 assistant 消息保存，历史轮次的步骤可在前端重建。
+
+
 function makeAssistantDisplay(content, trail, stats) {
   const m = { role: 'assistant' };
   if (content) m.content = content;
@@ -464,21 +461,21 @@ async function agentSessionDelete(env, id) {
   await db.prepare('DELETE FROM agent_session_messages WHERE session_id = ?').bind(id).run();
 }
 
-// 时间戳从 2026-01-01 起记（近百年不溢出），保证 ID 随时间递增、可排序可判断新旧
+
 const SESSION_ID_EPOCH = new Date('2026-01-01T00:00:00.000Z').getTime();
 function makeAgentSessionId() {
   const tick = Date.now() - SESSION_ID_EPOCH;
   return `s_${tick.toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
-// ---------- Agent Web Search 技能（对标 dsh-edge web_search） ----------
-// 通过 DuckDuckGo Instant Answer / HTML 做轻量联网检索，返回结构化结果供 agent 引用。
+
+
 async function agentWebSearch(query, maxResults = 5) {
   const q = String(query || '').trim();
   if (!q) return { ok: false, error: '缺少搜索关键词' };
   const results = [];
   try {
-    // 兼容 Cursor/亦可用其他 JSON 接口；此处用 DuckDuckGo 即时答案接口（免 key）
+    
     const url = 'https://api.duckduckgo.com/?q=' + encodeURIComponent(q) + '&format=json&no_html=1';
     const res = await fetch(url, { headers: { 'User-Agent': 'XinBlog-Agent/1.0' } });
     if (res.ok) {
@@ -520,7 +517,7 @@ function getBindingDebugInfo(env, err) {
 
 function getConfigDb(env) {
   ensureDbConfig(env);
-  // 对配置类读取使用 first-primary，避免 D1 读副本异步复制导致保存后仍读到旧数据
+  
   return env.DB_CONFIG.withSession ? env.DB_CONFIG.withSession('first-primary') : env.DB_CONFIG;
 }
 
@@ -555,7 +552,7 @@ async function setSystem(env, key, value) {
     .run();
 }
 
-// ---------- 认证中间件 ----------
+
 
 async function getCurrentUser(request, env) {
   const auth = request.headers.get('Authorization') || '';
@@ -576,7 +573,7 @@ async function getCurrentUser(request, env) {
   }
 }
 
-// 供 WebSocket 握手使用：直接校验一个原始 access token，返回登录用户（鉴权放 Pages 端）。
+
 async function resolveAuthIdentity(token, env) {
   if (!token) return null;
   try {
@@ -594,7 +591,7 @@ async function resolveAuthIdentity(token, env) {
   }
 }
 
-// 把新身份头合并进原请求头，返回带 mergedHeaders 的对象。
+
 function buildAuthHeaders(requestHeaders, identity) {
   const headers = new Headers(requestHeaders);
   headers.set('x-user-id', String(identity.id));
@@ -602,8 +599,8 @@ function buildAuthHeaders(requestHeaders, identity) {
   return { mergedHeaders: headers };
 }
 
-// 构造指向聊天 DO 的"内部"媒体/数据子路径 URL（/api/room/<key><subPath>）。
-// 聊天 Worker 无公网端口，只能经 Pages 的 env.CHAT Service Binding 内部调用。
+
+
 function buildChatSubUrl(roomKey, subPath) {
   const u = new URL('https://internal');
   u.pathname = `/api/room/${roomKey}${subPath.charAt(0) === '/' ? subPath : '/' + subPath}`;
@@ -617,8 +614,8 @@ async function requireAuth(request, env, handler) {
 }
 
 async function requireAdmin(request, env, handler) {
-  // 管理后台：管理员(admin)与超级管理员(super_admin)可访问内容/社区管理接口；
-  // 站主级配置(用户/系统/外观/主题/AI凭据等)另走 requireSuperAdmin
+  
+  
   const user = await getCurrentUser(request, env);
   if (!user) return jsonResponse(401, null, 'Unauthorized', 401);
   if (user.role !== 'admin' && user.role !== 'super_admin') {
@@ -634,7 +631,7 @@ async function requireSuperAdmin(request, env, handler) {
   return handler(request, env, user);
 }
 
-// ---------- 接口处理器 ----------
+
 
 async function setup(env) {
   return jsonResponse(0, { version: VERSION }, 'ok');
@@ -744,8 +741,8 @@ async function getSiteConfigObject(env) {
   const about = (await getSetting(env, 'about')) || {};
   const friends = (await getSetting(env, 'friends')) || {};
   const ai = (await getSetting(env, 'ai')) || {};
-  // 自愈兜底：没有应用任何主题时，强制将 cardTheme 归一为原生默认卡片（variant='default'，
-  // 走 PostCard 的 else 回退分支），避免旧数据残留 cloud-overlay 导致主页永远显示非默认卡片。
+  
+  
   const activeThemeId = (await getSetting(env, 'active_theme')) || '';
   const cardTheme = activeThemeId
     ? { ...defaultSiteConfig.cardTheme, ...(site.cardTheme || {}) }
@@ -753,8 +750,8 @@ async function getSiteConfigObject(env) {
   return {
     ...defaultSiteConfig,
     ...site,
-    // AI 智能体开关：站点 AI 功能开启且启用了 Agent 时侧边栏显示「AI 助手」入口，
-    // 并入 site config 一并下发，与「友链/音乐」一致，首次绘制即可见，避免条目晚插入造成闪烁。
+    
+    
     agentEnabled: ai.agentEnabled === true && ai.enabled === true,
     cardTheme,
     hero: { ...defaultSiteConfig.hero, ...hero, ...(site.hero || {}) },
@@ -857,7 +854,7 @@ async function getManifest(env, requestUrl) {
 }
 
 async function getSiteConfig(env) {
-  // 拆分到多个 key 存储，避免单条记录因 Base64 图片过大超过 D1 1MB 限制
+  
   try {
     const config = await getSiteConfigObject(env);
     return jsonResponseWithCache(0, { site: config }, 'ok', 200, 'public, max-age=120, stale-while-revalidate=86400');
@@ -909,7 +906,7 @@ async function listPosts(env, url) {
     total = countRow.c;
   }
 
-  // 填充标签
+  
   const list = await fillPostTags(env, posts.results || []);
   return jsonResponseWithCache(0, { list, total, page, limit }, 'ok', 200, 'public, max-age=600');
 }
@@ -964,7 +961,7 @@ async function listPostsByTag(env, path) {
   return listPosts(env, new URL(`https://x.com/api/v1/posts?tag=${encodeURIComponent(slug)}`));
 }
 
-// ---------- 速率限制 ----------
+
 
 let rateLimitTableReady = false;
 
@@ -984,7 +981,7 @@ function getClientIp(request) {
   );
 }
 
-// 原子计数限流：key 在 windowSec 秒窗口内最多允许 limit 次，返回 true 表示放行
+
 async function checkRateLimit(env, key, limit, windowSec) {
   const nowSec = Math.floor(Date.now() / 1000);
   const bucket = Math.floor(nowSec / windowSec);
@@ -997,7 +994,7 @@ async function checkRateLimit(env, key, limit, windowSec) {
       .bind(bucketKey, bucket)
       .run();
   } catch (e) {
-    // 旧库缺少表时懒创建，并放行本次请求
+    
     if (e.message && e.message.includes('no such table')) {
       await ensureRateLimitTable(env);
       return true;
@@ -1006,12 +1003,12 @@ async function checkRateLimit(env, key, limit, windowSec) {
   }
   const row = await db.prepare('SELECT count, window_start FROM rate_limits WHERE key = ?').bind(bucketKey).first();
   if (!row) return true;
-  // 窗口翻转后复用了旧桶行时重置计数
+  
   if (row.window_start !== bucket) {
     await db.prepare('UPDATE rate_limits SET count = 1, window_start = ? WHERE key = ?').bind(bucket, bucketKey).run();
     return true;
   }
-  // 概率性清理过期桶，防止表无限增长
+  
   if (Math.random() < 0.02) {
     await db.prepare('DELETE FROM rate_limits WHERE window_start < ?').bind(bucket - 3).run();
   }
@@ -1035,7 +1032,7 @@ async function register(request, env) {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) return jsonResponse(400, null, '邮箱格式不正确');
 
-  // 速率限制：按 IP 与邮箱限流，防止批量灌号
+  
   const regIp = getClientIp(request);
   if (!(await checkRateLimit(env, `reg:ip:${regIp}`, 5, 3600))) {
     return jsonResponse(429, null, '注册过于频繁，请稍后再试', 429);
@@ -1053,7 +1050,7 @@ async function register(request, env) {
       .first();
     if (!record) return jsonResponse(403, null, '请先获取邮箱验证码');
     if (record.code !== code) {
-      // 验证码比对限流：防止对同一邮箱爆破验证码
+      
       if (!(await checkRateLimit(env, `vc-check:${email.toLowerCase()}`, 5, 600))) {
         return jsonResponse(429, null, '验证码错误次数过多，请重新获取', 429);
       }
@@ -1064,14 +1061,14 @@ async function register(request, env) {
     await env.DB_USERS.prepare('DELETE FROM verify_codes WHERE email = ?').bind(email).run();
   }
 
-  // 注册场景验证：开关开启时需通过人机验证
+  
   if (authSettings.registerVerification === true) {
     if (!(await verifyHuman(request, env, body))) {
       return jsonResponse(403, null, '人机验证未通过，请重试');
     }
   }
 
-  // 第一个注册用户自动成为 super_admin
+  
   const countRow = await env.DB_USERS.prepare('SELECT COUNT(*) as c FROM users').first();
   const role = countRow.c === 0 ? 'super_admin' : 'guest';
 
@@ -1098,7 +1095,7 @@ async function login(request, env) {
   const account = String(body.username || '').trim();
   const password = String(body.password || '');
 
-  // 登录场景验证：开关开启时需通过人机验证
+  
   const authSettings = (await getSetting(env, 'auth')) || {};
   if (authSettings.loginVerification === true) {
     if (!(await verifyHuman(request, env, body))) {
@@ -1106,7 +1103,7 @@ async function login(request, env) {
     }
   }
 
-  // 速率限制：按 IP 与账号限流，防止暴力破解
+  
   const loginIp = getClientIp(request);
   if (!(await checkRateLimit(env, `login:ip:${loginIp}`, 10, 600))) {
     return jsonResponse(429, null, '尝试次数过多，请 10 分钟后再试', 429);
@@ -1122,7 +1119,7 @@ async function login(request, env) {
     .bind(account)
     .first();
 
-  // 允许使用邮箱登录
+  
   if (!user) {
     user = await env.DB_USERS.prepare(
       'SELECT id, username, email, email_verified, avatar_base64, role, status, password_hash, password_salt FROM users WHERE email = ?'
@@ -1192,7 +1189,7 @@ async function refreshToken(request, env) {
       env.JWT_SECRET
     );
 
-    // 刷新后使旧 refresh token 失效，并签发新的 refresh token（单次使用 + 轮换策略）
+    
     await env.DB_USERS.prepare('DELETE FROM refresh_tokens WHERE token_hash = ?').bind(tokenHash).run();
     const refreshExpSec = nowSec + 30 * 24 * 3600;
     const newRefreshToken = await signJWT(
@@ -1223,13 +1220,13 @@ async function refreshToken(request, env) {
 }
 
 async function logout(request, env) {
-  // 优先从请求体获取 refreshToken，同时兼容 Authorization 头
+  
   let token = '';
   try {
     const body = await request.json();
     token = String(body?.refreshToken || body?.refresh_token || '');
   } catch {
-    // 请求体为空或解析失败时忽略
+    
   }
 
   if (!token) {
@@ -1246,11 +1243,11 @@ async function logout(request, env) {
         const tokenHash = await sha256Hex(token);
         await env.DB_USERS.prepare('DELETE FROM refresh_tokens WHERE token_hash = ?').bind(tokenHash).run();
       } else if (payload.sub) {
-        // 若仅提供 access token，则撤销该用户的全部 refresh tokens（兜底安全策略）
+        
         await env.DB_USERS.prepare('DELETE FROM refresh_tokens WHERE user_id = ?').bind(payload.sub).run();
       }
     } catch {
-      // ignore
+      
     }
   }
   return jsonResponse(0, null, 'Logged out');
@@ -1306,7 +1303,7 @@ async function updateUserSettings(request, env, user) {
 }
 
 async function getDashboard(request, env, user) {
-  // 折线统计：最近 N 天的逐日数据（created_at 为 ISO 字符串，substr 取日期分组）
+  
   let days = 30;
   try {
     const p = new URL(request.url).searchParams.get('days');
@@ -1524,7 +1521,7 @@ async function updatePost(request, env, user) {
 async function deletePost(request, env, user) {
   const id = parseInt(request.url.split('/').pop(), 10);
   await env.DB_POSTS.prepare('DELETE FROM post_tags WHERE post_id = ?').bind(id).run();
-  // 删除该文章下所有评论（含楼中楼，先删子再删父，避免外键约束报错）
+  
   await deleteCommentsByPost(env, id);
   await env.DB_POSTS.prepare('DELETE FROM likes WHERE post_id = ?').bind(id).run();
   await env.DB_POSTS.prepare('DELETE FROM posts WHERE id = ?').bind(id).run();
@@ -1590,7 +1587,7 @@ async function updateSettings(request, env, user) {
   const body = await request.json();
   if (body.site) {
     const { hero, about, friends, ...siteRest } = body.site;
-    // 合并而非整体覆盖：AI 改协议/简介等只传部分字段时，不能把 site 里其它配置（配色/字体/外观等）冲掉
+    
     const currentSite = (await getSetting(env, 'site')) || {};
     await setSetting(env, 'site', { ...currentSite, ...siteRest });
     if (hero) {
@@ -1609,7 +1606,7 @@ async function updateSettings(request, env, user) {
   return jsonResponse(0, null, '保存成功');
 }
 
-// ---------- 主题管理 ----------
+
 
 async function listAdminThemes(request, env, user) {
   const activeThemeId = (await getSetting(env, 'active_theme')) || '';
@@ -1631,7 +1628,7 @@ async function listAdminThemes(request, env, user) {
       description = content.description || '';
       author = content.author || '';
     } catch {
-      // ignore
+      
     }
     return {
       id: row.id,
@@ -1711,7 +1708,7 @@ async function updateAdminTheme(request, env, user) {
 async function applyAdminTheme(request, env, user) {
   const pathParts = new URL(request.url).pathname.split('/').filter(Boolean);
   const id = pathParts[pathParts.length - 2];
-  // 优先使用请求体传入的 postCard（前端内置主题直接带上，避免依赖 D1 中可能过期的旧数据）
+  
   let postCard = null;
   try {
     const body = await request.json();
@@ -1757,7 +1754,7 @@ async function clearAdminActiveTheme(request, env, user) {
   return jsonResponse(0, null, '已恢复默认主题');
 }
 
-const MAX_MEDIA_CHUNK_SIZE = 80 * 1024; // 80KB base64 per chunk, well under D1 100KB statement limit
+const MAX_MEDIA_CHUNK_SIZE = 80 * 1024; 
 
 async function uploadMedia(request, env, user) {
   const body = await request.json();
@@ -1863,7 +1860,7 @@ async function getMedia(env, id, request, ctx) {
     response = await caches.default.match(cacheKey);
     if (response) return response;
   } catch {
-    // 缓存读取失败时继续回源
+    
   }
 
   const row = await env.DB_MEDIA.prepare(
@@ -1914,7 +1911,7 @@ async function getMedia(env, id, request, ctx) {
   try {
     ctx.waitUntil(caches.default.put(cacheKey, response.clone()));
   } catch {
-    // 缓存写入失败不影响响应
+    
   }
   return response;
 }
@@ -1930,12 +1927,12 @@ async function deleteMedia(request, env, user) {
   await env.DB_MEDIA.prepare('DELETE FROM media_chunks WHERE media_id = ?').bind(mediaId).run();
   await env.DB_MEDIA.prepare('DELETE FROM media WHERE id = ?').bind(mediaId).run();
 
-  // 清理 Cloudflare 缓存中的旧图片
+  
   try {
     const publicUrl = new URL(`/api/v1/media/${mediaId}`, request.url);
     await caches.default.delete(publicUrl);
   } catch {
-    // 缓存清理失败不影响删除结果
+    
   }
 
   return jsonResponse(0, null, '删除成功');
@@ -1945,7 +1942,7 @@ async function getMediaBindings(env, mediaId) {
   const urlPattern = `/api/v1/media/${mediaId}`;
   const bindings = [];
 
-  // 文章封面与正文引用
+  
   const posts = await env.DB_POSTS.prepare(
     `SELECT id, title, slug, cover_base64, content FROM posts
      WHERE cover_base64 LIKE ? OR content LIKE ?`
@@ -1962,7 +1959,7 @@ async function getMediaBindings(env, mediaId) {
     });
   }
 
-  // 用户头像
+  
   const users = await env.DB_USERS.prepare(
     `SELECT id, username, avatar_base64 FROM users WHERE avatar_base64 LIKE ?`
   )
@@ -1972,7 +1969,7 @@ async function getMediaBindings(env, mediaId) {
     bindings.push({ type: 'user', id: u.id, name: u.username });
   }
 
-  // 友链头像
+  
   const friends = await env.DB_CONFIG.prepare(
     `SELECT id, name, avatar FROM friends WHERE avatar LIKE ?`
   )
@@ -1982,7 +1979,7 @@ async function getMediaBindings(env, mediaId) {
     bindings.push({ type: 'friend', id: f.id, name: f.name });
   }
 
-  // 站点设置中的图片引用（配置读取一次，避免多次查询）
+  
   try {
     const site = (await getSetting(env, 'site')) || {};
     const hero = (await getSetting(env, 'hero')) || {};
@@ -1999,7 +1996,7 @@ async function getMediaBindings(env, mediaId) {
     check('hero.backgroundImage', hero.backgroundImage);
     check('about.avatar', about.avatar);
   } catch {
-    // 配置读取失败不影响绑定结果
+    
   }
 
   return bindings;
@@ -2027,7 +2024,7 @@ async function getAdminMediaUsage(request, env, user) {
     const row = await env.DB_MEDIA.prepare(
       'SELECT COALESCE(SUM(size), 0) as total, COUNT(*) as count FROM media'
     ).first();
-    // 按实际观察比例 1.42 估算 D1 真实存储占用，只读 size 字段、省额度
+    
     const totalSize = Math.floor(Number(row.total) * 1.42);
     return jsonResponse(0, { totalSize, count: row.count });
   } catch (err) {
@@ -2100,17 +2097,17 @@ async function updateAdminMedia(request, env, user) {
   if (!rawBase64) return jsonResponse(400, null, '图片数据为空');
   if (!mimeType.startsWith('image/')) return jsonResponse(400, null, '仅支持图片');
 
-  // 兼容前端可能传入的完整 data URI scheme，统一提取纯 base64
+  
   const base64 = rawBase64.includes(',') ? rawBase64.split(',')[1] : rawBase64;
   if (!base64) return jsonResponse(400, null, '图片数据为空');
 
   const size = Math.floor(base64.length * 0.75);
 
-  // 清理旧分片
+  
   await env.DB_MEDIA.prepare('DELETE FROM media_chunks WHERE media_id = ?').bind(id).run();
 
   if (base64.length <= MAX_MEDIA_CHUNK_SIZE) {
-    // 小文件直接存储完整 base64
+    
     await env.DB_MEDIA.prepare(
       `UPDATE media SET name = ?, mime_type = ?, size = ?, base64_data = ?, width = ?, height = ?, chunk_count = 0, created_at = ?
        WHERE id = ?`
@@ -2118,7 +2115,7 @@ async function updateAdminMedia(request, env, user) {
       .bind(name, mimeType, size, base64, width, height, now(), id)
       .run();
   } else {
-    // 大文件分片存储，避免超过 D1 单条语句限制
+    
     const chunkCount = Math.ceil(base64.length / MAX_MEDIA_CHUNK_SIZE);
     await env.DB_MEDIA.prepare(
       `UPDATE media SET name = ?, mime_type = ?, size = ?, base64_data = ?, width = ?, height = ?, chunk_count = ?, created_at = ?
@@ -2137,12 +2134,12 @@ async function updateAdminMedia(request, env, user) {
     }
   }
 
-  // 清理 Cloudflare 缓存中的旧图片
+  
   try {
     const publicUrl = new URL(`/api/v1/media/${id}`, request.url);
     await caches.default.delete(publicUrl);
   } catch {
-    // 缓存清理失败不影响更新结果
+    
   }
 
   return jsonResponse(0, { id, url: `/api/v1/media/${id}`, size }, '替换成功');
@@ -2155,7 +2152,7 @@ async function listDatabases(request, env, user) {
   if (env.DB_CONFIG) bindings.push({ binding: 'DB_CONFIG', name: 'myblog-config' });
   if (env.DB_MEDIA) bindings.push({ binding: 'DB_MEDIA', name: 'myblog-media' });
 
-  // 获取各库表行数作为容量参考
+  
   const stats = {};
   try {
     stats.users = (await env.DB_USERS.prepare('SELECT COUNT(*) as c FROM users').first()).c;
@@ -2193,17 +2190,17 @@ async function getSystemStatus(request, env, user) {
   });
 }
 
-// ---------- 认证/安全设置 ----------
+
 
 const defaultAuthSettings = {
   allowRegister: true,
   emailVerification: false,
   enableForgotPassword: false,
-  // 各场景是否启用验证（开关可实时调整）
+  
   loginVerification: false,
   registerVerification: false,
   forgotPasswordVerification: false,
-  // 人机验证：none | turnstile | math | geetest | hcaptcha
+  
   verificationMode: 'none',
   turnstileSiteKey: '',
   turnstileSecret: '',
@@ -2217,7 +2214,7 @@ async function getAuthSettings(request, env, user) {
   try {
     const data = (await getSetting(env, 'auth')) || {};
     const result = { ...defaultAuthSettings, ...data };
-    // 密钥不回显前端
+    
     if (result.turnstileSecret) result.turnstileSecret = '****';
     if (result.geetestCaptchaKey) result.geetestCaptchaKey = '****';
     if (result.hcaptchaSecret) result.hcaptchaSecret = '****';
@@ -2235,7 +2232,7 @@ async function updateAuthSettings(request, env, user) {
   const body = await request.json();
   const existing = (await getSetting(env, 'auth')) || {};
   const merged = { ...defaultAuthSettings, ...existing };
-  // 与已有配置合并，允许"用户管理-验证设置"单独保存验证相关字段而不覆盖其它配置
+  
   const verificationMode = ['none', 'turnstile', 'math', 'geetest', 'hcaptcha'].includes(body.verificationMode)
     ? body.verificationMode
     : merged.verificationMode;
@@ -2259,7 +2256,7 @@ async function updateAuthSettings(request, env, user) {
     turnstileSiteKey: body.turnstileSiteKey !== undefined
       ? String(body.turnstileSiteKey || '').trim()
       : merged.turnstileSiteKey,
-    // 空值或星号表示"保持不变"；密钥不回显前端
+    
     turnstileSecret:
       body.turnstileSecret === undefined ||
       body.turnstileSecret === '' ||
@@ -2289,7 +2286,7 @@ async function updateAuthSettings(request, env, user) {
   return jsonResponse(0, data, '保存成功');
 }
 
-// ---------- 邮箱设置 ----------
+
 
 const defaultEmailSettings = {
   provider: 'resend',
@@ -2307,8 +2304,8 @@ async function getEmailSettings(request, env, user) {
   try {
     const data = (await getSetting(env, 'email')) || {};
     const result = { ...defaultEmailSettings, ...data };
-    // 邮箱配置含敏感信息且后台会频繁修改，禁止缓存避免保存后仍显示旧值
-    // 脱敏，不将密钥明文返回前端
+    
+    
     if (result.resendApiKey) result.resendApiKey = '****';
     if (result.smtpPass) result.smtpPass = '****';
     return jsonResponse(0, result, 'ok');
@@ -2336,14 +2333,14 @@ async function updateEmailSettings(request, env, user) {
     smtpSecure: body.smtpSecure === true,
   };
   await setSetting(env, 'email', data);
-  // 返回时也脱敏
+  
   const result = { ...data };
   if (result.resendApiKey) result.resendApiKey = '****';
   if (result.smtpPass) result.smtpPass = '****';
   return jsonResponse(0, result, '保存成功');
 }
 
-// ---------- 评论邮件通知设置 ----------
+
 
 const defaultCommentNotifySettings = {
   enabled: false,
@@ -2385,7 +2382,7 @@ async function updateCommentNotifySettings(request, env, user) {
   return jsonResponse(0, data, '保存成功');
 }
 
-// ---------- 每日邮件发送计数 ----------
+
 
 async function getEmailDailyCount(env) {
   const data = await getSetting(env, 'email_daily_count');
@@ -2553,7 +2550,7 @@ async function getEmailTemplateSettings(request, env, user) {
       'ok'
     );
   } catch (err) {
-    // D1 绑定类异常只影响读取，返回默认模板即可保证前端可用；其它异常继续抛出以便排查
+    
     if (isBindingError(err)) {
       console.error('读取邮件模板失败，返回默认模板:', err);
       const fallback = new URL(request.url).searchParams.get('kind') === 'reset' ? defaultResetEmailTemplate : defaultEmailTemplate;
@@ -2570,8 +2567,8 @@ async function updateEmailTemplateSettings(request, env, user) {
   const isReset = body.kind === 'reset';
   const prefix = isReset ? 'email_reset' : 'email';
   const fallback = isReset ? defaultResetEmailTemplate : defaultEmailTemplate;
-  // 读取现有模板：只覆盖 body 中显式传入的字段，未传的保留已有值（没有则用默认模板）。
-  // 避免 AI 只改 subject 时把已自定义的 html/text 冲成默认模板。
+  
+  
   const [subjectRow, htmlRow, textRow] = await Promise.all([
     db.prepare('SELECT value FROM settings WHERE key = ?').bind(`${prefix}_subject`).first(),
     db.prepare('SELECT value FROM settings WHERE key = ?').bind(`${prefix}_html`).first(),
@@ -2587,7 +2584,7 @@ async function updateEmailTemplateSettings(request, env, user) {
     html: body.html !== undefined ? String(body.html) : existing.html,
     text: body.text !== undefined ? String(body.text) : existing.text,
   };
-  // 拆分为三个独立 key 存储，避免单条 JSON 解析或读取异常
+  
   await db.prepare('INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES (?, ?, ?)')
     .bind(`${prefix}_subject`, data.subject, ts).run();
   await db.prepare('INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES (?, ?, ?)')
@@ -2605,7 +2602,7 @@ async function sendEmailByProvider(env, to, subject, text, html, critical = fals
     throw new Error('未配置发件人邮箱');
   }
 
-  // 非关键邮件检查每日发送限额
+  
   if (!critical) {
     const notifySettings = (await getSetting(env, 'comment_notify')) || {};
     const dailyLimit = notifySettings.dailyLimit || 100;
@@ -2624,7 +2621,7 @@ async function sendEmailByProvider(env, to, subject, text, html, critical = fals
     }
   }
 
-  // 邮件发送整体加超时保护，避免 SMTP/Resend 网络挂起导致 Worker 一直不返回
+  
   const sendPromise = (async () => {
     if (provider === 'smtp') {
       const ok = await sendEmailBySMTP(settings, to, subject, text, html);
@@ -2668,7 +2665,7 @@ async function sendEmailByProvider(env, to, subject, text, html, critical = fals
   return withTimeout(sendPromise, 25000, '邮件发送');
 }
 
-// ---------- SMTP 客户端（基于 Cloudflare TCP Sockets） ----------
+
 
 function utf8ToBase64(str) {
   const bytes = new TextEncoder().encode(str);
@@ -2757,7 +2754,7 @@ async function smtpSend(writer, line) {
   await writer.write(encoder.encode(line + '\r\n'));
 }
 
-// 读取 EHLO 返回的全部 250 多行响应，解析 AUTH 与 STARTTLS 能力
+
 async function smtpReadEhloCapabilities(reader, writer, ehloHost, timeoutMs = 15000) {
   await smtpSend(writer, `EHLO ${ehloHost}`);
   const lines = [];
@@ -2815,7 +2812,7 @@ async function sendEmailBySMTP(settings, to, subject, text, html) {
 
   const message = buildMimeMessage({ from, fromName, to, subject, text, html });
 
-  // 端口决定传输层安全策略：465 强制隐式 TLS；587 优先 STARTTLS；其余按用户开关
+  
   let secureTransport;
   if (port === 465) {
     secureTransport = 'on';
@@ -2825,7 +2822,7 @@ async function sendEmailBySMTP(settings, to, subject, text, html) {
     secureTransport = secure ? 'on' : 'off';
   }
 
-  // EHLO 参数使用发件人域名；若无法取得则使用 cloudflare-workers，避免被反垃圾策略拒绝
+  
   const ehloHost = from.includes('@') ? from.split('@')[1] : 'cloudflare-workers';
 
   let socket;
@@ -2839,13 +2836,13 @@ async function sendEmailBySMTP(settings, to, subject, text, html) {
   let writer = socket.writable.getWriter();
 
   try {
-    // 连接握手阶段使用较短超时，避免 SMTP 不可达时长期占用 Worker
+    
     await smtpReadResponse(reader, 220, 15000);
 
-    // 读取服务器能力列表（AUTH/STARTTLS）
+    
     let caps = await smtpReadEhloCapabilities(reader, writer, ehloHost, 15000);
 
-    // STARTTLS：确认服务器支持后再升级，升级后重新 EHLO 并重新读取能力
+    
     if (secureTransport === 'starttls') {
       if (caps.STARTTLS === undefined) {
         throw new Error('SMTP 服务器未声明 STARTTLS 支持');
@@ -2853,8 +2850,8 @@ async function sendEmailBySMTP(settings, to, subject, text, html) {
       await smtpSend(writer, 'STARTTLS');
       await smtpReadResponse(reader, 220, 15000);
 
-      // 升级 TLS 前必须释放旧 reader/writer 的锁，而不是关闭流；
-      // close()/cancel() 会向底层连接发送 EOF，导致 startTls() 时握手挂起或失败。
+      
+      
       try { reader.releaseLock(); } catch {}
       try { writer.releaseLock(); } catch {}
 
@@ -2864,7 +2861,7 @@ async function sendEmailBySMTP(settings, to, subject, text, html) {
       } catch (e) {
         throw new Error(`STARTTLS 升级失败：${e.message}`);
       }
-      socket = secureSocket; // 后续清理需要关闭升级后的 socket
+      socket = secureSocket; 
       reader = secureSocket.readable.getReader();
       writer = secureSocket.writable.getWriter();
       caps = await smtpReadEhloCapabilities(reader, writer, ehloHost, 15000);
@@ -2890,7 +2887,7 @@ async function sendEmailBySMTP(settings, to, subject, text, html) {
     await smtpSend(writer, 'DATA');
     await smtpReadResponse(reader, 354, 15000);
 
-    // 点号转义：行首的点号需补一个点；末尾单独一行点号表示结束
+    
     const escapedMessage = message
       .split('\r\n')
       .map((line) => (line.startsWith('.') ? '.' + line : line))
@@ -2900,7 +2897,7 @@ async function sendEmailBySMTP(settings, to, subject, text, html) {
 
     await smtpSend(writer, 'QUIT');
   } catch (e) {
-    // 包装下层错误，保留原始信息
+    
     throw new Error(e.message || 'SMTP 发送失败');
   } finally {
     try { await writer.close(); } catch {}
@@ -2911,12 +2908,12 @@ async function sendEmailBySMTP(settings, to, subject, text, html) {
   return true;
 }
 
-// ---------- 人机验证（Human Verification） ----------
 
-const MATH_CAPTCHA_TTL_MS = 5 * 60 * 1000; // 算术验证题有效期 5 分钟
+
+const MATH_CAPTCHA_TTL_MS = 5 * 60 * 1000; 
 const MATH_CAPTCHA_SALT = 'math-captcha-v1';
 
-// HMAC-SHA256 无状态签名（题目不落库）
+
 async function hmacSignBase64(secret, data) {
   const encoder = new TextEncoder();
   const key = await crypto.subtle.importKey(
@@ -2930,7 +2927,7 @@ async function hmacSignBase64(secret, data) {
   return base64UrlEncode(String.fromCharCode(...new Uint8Array(signature)));
 }
 
-// HMAC-SHA256 十六进制小写签名（极验 GT4 的 sign_token 要求 hex 输出，不能用 base64）
+
 async function hmacSignHex(secret, data) {
   const encoder = new TextEncoder();
   const key = await crypto.subtle.importKey(
@@ -2946,7 +2943,7 @@ async function hmacSignHex(secret, data) {
     .join('');
 }
 
-// 生成一道算术题：返回题目文本与签名 token（答案加密在 token 内，不落库）
+
 async function issueMathCaptcha(request, env) {
   const ip = getClientIp(request);
   if (!(await checkRateLimit(env, `mc:ip:${ip}`, 10, 60))) {
@@ -2966,13 +2963,13 @@ async function issueMathCaptcha(request, env) {
   return jsonResponse(0, { question: `${a} ${op} ${b}`, token: `${data}.${sig}` }, 'ok');
 }
 
-// 校验算术题答案（token 验签 + 过期 + 答案比对）
+
 async function verifyMathCaptcha(env, body) {
   const token = String(body.mathToken || '').trim();
   const answer = body.mathAnswer;
   if (!token || answer === undefined || answer === null || answer === '') return false;
   const parts = token.split('.');
-  if (parts.length !== 2) return false; // token 格式为 data.sig，共两段
+  if (parts.length !== 2) return false; 
   const [data, sig] = parts;
   let payload;
   try {
@@ -2988,7 +2985,7 @@ async function verifyMathCaptcha(env, body) {
   return Math.abs(num - payload.answer) < 1e-6;
 }
 
-// Cloudflare Turnstile 服务端校验
+
 async function verifyTurnstile(secret, token, ip) {
   if (!secret || !token) return false;
   try {
@@ -3007,7 +3004,7 @@ async function verifyTurnstile(secret, token, ip) {
   }
 }
 
-// 极验 GT4 服务端二次校验
+
 async function verifyGeetest(captchaId, captchaKey, body) {
   const lotNumber = String(body.lotNumber || '').trim();
   const captchaOutput = String(body.captchaOutput || '').trim();
@@ -3035,7 +3032,7 @@ async function verifyGeetest(captchaId, captchaKey, body) {
   }
 }
 
-// hCaptcha 服务端二次校验
+
 async function verifyHCaptcha(secret, token, ip) {
   if (!secret || !token) return false;
   try {
@@ -3054,7 +3051,7 @@ async function verifyHCaptcha(secret, token, ip) {
   }
 }
 
-// 统一入口：按后台配置执行人机验证，返回 true 表示通过
+
 async function verifyHuman(request, env, body) {
   const authSettings = (await getSetting(env, 'auth')) || {};
   const mode = authSettings.verificationMode || 'none';
@@ -3072,7 +3069,7 @@ async function verifyHuman(request, env, body) {
   return true;
 }
 
-// 前端获取当前验证模式、各场景开关与公开配置（sitekey / captchaId 本就公开，可安全下发）
+
 async function getCaptchaConfig(request, env) {
   const authSettings = (await getSetting(env, 'auth')) || {};
   const mode = authSettings.verificationMode || 'none';
@@ -3102,20 +3099,20 @@ async function sendVerifyCode(request, env) {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) return jsonResponse(400, null, '邮箱格式不正确');
 
-  // 检查邮箱验证开关
+  
   const authSettings = (await getSetting(env, 'auth')) || {};
   if (authSettings.emailVerification !== true) {
     return jsonResponse(403, null, '未开启注册邮箱验证功能');
   }
 
-  // 注册发码场景验证：开关开启时需通过人机验证
+  
   if (authSettings.registerVerification === true) {
     if (!(await verifyHuman(request, env, body))) {
       return jsonResponse(403, null, '人机验证未通过，请重试');
     }
   }
 
-  // 速率限制：按 IP、邮箱及每日上限限流，防止验证码轰炸
+  
   const vcIp = getClientIp(request);
   if (!(await checkRateLimit(env, `vc:ip:${vcIp}`, 5, 600))) {
     return jsonResponse(429, null, '发送过于频繁，请稍后再试', 429);
@@ -3158,7 +3155,7 @@ async function sendVerifyCode(request, env) {
     return jsonResponse(503, { sent: false }, '邮件服务未配置，无法发送验证码');
   }
 
-  // 全局每日邮件总量限制
+  
   const currentCount = await getEmailDailyCount(env);
   if (currentCount >= GLOBAL_DAILY_EMAIL_LIMIT) {
     return jsonResponse(429, { sent: false }, '今日邮件发送总量已达上限，请明日再试');
@@ -3192,7 +3189,7 @@ async function sendVerifyCode(request, env) {
     if (emailConfigured) {
       return jsonResponse(500, { sent: false }, `邮件发送失败：${e.message || '未知错误'}`);
     }
-    // 未配置邮件服务时，仅记录验证码，不阻止注册流程
+    
   }
 
   return jsonResponse(0, { sent: true }, '验证码已发送');
@@ -3212,14 +3209,14 @@ async function sendForgotCode(request, env) {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) return jsonResponse(400, null, '邮箱格式不正确');
 
-  // 忘记密码发码场景验证：开关开启时需通过人机验证
+  
   if (authSettings.forgotPasswordVerification === true) {
     if (!(await verifyHuman(request, env, body))) {
       return jsonResponse(403, null, '人机验证未通过，请重试');
     }
   }
 
-  // 速率限制：按 IP、邮箱及每日上限限流，找回密码与注册发送共用一套防线
+  
   const fpIp = getClientIp(request);
   if (!(await checkRateLimit(env, `fp:ip:${fpIp}`, 5, 600))) {
     return jsonResponse(429, null, '操作过于频繁，请稍后再试', 429);
@@ -3232,7 +3229,7 @@ async function sendForgotCode(request, env) {
     return jsonResponse(429, null, '该邮箱今日操作次数已达上限', 429);
   }
 
-  // 校验用户名与邮箱匹配且已注册；不匹配时仍返回统一提示，防止账号枚举
+  
   const user = await env.DB_USERS.prepare(
     'SELECT username, email FROM users WHERE username = ? OR email = ?'
   )
@@ -3268,7 +3265,7 @@ async function sendForgotCode(request, env) {
     return jsonResponse(503, { sent: false }, '邮件服务未配置，无法发送重置邮件');
   }
 
-  // 全局每日邮件总量限制
+  
   const globalCount = await getEmailDailyCount(env);
   if (globalCount >= GLOBAL_DAILY_EMAIL_LIMIT) {
     return jsonResponse(429, { sent: false }, '今日邮件发送总量已达上限，请明日再试');
@@ -3373,7 +3370,7 @@ async function changePassword(request, env, user) {
   if (newPassword.length < 6) return jsonResponse(400, null, '新密码至少 6 位');
   if (newPassword === currentPassword) return jsonResponse(400, null, '新密码不能与当前密码相同');
 
-  // 登录后修改密码始终可用（不受找回密码开关控制）；按账号限流防止爆破
+  
   if (!(await checkRateLimit(env, `cp:${user.id}`, 5, 600))) {
     return jsonResponse(429, null, '操作过于频繁，请稍后再试', 429);
   }
@@ -3398,7 +3395,7 @@ async function changePassword(request, env, user) {
   return jsonResponse(0, null, '密码已修改');
 }
 
-// ---------- 互动/评论/点赞 ----------
+
 
 async function getPostIdBySlug(env, slug) {
   const row = await env.DB_POSTS.prepare('SELECT id FROM posts WHERE slug = ? AND status = ?')
@@ -3493,7 +3490,7 @@ async function listComments(env, url, path) {
   const list = comments.results || [];
   const userIds = [...new Set(list.map((c) => c.user_id).filter(Boolean))];
   const parentUserIds = [...new Set(list.map((c) => c.parent_id).filter(Boolean))];
-  // 获取父评论的用户 ID
+  
   const parentCommentMap = {};
   if (parentUserIds.length > 0) {
     const parentComments = await env.DB_POSTS.prepare(
@@ -3556,8 +3553,8 @@ async function createComment(request, env, user) {
 
   const commentId = result.meta ? result.meta.last_row_id : null;
 
-  // 同步发送邮件通知，并把错误/日志返回给前端（便于排查）
-  // 无论评论状态是 pending（审核中）还是 approved，都通知站长去处理
+  
+  
   const notifyErrors = [];
   if (commentId) {
     const errs = await sendCommentNotifications(request, env, postId, slug, user, content, parentId, commentId, status);
@@ -3567,7 +3564,7 @@ async function createComment(request, env, user) {
   return jsonResponse(0, { id: commentId, status, notifyErrors }, '评论成功');
 }
 
-// ---------- 评论邮件通知发送 ----------
+
 
 function buildEmailHtml(siteName, title, bodyLines, postTitle, postUrl, time) {
   return `<!DOCTYPE html>
@@ -3628,7 +3625,7 @@ async function sendCommentNotifications(request, env, postId, slug, commenter, c
   const needAudit = commentStatus === 'pending' ? '（需审核后公开显示）' : '';
 
   if (parentId) {
-    // 回复评论
+    
     const parentComment = await env.DB_POSTS.prepare('SELECT user_id FROM comments WHERE id = ?').bind(parentId).first();
     if (!parentComment) return;
 
@@ -3640,13 +3637,13 @@ async function sendCommentNotifications(request, env, postId, slug, commenter, c
     const isAdmin = commenter.role === 'super_admin';
     const isParentAdmin = parentUser.role === 'super_admin';
 
-    // 通知被回复的用户
+    
     let shouldNotifyUser = false;
     if (isAdmin) {
-      // 站长回复用户
+      
       shouldNotifyUser = notifySettings.notifyAdminReply;
     } else if (!isParentAdmin) {
-      // 用户回复用户
+      
       shouldNotifyUser = notifySettings.notifyUserReply;
     }
 
@@ -3667,7 +3664,7 @@ async function sendCommentNotifications(request, env, postId, slug, commenter, c
       }
     }
 
-    // 通知站长有新回复（站长不是被回复者时才通知）
+    
     if (notifySettings.notifyAdminOnNew && !isParentAdmin && notifySettings.notifyEmail) {
       const subject = `[${siteName}] ${commenter.username} 回复了评论`;
       const text = `用户 ${commenter.username} 回复了 ${parentUser.username} 在文章「${postTitle}」中的评论：\n\n${content}\n\n链接：${postUrl}`;
@@ -3685,7 +3682,7 @@ async function sendCommentNotifications(request, env, postId, slug, commenter, c
       }
     }
   } else {
-    // 新评论（非回复）- 通知站长
+    
     if (notifySettings.notifyAdminOnNew && notifySettings.notifyEmail) {
       const subject = `[${siteName}] ${commenter.username} 发表了新评论`;
       const text = `用户 ${commenter.username} 在文章「${postTitle}」中发表了评论：\n\n${content}\n\n链接：${postUrl}`;
@@ -3731,20 +3728,20 @@ async function deleteComment(request, env, user) {
   return jsonResponse(0, null, '删除成功');
 }
 
-// ---------- 评论树删除工具 ----------
-// 删除评论及其所有子（楼中楼）评论。先删最深层子评论，再逐层向上删父，避免外键约束失败。
+
+
 
 async function deleteCommentTree(env, rootId) {
   const ordered = [];
   await collectCommentTree(env, rootId, ordered);
-  // ordered 为「最深层子 → ...」，最后补上根评论，保证根最后删，避免外键约束失败
+  
   ordered.push(rootId);
   for (const id of ordered) {
     await env.DB_POSTS.prepare('DELETE FROM comments WHERE id = ?').bind(id).run();
   }
 }
 
-// 递归收集，把子评论先塞进数组（深度优先、子在前）
+
 async function collectCommentTree(env, parentId, ordered) {
   const rows = await env.DB_POSTS.prepare('SELECT id FROM comments WHERE parent_id = ?')
     .bind(parentId)
@@ -3755,13 +3752,13 @@ async function collectCommentTree(env, parentId, ordered) {
   }
 }
 
-// 删除某文章下全部评论：先解除文章内评论的楼中楼外键引用，再整体删除
+
 async function deleteCommentsByPost(env, postId) {
   await env.DB_POSTS.prepare('UPDATE comments SET parent_id = NULL WHERE post_id = ?').bind(postId).run();
   await env.DB_POSTS.prepare('DELETE FROM comments WHERE post_id = ?').bind(postId).run();
 }
 
-// 删除某用户全部评论：先解除指向该用户评论的子评论引用，再删除
+
 async function deleteCommentsByUser(env, userId) {
   await env.DB_POSTS.prepare(
     'UPDATE comments SET parent_id = NULL WHERE parent_id IN (SELECT id FROM comments WHERE user_id = ?)'
@@ -3920,7 +3917,7 @@ async function deleteAdminComment(request, env, user) {
   return jsonResponse(0, null, '删除成功');
 }
 
-// ---------- 留言墙 ----------
+
 
 const defaultMessageWallSettings = {
   enabled: false,
@@ -3980,16 +3977,16 @@ async function updateMessageWallSettings(request, env, user) {
   return jsonResponse(0, data, '保存成功');
 }
 
-// ---------- 聊天室设置 ----------
+
 const PUBLIC_CHAT_ROOM_KEY = 'public';
 const PUBLIC_CHAT_ROOM_NAME = '公共聊天房';
 const ALL_USERS_CHAT_ROOM_KEY = 'members';
 const ALL_USERS_CHAT_ROOM_NAME = '全体聊天房';
 
 const defaultChatSettings = {
-  enabled: false, // 功能总开关：控制主页侧边栏是否显示聊天室入口
-  publicRoomEnabled: true, // 公共聊天房开关：控制无需鉴权可进的公共房是否开放
-  allUsersRoomEnabled: true, // 全体聊天房开关：控制仅登录用户可进的全员房是否开放
+  enabled: false, 
+  publicRoomEnabled: true, 
+  allUsersRoomEnabled: true, 
 };
 
 async function getChatSettings(request, env, user) {
@@ -4021,9 +4018,9 @@ async function updateChatSettings(request, env, user) {
   return jsonResponse(0, data, '保存成功');
 }
 
-// ---------- 自定义聊天房间（后台创建、按成员授权、可设封面/人数上限） ----------
 
-// 惰性建表缓存：同一 DB 实例只建一次表，避免每次请求重复 DDL
+
+
 const ensuredRoomTables = new WeakSet();
 
 async function ensureChatRoomTables(env) {
@@ -4057,14 +4054,14 @@ async function ensureChatRoomTables(env) {
   return db;
 }
 
-// 生成不与他人冲突的自定义房间 key（与内置 public/members 区分）
+
 function randomRoomKey() {
   const bytes = new Uint8Array(5);
   crypto.getRandomValues(bytes);
   return 'c_' + Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
 }
 
-// 当前登录用户可见（自己是成员且已启用）的自定义房间；未登录返回空
+
 async function listMyChatRooms(request, env, user) {
   if (!user) return jsonResponse(0, { list: [] }, 'ok');
   await ensureChatRoomTables(env);
@@ -4080,7 +4077,7 @@ async function listMyChatRooms(request, env, user) {
   return jsonResponse(0, { list: rows.results || [] }, 'ok');
 }
 
-// 管理端：分页列出自定义房间
+
 async function listAdminChatRooms(request, env, user) {
   await ensureChatRoomTables(env);
   const db = getConfigDb(env);
@@ -4099,7 +4096,7 @@ async function listAdminChatRooms(request, env, user) {
   return jsonResponse(0, { list: rows.results || [], total: countRow.c, page, limit });
 }
 
-// 成员选择器：按用户名模糊搜索已启用用户，分页
+
 async function searchRoomUsers(request, env, user) {
   const url = new URL(request.url);
   const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10));
@@ -4125,7 +4122,7 @@ async function searchRoomUsers(request, env, user) {
   return jsonResponse(0, { list: list.results || [], total: countRow.c, page, limit });
 }
 
-// 管理端：读取某房间成员（编辑回显）。房间 key 走 query ?key=，兼容原路径形式
+
 async function getAdminChatRoomMembers(request, env, user) {
   const url = new URL(request.url);
   const parts = request.url.split('/');
@@ -4140,7 +4137,7 @@ async function getAdminChatRoomMembers(request, env, user) {
   return jsonResponse(0, { list: rows.results || [] }, 'ok');
 }
 
-// 连接用：按房间 key 读取启用中的自定义房间，并校验指定用户是否为成员；通过则返回房间，否则返回 null
+
 async function getRoomForConnect(roomKey, userId, env) {
   await ensureChatRoomTables(env);
   const db = getConfigDb(env);
@@ -4153,8 +4150,8 @@ async function getRoomForConnect(roomKey, userId, env) {
   return { room_key: room.room_key, name: room.name, max_users: room.max_users || 0 };
 }
 
-// 管理端：聊天 DO 概览（各房间的消息数/图片数/图片字节数）。
-// 枚举固定房（公共房 + 全体房）+ 配置库中的自定义房，逐个调用聊天 DO /stats。
+
+
 async function adminChatDoOverview(request, env, user) {
   if (!env.CHAT) return jsonResponse(500, null, '聊天服务未绑定（env.CHAT）', 500);
   const keys = [PUBLIC_CHAT_ROOM_KEY, ALL_USERS_CHAT_ROOM_KEY];
@@ -4163,7 +4160,7 @@ async function adminChatDoOverview(request, env, user) {
     const db = getConfigDb(env);
     const rows = await db.prepare('SELECT room_key, name FROM chat_rooms WHERE enabled = 1').all();
     (rows.results || []).forEach((r) => keys.push(String(r.room_key)));
-  } catch (e) { /* 配置库异常时仍返回固定房 */ }
+  } catch (e) {  }
   const rooms = [];
   for (const key of keys) {
     try {
@@ -4177,7 +4174,7 @@ async function adminChatDoOverview(request, env, user) {
   return jsonResponse(0, { rooms }, 'ok');
 }
 
-// 管理端：列出某房间 DO 里已存的聊天图片元信息
+
 async function adminListChatMedia(request, env, user) {
   const parts = request.url.split('/');
   const roomKey = decodeURIComponent(parts[parts.length - 1]);
@@ -4187,7 +4184,7 @@ async function adminListChatMedia(request, env, user) {
   return jsonResponse(0, { items: j.items || [] }, 'ok');
 }
 
-// 管理端：删除某房间 DO 里的单张聊天图片
+
 async function adminDeleteChatMedia(request, env, user) {
   const parts = request.url.split('/');
   const id = decodeURIComponent(parts[parts.length - 1]);
@@ -4198,7 +4195,7 @@ async function adminDeleteChatMedia(request, env, user) {
   return new Response(text, { status: upstream.status, headers: { 'content-type': 'application/json' } });
 }
 
-// 创建自定义房间：建房间 + 写入成员（自动把创建者加入，保证管理员能进入）
+
 async function createChatRoom(request, env, user) {
   const body = await request.json();
   const name = String(body.name || '').trim();
@@ -4237,7 +4234,7 @@ async function createChatRoom(request, env, user) {
   return jsonResponse(0, { room_key: roomKey }, '创建成功');
 }
 
-// 编辑房间：更新字段，可选整体替换成员
+
 async function updateChatRoom(request, env, user) {
   const key = decodeURIComponent(request.url.split('/').pop());
   const body = await request.json();
@@ -4298,7 +4295,7 @@ async function updateChatRoom(request, env, user) {
   return jsonResponse(0, null, '保存成功');
 }
 
-// 删除自定义房间（含其成员关系）
+
 async function deleteChatRoom(request, env, user) {
   const key = decodeURIComponent(request.url.split('/').pop());
   await ensureChatRoomTables(env);
@@ -4310,7 +4307,7 @@ async function deleteChatRoom(request, env, user) {
   return jsonResponse(0, null, '删除成功');
 }
 
-// 公开聊天房元数据（当前仅一个公共房，多房间管理后续版本扩展）
+
 async function getChatPublicRoom(env) {
   const settings = (await getSetting(env, 'chat')) || {};
   return {
@@ -4341,7 +4338,7 @@ async function listMessages(env, url) {
       "SELECT COUNT(*) as c FROM message_wall WHERE status = 'approved'"
     ).first();
   } catch {
-    // 表不存在或数据库异常时按空数据处理，避免报错
+    
     return jsonResponse(0, { list: [], total: 0, page, limit });
   }
 
@@ -4469,7 +4466,7 @@ async function listAdminMessages(request, env, user) {
       total = countRow.c;
     }
   } catch {
-    // 表不存在或数据库异常时按空数据处理，避免报错
+    
     return jsonResponse(0, { list: [], total: 0, page, limit });
   }
 
@@ -4531,7 +4528,7 @@ async function deleteAdminMessage(request, env, user) {
   return jsonResponse(0, null, '删除成功');
 }
 
-// ---------- 用户管理 ----------
+
 
 async function listAdminUsers(request, env, user) {
   const url = new URL(request.url);
@@ -4616,12 +4613,12 @@ async function deleteAdminUser(request, env, user) {
   const target = await env.DB_USERS.prepare('SELECT id, role FROM users WHERE id = ?').bind(id).first();
   if (!target) return jsonResponse(404, null, '用户不存在', 404);
 
-  // 禁止删除当前登录用户，避免把自己锁在外面
+  
   if (id === user.id) {
     return jsonResponse(403, null, '不能删除当前登录用户');
   }
 
-  // 禁止删除最后一个 super_admin，避免系统失去管理入口
+  
   if (target.role === 'super_admin') {
     const admins = await env.DB_USERS.prepare(
       "SELECT COUNT(*) as c FROM users WHERE role = 'super_admin' AND status = 1"
@@ -4631,7 +4628,7 @@ async function deleteAdminUser(request, env, user) {
     }
   }
 
-  // 级联清理：登录令牌、验证码、点赞、评论
+  
   await env.DB_USERS.prepare('DELETE FROM refresh_tokens WHERE user_id = ?').bind(id).run();
   await env.DB_USERS.prepare('DELETE FROM verify_codes WHERE email IN (SELECT email FROM users WHERE id = ?)').bind(id).run();
   await env.DB_POSTS.prepare('DELETE FROM likes WHERE user_id = ?').bind(id).run();
@@ -4641,7 +4638,7 @@ async function deleteAdminUser(request, env, user) {
   return jsonResponse(0, null, '删除成功');
 }
 
-// ---------- 友链管理 ----------
+
 
 function rowToFriend(row) {
   return {
@@ -4745,8 +4742,8 @@ async function deleteFriend(request, env, user) {
   return jsonResponse(0, null, '删除成功');
 }
 
-// ---------- 友链申请 ----------
-// 申请数据存 settings 表 key='friend_applications' 的 JSON 数组，避免改库结构。
+
+
 
 async function readFriendApplications(env) {
   const list = (await getSetting(env, 'friend_applications')) || [];
@@ -4758,7 +4755,7 @@ async function writeFriendApplications(env, list) {
 }
 
 async function applyFriend(request, env, user) {
-  // 需要登录：user 由 requireAuth 传入
+  
   const body = await request.json();
   const name = String(body.name || '').trim();
   const url = String(body.url || '').trim();
@@ -4781,7 +4778,7 @@ async function applyFriend(request, env, user) {
     const maxId = Math.max(...list.map((a) => Number(a.id) || 0));
     id = maxId + 1;
   }
-  // 若未开启审核，则申请直接生效为正式友链
+  
   if (friendsConfig.applyNeedsAudit !== true) {
     await env.DB_CONFIG.prepare(
       'INSERT INTO friends (name, url, description, avatar, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
@@ -4856,7 +4853,7 @@ async function auditFriendApplication(request, env, user) {
   const app = list[idx];
 
   if (status === 'approved') {
-    // 通过：写入正式友链
+    
     const time = now();
     await env.DB_CONFIG.prepare(
       'INSERT INTO friends (name, url, description, avatar, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
@@ -4878,9 +4875,9 @@ async function deleteFriendApplication(request, env, user) {
   return jsonResponse(0, null, '已删除');
 }
 
-// ---------- AI 功能 ----------
 
-// OpenAI 风格别名 -> Cloudflare Workers AI 实际模型 ID
+
+
 const AI_MODEL_COST = {
   'gpt-4o-mini': '轻量',
   'gpt-4o': '中消耗',
@@ -4916,7 +4913,7 @@ function extractAiResponse(result) {
   if (!result) return '';
   if (typeof result.response === 'string') return result.response;
   if (typeof result.content === 'string') return result.content;
-  // OpenAI 兼容分片：优先取 delta/message 的 content；choices 为空（流式结束/usage 标记）时丢弃
+  
   if (Array.isArray(result.choices)) {
     if (result.choices.length === 0) return '';
     const first = result.choices[0];
@@ -5008,8 +5005,8 @@ async function deleteCustomModel(env, id) {
   return true;
 }
 
-// 自动识别请求地址：若 baseUrl 已以 /chat/completions 结尾，说明用户填的是完整 endpoint，直接使用；
-// 否则视为 Base URL，自动拼接 OpenAI 兼容路径 /v1/chat/completions。
+
+
 function buildCustomModelEndpoint(custom) {
   const base = String(custom.baseUrl || '').trim().replace(/\/+$/, '');
   if (/\/chat\/completions$/i.test(base)) {
@@ -5079,7 +5076,7 @@ async function callCustomModelStream(custom, body) {
 
 function stripThinkingTags(text) {
   if (!text || typeof text !== 'string') return text;
-  // 去掉完整的 <thinking>...</thinking> 块（大小写不敏感、容忍标签内空格）
+  
   return text
     .replace(/<thinking\s*>[\s\S]*?<\/thinking\s*>/gi, '')
     .replace(/<thinking\s*>/gi, '')
@@ -5087,7 +5084,7 @@ function stripThinkingTags(text) {
 }
 
 function sanitizeJsonControlChars(text) {
-  // 去掉 BOM，并把未转义的控制字符（tab/换行等）转换为 JSON 转义序列
+  
   return text
     .replace(/^\uFEFF/, '')
     .replace(/[\u0000-\u001F\u007F-\u009F]/g, (c) => {
@@ -5105,12 +5102,12 @@ function extractJson(text) {
   if (!text || typeof text !== 'string') return null;
   let trimmed = text.trim();
 
-  // 1. 直接解析
+  
   try {
     return JSON.parse(trimmed);
   } catch {}
 
-  // 1.5 尝试清理控制字符后再解析
+  
   try {
     const sanitized = sanitizeJsonControlChars(trimmed);
     if (sanitized !== trimmed) {
@@ -5118,7 +5115,7 @@ function extractJson(text) {
     }
   } catch {}
 
-  // 2. 提取 ```json ... ``` 或 ``` ... ``` 代码块
+  
   const codeBlockMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
   if (codeBlockMatch) {
     try {
@@ -5126,8 +5123,8 @@ function extractJson(text) {
     } catch {}
   }
 
-  // 3. 从第一个 { 开始，找到第一个可完整解析的 JSON 对象
-  //    该实现会跳过字符串内部的 { 和 }，避免 content 中的 Markdown/代码块干扰
+  
+  
   let start = trimmed.indexOf('{');
   while (start !== -1) {
     let depth = 0;
@@ -5156,7 +5153,7 @@ function extractJson(text) {
               return JSON.parse(trimmed.slice(start, i + 1));
             } catch {}
             break;
-            // 如果解析失败，尝试下一个 { 开头
+            
           }
         }
       }
@@ -5244,10 +5241,10 @@ async function verifyAiApiKey(request, env) {
   const token = auth.slice(7).trim();
   if (!token) return false;
 
-  // 内置 API Key（环境变量，不存储到 D1）
+  
   if (env.AI_API_KEY && token === env.AI_API_KEY) return true;
 
-  // 用户添加的 API Key
+  
   const hash = await sha256Hex(token);
   const row = await env.DB_CONFIG.prepare(
     'SELECT id FROM ai_api_keys WHERE key_hash = ? AND enabled = 1'
@@ -5373,8 +5370,8 @@ async function deleteAiCustomModelHandler(request, env, user) {
   return jsonResponse(0, null, '删除成功');
 }
 
-// 提示词统一外置到 /prompts/<name>.txt（随静态资源部署，便于无构建修改）。
-// 优先读取文件内容；若读取失败（缺文件/无法访问），再回退到内置默认值，避免功能不可用。
+
+
 const DEFAULT_PROMPTS = {
   'article-generation': `你是一位专业的中文博客作者。请根据用户提供的主题生成一篇完整的博客文章。
 必须严格按照以下 json 格式返回，不要包含任何其他解释文字、markdown 代码块或 XML 标签：
@@ -5422,7 +5419,7 @@ async function loadPrompt(env, request, name) {
       }
     }
   } catch (_) {
-    // 读取失败走默认值
+    
   }
   return DEFAULT_PROMPTS[name] || '';
 }
@@ -5608,7 +5605,7 @@ async function aiChat(request, env, user) {
   const options = { messages, temperature, max_tokens: maxTokens };
   if (stream) options.stream = true;
 
-  // 自定义模型
+  
   if (isCustomModel(modelAlias)) {
     const customId = parseCustomModelId(modelAlias);
     const custom = customId ? await getCustomModelById(env, customId) : null;
@@ -5723,7 +5720,7 @@ async function aiChat(request, env, user) {
     });
   }
 
-  // 流式响应
+  
   const id = aiGenerateId();
   const created = aiNowUnix();
   const encoder = new TextEncoder();
@@ -5779,11 +5776,11 @@ async function aiChat(request, env, user) {
   });
 }
 
-// ============ Agent 技能框架（B 方案：懒加载技能 + 单请求内多轮工具调用） ============
-// 常驻 system prompt 仅携带「短技能清单」；要干活时模型先用 open_skills 打开技能，
-// 再在同一请求内连续多轮「思考 -> 调用技能 -> 再思考」，直到产出最终回复（省 token）。
-// 注意：思考就是模型回复里的普通文本（<thinking>...</thinking>），不占用额外工具轮次，
-// 与工具调用在同一轮 generation 里产出，前端并列展示。
+
+
+
+
+
 
 const OPEN_SKILLS_TOOL = {
   type: 'function',
@@ -5805,14 +5802,14 @@ const OPEN_SKILLS_TOOL = {
   },
 };
 
-// v1：演示/占位技能，execute 的落点为既有 admin API / D1（阶段 4 填充真实实现）
-// 技能注册表（运行时从 public/skills/*.txt 加载，见 ensureSkills）
 
-// 常驻技能：首轮即注入 tools（无需先 open_skills），减少一次往返调用。
-// 与 public/prompts/agent-core.txt 的【常驻技能】清单保持一致。
-// 博客核心定位：文章/评论/标签 优先 —— 查询 + 核心写操作都常驻（写操作经确认卡片兜底）。
+
+
+
+
+
 const ALWAYS_ACTIVE_SKILLS = [
-  // —— 内容（博客灵魂）——
+  
   'article.list',
   'article.read',
   'article.create',
@@ -5825,10 +5822,10 @@ const ALWAYS_ACTIVE_SKILLS = [
   'tag.create',
   'tag.update',
   'tag.delete',
-  // —— 站点与总览 ——
+  
   'site.info',
   'dashboard.stat',
-  // —— 其它常用 ——
+  
   'message.list',
   'user.list',
   'friend.list',
@@ -5840,8 +5837,8 @@ const ALWAYS_ACTIVE_SKILLS = [
 ];
 
 
-// 通用：以「管理员身份」调用内部 handler，返回 { ok, data|error }
-// handler 统一为 (request, env, user) => Promise<Response(jsonResponse<{code,data}>)
+
+
 async function agentSkillCall(env, user, handler, query = {}) {
   const q = new URLSearchParams(query).toString();
   const req = new Request('https://agent.local' + (q ? '?' + q : ''), { method: 'GET' });
@@ -5856,9 +5853,9 @@ async function agentSkillCall(env, user, handler, query = {}) {
   return { ok: true, data: json.data };
 }
 
-// ============ 技能注册表：运行时从 public/skills/*.txt 加载 ============
-// 技能「定义」静态化（TXT），worker 只保留通用调度器。用 request.url 拼静态地址，
-// 与 loadPrompt 抓 /prompts/*.txt 同一套路。
+
+
+
 const SKILL_PACKAGE_FILES = [
   '01-site',
   '02-content-articles',
@@ -5872,7 +5869,7 @@ const SKILL_PACKAGE_FILES = [
   '10-ai',
 ];
 
-// 只读技能对应的内部 handler（统一签名 (request, env, user) => Response）
+
 const SKILL_HANDLERS = {
   getDashboard,
   listAdminPosts,
@@ -5904,14 +5901,14 @@ const SKILL_HANDLERS = {
   getChatSettings,
 };
 
-// 特殊执行器：不能走通用 (request,env,user) 调用的技能放这里
+
 const SKILL_EXECUTORS = {
   'site.info': async (ctx) => ({ ok: true, data: await getSiteConfig(ctx.env) }),
 };
 
-// ---------- Agent 写操作：确认后执行 ----------
-// 写技能不会立即执行，而是：SSE 发 confirm_request → 用户点「确认」继续同一轮 → 才真正调用 handler。
-// handler 复用它已存在的写接口；superAdmin 为 true 的技能仅站点账号可执行。
+
+
+
 const SKILL_WRITE = {
   'article.create': { handler: createPost, method: 'POST', keyParam: null, params: ['title', 'slug', 'content', 'excerpt', 'coverBase64', 'tagIds', 'status'], superAdmin: false },
   'article.update': { handler: updatePost, method: 'PATCH', keyParam: 'id', params: ['title', 'slug', 'content', 'excerpt', 'coverBase64', 'tagIds', 'status'], superAdmin: false },
@@ -5927,20 +5924,20 @@ const SKILL_WRITE = {
   'friend.application.review': { handler: auditFriendApplication, method: 'PATCH', keyParam: 'id', params: ['status', 'remark'], superAdmin: false },
   'user.update': { handler: updateAdminUser, method: 'PATCH', keyParam: 'id', params: ['role', 'status', 'emailVerified'], superAdmin: true },
   'user.delete': { handler: deleteAdminUser, method: 'DELETE', keyParam: 'id', params: [], superAdmin: true },
-  // —— 文本/内容类（AI 擅长写，仅站主）——
+  
   'site.settings.emailTemplate.update': { handler: updateEmailTemplateSettings, method: 'PATCH', keyParam: null, params: ['kind', 'subject', 'html', 'text'], superAdmin: true },
   'site.terms.update': { handler: updateSettings, method: 'PATCH', keyParam: null, params: ['termsAgreement', 'termsPrivacy'], superAdmin: true, wrapSite: true },
   'site.info.update': { handler: updateSettings, method: 'PATCH', keyParam: null, params: ['description', 'announcement', 'title', 'subtitle'], superAdmin: true, wrapSite: true },
-  // —— 友链补充 ——
+  
   'friend.update': { handler: updateFriend, method: 'PATCH', keyParam: 'id', params: ['name', 'url', 'description', 'avatar', 'sortOrder'], superAdmin: false },
   'friend.application.delete': { handler: deleteFriendApplication, method: 'DELETE', keyParam: 'id', params: [], superAdmin: true },
-  // —— 聊天室 ——
+  
   'chat.room.create': { handler: createChatRoom, method: 'POST', keyParam: null, params: ['name', 'description', 'cover', 'maxUsers', 'members'], superAdmin: false },
   'chat.room.update': { handler: updateChatRoom, method: 'PATCH', keyParam: 'key', params: ['name', 'description', 'cover', 'maxUsers', 'enabled', 'members'], superAdmin: false },
   'chat.room.delete': { handler: deleteChatRoom, method: 'DELETE', keyParam: 'key', params: [], superAdmin: true },
 };
 
-// 进程内「待确认」登记表：token -> { resolve, timer, skill, target }
+
 const writeConfirmMap = new Map();
 
 function waitWriteConfirm(token, timeoutMs = 5 * 60 * 1000) {
@@ -5953,7 +5950,7 @@ function waitWriteConfirm(token, timeoutMs = 5 * 60 * 1000) {
   });
 }
 
-// 用户确认/取消端点：只唤醒挂起的 SSE 流（真正执行由 AI 那一轮继续完成）
+
 async function confirmWriteAction(request, env, user) {
   const body = await request.json().catch(() => ({}));
   const token = String(body.token || '').trim();
@@ -5966,7 +5963,7 @@ async function confirmWriteAction(request, env, user) {
   return jsonResponse(0, { ok: true, approved });
 }
 
-// 把技能描述成人类可读的确认文案
+
 function describeWriteAction(skillId, args) {
   const brief = (v) => (v === undefined || v === null ? '' : String(v).slice(0, 40));
   switch (skillId) {
@@ -5999,8 +5996,8 @@ function describeWriteAction(skillId, args) {
   }
 }
 
-// ---------- AI 写操作回滚（Undo） ----------
-// undo 日志存 config 库。建表走「进程级标记 + CREATE TABLE IF NOT EXISTS」，单次幂等，绝不重复创建。
+
+
 let _undoTableInitialized = false;
 async function ensureUndoLogTable(env) {
   if (_undoTableInitialized) return;
@@ -6031,27 +6028,27 @@ function safeParse(s) {
   }
 }
 
-// 收集某文章的评论完整行（按 id 升序，父在前，保证外键引用合法）
+
 async function collectCommentsByPost(env, postId) {
   const rows = await env.DB_POSTS.prepare('SELECT * FROM comments WHERE post_id = ? ORDER BY id ASC').bind(postId).all();
   return rows.results || [];
 }
 
-// 收集某用户的评论完整行（按 id 升序）
+
 async function collectCommentsByUser(env, userId) {
   const rows = await env.DB_POSTS.prepare('SELECT * FROM comments WHERE user_id = ? ORDER BY id ASC').bind(userId).all();
   return rows.results || [];
 }
 
-// 评论删除子树：deleteCommentTree 删的是根及其全部子孙。这里按 id 升序收集完整行
+
 async function collectCommentSubtreeRows(env, rootId) {
   const all = await env.DB_POSTS.prepare('SELECT * FROM comments WHERE id = ? OR parent_id = ?').bind(rootId, rootId).all();
   return all.results || [];
 }
 
-// 撤销动作的「操作前快照 + 恢复」映射。snapshot 在执行前调用，restore 在回滚时调用。
+
 const UNDO_MAP = {
-  // —— 文章 ——
+  
   'article.create': {
     snapshot: () => null,
     after: (result) => ({ id: result && result.id }),
@@ -6129,7 +6126,7 @@ const UNDO_MAP = {
       return { ok: true, message: `已恢复文章《${p.title}》` };
     },
   },
-  // —— 标签 ——
+  
   'tag.create': {
     snapshot: () => null,
     after: (result) => ({ id: result && result.id }),
@@ -6179,7 +6176,7 @@ const UNDO_MAP = {
       return { ok: true, message: `已恢复标签「${t.name}」` };
     },
   },
-  // —— 评论 ——
+  
   'comment.review': {
     snapshot: async (env, args) => {
       const ids = (args.ids || []).filter((i) => Number.isInteger(Number(i))).map(Number);
@@ -6226,7 +6223,7 @@ const UNDO_MAP = {
       return { ok: true, message: `已恢复 ${list.length} 条评论` };
     },
   },
-  // —— 留言墙 ——
+  
   'message.review': {
     snapshot: async (env, args) => {
       const ids = (args.ids || []).filter((i) => Number.isInteger(Number(i))).map(Number);
@@ -6267,7 +6264,7 @@ const UNDO_MAP = {
       return { ok: true, message: '已恢复该留言' };
     },
   },
-  // —— 友链 ——
+  
   'friend.create': {
     snapshot: () => null,
     after: (result) => ({ id: result && result.id }),
@@ -6307,7 +6304,7 @@ const UNDO_MAP = {
       const before = safeParse(log.before_data);
       const after = safeParse(log.after_data) || {};
       if (!before || !before.id) return { ok: false, error: '缺少申请快照' };
-      // 原操作是「通过」（创建了正式友链）→ 删除对应友链
+      
       if (after.status === 'approved') {
         await env.DB_CONFIG.prepare('DELETE FROM friends WHERE name = ? AND url = ?').bind(before.name, before.url).run();
       }
@@ -6335,7 +6332,7 @@ const UNDO_MAP = {
       return { ok: true, message: `已恢复友链申请（${app.name}）` };
     },
   },
-  // —— 用户 ——
+  
   'user.update': {
     snapshot: async (env, args) => {
       const id = Number(args.id);
@@ -6395,7 +6392,7 @@ const UNDO_MAP = {
       return { ok: true, message: `已恢复用户「${u.username}」` };
     },
   },
-  // —— 站点配置 / 邮件模板 ——
+  
   'site.settings.emailTemplate.update': {
     snapshot: async (env, args) => {
       const prefix = args.kind === 'reset' ? 'email_reset' : 'email';
@@ -6441,7 +6438,7 @@ const UNDO_MAP = {
       return { ok: true, message: '已恢复站点信息' };
     },
   },
-  // —— 聊天室 ——
+  
   'chat.room.create': {
     snapshot: () => null,
     after: (result) => ({ key: result && result.room_key }),
@@ -6518,7 +6515,7 @@ const UNDO_MAP = {
   },
 };
 
-// 写操作执行完成后的结果文案（用于结果卡展示）
+
 function describeWriteDone(skillId, args, result) {
   switch (skillId) {
     case 'article.create': return `已创建文章《${String(args.title || '').slice(0, 20)}》`;
@@ -6547,7 +6544,7 @@ function describeWriteDone(skillId, args, result) {
   }
 }
 
-// 回滚预览文案：告诉用户「回滚将恢复到什么状态」（基于操作前快照 before_data）
+
 function describeUndoPreview(skillId, before) {
   const trunc = (s, n = 18) => {
     const t = String(s || '');
@@ -6606,7 +6603,7 @@ function describeUndoPreview(skillId, before) {
 }
 
 
-// 写技能执行：登记 → 发确认 → 等用户点一下（SSE 保持挂起）→ 通过才调写 handler
+
 async function executeWriteSkill(skillId, args, ctx) {
   const meta = SKILL_WRITE[skillId];
   if (!meta) return { ok: false, error: `未知写技能：${skillId}` };
@@ -6620,11 +6617,11 @@ async function executeWriteSkill(skillId, args, ctx) {
   if (!decision || !decision.approved) {
     return { ok: false, cancelled: true, error: decision && decision.reason ? decision.reason : '用户取消了此操作' };
   }
-  // 权限：superAdmin 专属操作按当前登录者角色收紧（删除/用户等仅站点账号）
+  
   if (meta.superAdmin && ctx.user && ctx.user.role !== 'super_admin') {
     return { ok: false, error: '需要站点（站长）权限才能执行该操作' };
   }
-  // 抓操作前快照（用于回滚）
+  
   const ud = UNDO_MAP[skillId];
   let before = null;
   if (ud && ud.snapshot) {
@@ -6635,7 +6632,7 @@ async function executeWriteSkill(skillId, args, ctx) {
     }
   }
   const result = await doWriteSkill(meta, args, ctx);
-  // 执行成功后：登记 undo 记录，并推送 write_result 事件给前端（结果卡 + 回滚按钮）
+  
   if (result.ok && ud && ctx.send) {
     try {
       await ensureUndoLogTable(ctx.env);
@@ -6667,7 +6664,7 @@ async function executeWriteSkill(skillId, args, ctx) {
       console.error('record undo failed:', e);
     }
   } else if (ctx.send) {
-    // 执行失败：反馈给前端，避免结果卡一直停在「正在执行」
+    
     ctx.send('write_result', {
       token,
       skill: skillId,
@@ -6680,8 +6677,8 @@ async function executeWriteSkill(skillId, args, ctx) {
   return result;
 }
 
-// 回滚端点：仅发起该操作的本人可回滚，24 小时内有效，回滚后标记已用（不可重复回滚）
-// 通用：对一条回滚记录执行恢复（权限/时效已由调用方校验）
+
+
 async function applyUndo(env, log) {
   const restorer = UNDO_MAP[log.skill];
   if (!restorer || !restorer.restore) return { ok: false, error: `该操作不支持回滚（${log.skill}）` };
@@ -6717,7 +6714,7 @@ async function undoAgentWrite(request, env, user) {
   return jsonResponse(0, null, r.message);
 }
 
-// 管理后台：站长可回滚任意一条回滚记录（跨设备可见），其余限制与本人回滚一致
+
 async function undoAgentWriteAdmin(request, env, user) {
   const id = String(new URL(request.url).pathname.split('/').pop() || '').trim();
   if (!id) return jsonResponse(400, null, '缺少记录 id');
@@ -6735,7 +6732,7 @@ async function undoAgentWriteAdmin(request, env, user) {
   return jsonResponse(0, null, r.message);
 }
 
-// 管理后台：查询所有回滚记录（云端持久化，跨设备可见）
+
 async function listUndoLogs(request, env, user) {
   await ensureUndoLogTable(env);
   const db = getConfigDb(env);
@@ -6779,7 +6776,7 @@ async function listUndoLogs(request, env, user) {
   return jsonResponse(0, { list, total: totalRow ? totalRow.c || 0 : 0, page, pageSize });
 }
 
-// 管理后台：删除一条回滚记录
+
 async function deleteUndoLog(request, env, user) {
   const id = String(new URL(request.url).pathname.split('/').pop() || '').trim();
   if (!id) return jsonResponse(400, null, '缺少记录 id');
@@ -6790,16 +6787,16 @@ async function deleteUndoLog(request, env, user) {
   return jsonResponse(0, null, '已删除该回滚记录');
 }
 
-// 组装并调用真实写 handler（method/path/body 复用它已有的内部 handler）
+
 async function doWriteSkill(meta, args, ctx) {
   let body = {};
   for (const f of meta.params || []) if (args[f] !== undefined) body[f] = args[f];
-  // 聊天室等字段做后端参数名对齐
+  
   if (body.maxUsers !== undefined && body.max_users === undefined) {
     body.max_users = body.maxUsers;
     delete body.maxUsers;
   }
-  // 站点配置类：updateSettings 期望 body.site 承载站点字段（协议/简介等）
+  
   if (meta.wrapSite) body = { site: body };
   let path = '';
   if (meta.keyParam && args[meta.keyParam] !== undefined) path += '/' + encodeURIComponent(args[meta.keyParam]);
@@ -6833,8 +6830,8 @@ function _parseParams(def) {
   } catch {
     p = {};
   }
-  // OpenAI 兼容接口要求 function schema 必须是 type: "object" 的合法 JSON Schema。
-  // 无参数技能（params 为空/缺失/{}）统一规范化为空对象 schema，避免被严格模型以 type: null 拒绝。
+  
+  
   if (!p || typeof p !== 'object' || Array.isArray(p) || p.type !== 'object') {
     p = { type: 'object', properties: {}, additionalProperties: false };
   }
@@ -6843,8 +6840,8 @@ function _parseParams(def) {
 
 function buildSkillFromDef(def) {
   const exec = SKILL_EXECUTORS[def.skill];
-  // 技能 id 允许含点（用于可读），但 OpenAI 函数名只允许 [A-Za-z0-9_-]，
-  // 故生成 toolName，执行时再由 toolName 反查回原始 id。
+  
+  
   const toolName = def.skill.replace(/[^a-zA-Z0-9_-]/g, '_');
   return {
     id: def.skill,
@@ -6905,7 +6902,7 @@ async function ensureSkills(env, request) {
       map[def.skill] = buildSkillFromDef(def);
     }
   }
-  // 元技能：始终可用
+  
   map['open_skills'] = {
     id: 'open_skills',
     name: '打开技能',
@@ -6931,7 +6928,7 @@ async function ensureSkills(env, request) {
       return { ok: true, data: { pong: 'pong', time: new Date().toISOString() } };
     },
   };
-  // 联网检索技能：Web Search（读网页检索摘要，供完成任务时查证资料）
+  
   map['web.search'] = {
     id: 'web.search',
     name: '联网搜索',
@@ -6954,7 +6951,7 @@ async function ensureSkills(env, request) {
       return await agentWebSearch(args && args.query, 5);
     },
   };
-  // 网页抓取技能：Web Fetch（读取指定 URL 的纯文本正文）
+  
   map['web.fetch'] = {
     id: 'web.fetch',
     name: '抓取网页',
@@ -6997,7 +6994,7 @@ async function ensureSkills(env, request) {
   return map;
 }
 
-// 移除 HTML 标签/脚本/样式，得到近似纯文本
+
 function stripHtmlTags(html) {
   let s = String(html || '');
   s = s.replace(/<script[\s\S]*?<\/script>/gi, ' ');
@@ -7063,7 +7060,7 @@ async function executeAgentSkill(name, args, ctx, active, skills) {
     }
     return { ok: true, data: { opened, tip: '这些技能已打开，接下来可以直接调用它们完成子任务。' } };
   }
-  // 模型返回的是 toolName（点被替换为 _），需反查回原始 id
+  
   let skill = skills[name];
   if (!skill) {
     const byTool = Object.values(skills).find((s) => s.toolName === name);
@@ -7077,7 +7074,7 @@ async function executeAgentSkill(name, args, ctx, active, skills) {
   }
 }
 
-// 流式 tool_calls 增量合并：按 index 把分片 arguments/name 拼成完整调用（OpenAI 流式格式）
+
 function mergeStreamToolCalls(acc, deltas) {
   for (const d of deltas || []) {
     const idx = d.index ?? 0;
@@ -7093,12 +7090,12 @@ function mergeStreamToolCalls(acc, deltas) {
   return acc;
 }
 
-// Agent 单轮流式生成（async generator）：逐块 yield 事件，边读边推，结束时汇总完整结果。
-// - reasoning 事件：来自 delta.reasoning_content 或正文里的 <thinking>...</thinking>（真实思考，边读边发）
-// - content 事件：正文文本（已剥掉思考标签），逐块发出实现打字机效果
-// - done 事件：{ content, reasoning, tool_calls, usage } 完整汇总
-// 兼容：自定义模型走 callCustomModelStream；内置模型走 env.AI.run({stream:true})。
-// 若某模型对 stream:true 不生效（返回整段 JSON），choice.delta||choice.message 兜底也能解析出完整结果。
+
+
+
+
+
+
 async function* streamAgentTurn(env, modelAlias, custom, messages, tools) {
   const decoder = new TextDecoder();
   let upstream;
@@ -7115,8 +7112,8 @@ async function* streamAgentTurn(env, modelAlias, custom, messages, tools) {
   let toolCalls = [];
   let usage = null;
 
-  // 正文 <thinking>...</thinking> 标签剥离器（标签可能跨多个 chunk，且大小写/空格不固定），
-  // 把思考文本转成 reasoning 事件；只有真正的正文才进 accContent。
+  
+  
   let buf = '';
   let inThink = false;
   let thinkAcc = '';
@@ -7139,8 +7136,8 @@ async function* streamAgentTurn(env, modelAlias, custom, messages, tools) {
       if (!inThink) {
         const open = findOpenIdx(buf);
         if (open === -1) {
-          // 正文除累积进 accContent 外，也即时以 content_delta 流式透出，
-          // 让「回复正文」与「思考」一样逐字实时显示（思考走 think_delta，正文走 content_delta）
+          
+          
           accContent += buf;
           pending.push({ type: 'content_delta', text: buf });
           buf = '';
@@ -7205,7 +7202,7 @@ async function* streamAgentTurn(env, modelAlias, custom, messages, tools) {
     }
     while (pending.length) yield pending.shift();
   }
-  // 流结束：清掉未闭合 thinking 里残留的思考文本
+  
   if (thinkAcc.trim()) {
     accReasoning += thinkAcc;
     pending.push({ type: 'reasoning', text: thinkAcc });
@@ -7255,7 +7252,7 @@ function sumUsage(acc, usage) {
   return acc;
 }
 
-// ---------- Agent 性格（人格提示词）----------
+
 const AGENT_PERSONA = {
   warm: {
     name: '温柔体贴',
@@ -7274,18 +7271,18 @@ const AGENT_PERSONA = {
   },
 };
 
-// ---------- Agent 对话端点：SSE 事件流 ----------
+
 async function aiAgent(request, env, user) {
   const enabled = await checkAiEnabled(env);
   if (!enabled) return jsonResponse(403, null, 'AI 功能已关闭', 403);
 
   const body = await request.json();
-  // 无状态对话：前端每次携带完整历史（user/assistant），后端不保存、不建表。
+  
   const userMessages = (Array.isArray(body.messages) ? body.messages : [])
     .map((m) => ({ role: m.role === 'system' ? 'user' : m.role, content: String(m.content || '') }))
     .filter((m) => m.content && (m.role === 'user' || m.role === 'assistant'));
   if (!userMessages.length) return jsonResponse(400, null, '缺少消息', 400);
-  // 前端已把全部历史发上来，无需再从云端加载会话
+  
   const sessionMessages = [];
   const sessionTitle = null;
 
@@ -7293,7 +7290,7 @@ async function aiAgent(request, env, user) {
   const modelAlias = body.model || aiSettings.model || defaultAiSettings.model;
   const mode = AGENT_PERSONA[body.mode] ? body.mode : 'warm';
 
-  // 加载技能注册表（静态 TXT）
+  
   let skills;
   try {
     skills = await ensureSkills(env, request);
@@ -7319,8 +7316,8 @@ async function aiAgent(request, env, user) {
         if (!custom && !env.AI) throw new Error('AI 绑定未配置');
 
         const historyMessages = [...sessionMessages, ...userMessages];
-        // 发给模型的上下文：剥离 trail 等前端展示字段，并滤除无正文且无工具调用的纯展示条，
-        // 避免把未知字段（trail/_display/updatedAt）传给第三方模型。
+        
+        
         const contextMessages = historyMessages
           .filter((m) =>
             m.role === 'user'
@@ -7337,17 +7334,17 @@ async function aiAgent(request, env, user) {
             return out;
           });
         const messages = [
-          // 权重排序：老历史在前 → 系统提示词居中 → 最新一条用户消息放最后（当前问题权重最高）
+          
           ...contextMessages.slice(0, Math.max(0, contextMessages.length - 1)),
           { role: 'system', content: systemPrompt },
           ...contextMessages.slice(-1),
         ];
-        // 初始即打开「常驻技能」（与 agent-core 提示词中的【常驻技能】清单一致）：
-        // 首轮 tools 就含这些技能的 toolDef，AI 无需 open_skills 即可直接调用，省一次往返。
-        // 含核心写操作（文章/评论/标签增删改）——真正执行前仍会走确认卡片，不因常驻而失去安全闸。
+        
+        
+        
         const active = new Set(ALWAYS_ACTIVE_SKILLS.filter((id) => skills[id] && skills[id].visible));
         let finished = false;
-        // 轮次与 token 统计
+        
         let stats = { rounds: 0, tokens: { prompt: 0, completion: 0, total: 0 } };
 
         for (let it = 0; it < maxIters && !finished; it++) {
@@ -7358,15 +7355,15 @@ async function aiAgent(request, env, user) {
               .map((id) => (skills[id] ? skills[id].toolDef : null))
               .filter((td) => td && (webSearchOn || (td.function && td.function.name !== 'web_search' && td.function.name !== 'web_fetch'))),
           ];
-          // 单轮流式生成：思考（reasoning）逐字实时推；正文缓冲到本轮结束再按用途分发，
-          // 避免工具轮里的叙述被当成多条 AI 回复（叙述并入思考过程，只有最终轮正文才是回复）。
+          
+          
           let turnContent = '';
           let turnReasoning = '';
           let turnToolCalls = [];
           let turnUsage = null;
           for await (const evt of streamAgentTurn(env, modelAlias, custom, messages, tools)) {
             if (evt.type === 'content_delta') {
-              // 回复正文逐字流式透出，随生成实时展示给用户
+              
               send('content_delta', { text: evt.text });
             } else if (evt.type === 'reasoning') {
               turnReasoning += evt.text;
@@ -7385,18 +7382,18 @@ async function aiAgent(request, env, user) {
           const toolCalls = turnToolCalls.map(normalizeToolCall).filter(Boolean);
 
           if (toolCalls.length) {
-            // 思考兜底（最后手段）：本轮调了工具、但既没 reasoning 也没叙述时才合成占位思考
+            
             if (!turnReasoning.trim() && !content) {
               const fallbackThink =
                 `我准备调用工具${toolCalls.map((tc) => `「${tc.name}」`).join('、')}来完成这一步：` +
                 toolCalls.map((tc) => `${tc.name}(${summarizeToolArg(tc.args)})`).join('；');
               send('think_delta', { text: fallbackThink });
             }
-            // assistant(tool_calls) 的 content 置 null：仅携带工具调用，不参与展示
+            
             const assistantMsg = { role: 'assistant', content: null, tool_calls: turnToolCalls };
             messages.push(assistantMsg);
           } else {
-            // 最终轮：正文即最终回答（再剥一次 thinking 标签兜底），本轮结束
+            
             finished = true;
             break;
           }
@@ -7428,7 +7425,7 @@ async function aiAgent(request, env, user) {
 
         if (!finished) send('error', { message: '已超过最大步骤数，请精简描述后重试' });
         send('stats', { rounds: stats.rounds, tokens: stats.tokens });
-        // 无状态：对话不落库，前端自己保存本地
+        
         send('done', {});
       } catch (err) {
         console.error('agent error:', err);
@@ -7501,7 +7498,7 @@ async function aiFormatOptimize(request, env, user) {
   }
 
   optimized = stripThinkingTags(optimized);
-  // 去除可能包裹的 markdown 代码块
+  
   optimized = optimized.replace(/^```markdown\s*/, '').replace(/^```\s*/, '').replace(/\s*```$/, '').trim();
 
   return jsonResponse(0, { content: optimized, model: modelAlias });
@@ -7528,7 +7525,7 @@ async function aiGenerateSummary(request, env, user) {
     : (settings.maxTokens ?? defaultAiSettings.maxTokens);
 
   const systemPrompt = await loadPrompt(env, request, 'article-summary');
-  // 正文过长时截断，避免超出模型上下文
+  
   const safeContent = content.length > 12000 ? content.slice(0, 12000) : content;
   const userPrompt = `请为下面这篇文章生成摘要。\n标题：${title || '（无标题）'}\n正文：\n${safeContent}`;
   const messages = [
@@ -7563,7 +7560,7 @@ async function aiGenerateSummary(request, env, user) {
   }
 
   summary = stripThinkingTags(summary).trim();
-  // 去除可能包裹的 markdown 代码块或首尾引号
+  
   summary = summary.replace(/^```\s*/, '').replace(/\s*```$/, '').replace(/^["“'`]|["”'`]$/g, '').trim();
 
   return jsonResponse(0, { excerpt: summary, model: modelAlias });
@@ -7621,7 +7618,7 @@ async function openaiChatCompletions(request, env) {
 
   const options = { messages, temperature, max_tokens: maxTokens };
 
-  // 自定义模型
+  
   if (isCustomModel(modelAlias)) {
     const customId = parseCustomModelId(modelAlias);
     const custom = customId ? await getCustomModelById(env, customId) : null;
@@ -7812,7 +7809,7 @@ async function openaiEmbeddings(request, env) {
   });
 }
 
-// ---------- 主入口 ----------
+
 
 function checkEnv(env) {
   const missing = [];
@@ -7824,20 +7821,16 @@ function checkEnv(env) {
   return missing;
 }
 
-// ---------- 短链接解析 ----------
 
-/**
- * 解析网易云音乐分享短链接 / 任意 URL，跟随重定向后返回最终 URL。
- * 主要用于解析 163cn.tv 短链接，获取真实歌单页面地址。
- * 服务端请求不受 CORS 限制，可正常跟随重定向。
- */
+
+
 async function resolveUrl(request) {
   const url = new URL(request.url);
   const target = url.searchParams.get('url');
   if (!target) {
     return jsonResponse(400, null, '缺少 url 参数');
   }
-  // 只允许解析 YouTube 链接（防止滥用开放解析）
+  
   if (!target.startsWith('https://youtu.be/') && !target.startsWith('https://www.youtube.com/')) {
     return jsonResponse(403, null, '只允许解析 YouTube 链接');
   }
@@ -7852,7 +7845,7 @@ async function resolveUrl(request) {
       },
     });
     const finalUrl = response.url;
-    // 从最终 URL 中提取歌单 ID
+    
     let playlistId = '';
     const idMatch = finalUrl.match(/[?&]id=(\d+)/);
     if (idMatch) {
@@ -7867,23 +7860,20 @@ async function resolveUrl(request) {
   }
 }
 
-/**
- * 代理图片资源（解决跨域/CDN 域名在 PWA 中显示 URL 的问题）
- * GET /api/v1/proxy-image?url=...
- */
+
 async function proxyImage(request) {
   const url = new URL(request.url);
   const target = url.searchParams.get('url');
   if (!target) {
     return jsonResponse(400, null, '缺少 url 参数');
   }
-  // 只允许图片cdn使用，只允许http/https且是静态资源域名
+  
   const allowedHosts = [
-    'i.ytimg.com', // YouTube 封面图
-    'img.youtube.com', // YouTube 封面图
-    'i.imgur.com', // Imgur 图片
-    'picsum.photos', // 占位图
-    'images.unsplash.com', // Unsplash
+    'i.ytimg.com', 
+    'img.youtube.com', 
+    'i.imgur.com', 
+    'picsum.photos', 
+    'images.unsplash.com', 
   ];
   try {
     const targetUrl = new URL(target);
@@ -7934,7 +7924,7 @@ export default {
     }
 
     try {
-      // 生成"登录/权限失败"的错误帧，确保前端收到可读错误
+      
       function rejectChatSocket(message, code = 403) {
         const pair = new WebSocketPair();
         pair[1].accept();
@@ -7943,12 +7933,12 @@ export default {
         return new Response(null, { status: 101, webSocket: pair[0] });
       }
 
-      // 聊天室：同源转发给 xin--blog-chat-worker（Service Binding env.CHAT，内部调用，不出公网）
-      // 浏览器只连博客同源域名，国内可访问；聊天 Worker 通过绑定被调用，无公网暴露。
-      // 鉴权在 Pages 端完成：公共房（public）免鉴权；成员房（members）及自定义房（c_*）需在
-      // 校验 token 后注入身份头给聊天 Worker；自定义房还会据此校验成员身份并带上人数上限。
+      
+      
+      
+      
       if (path.startsWith('/api/chat/')) {
-        // 昵称查重接口：供前端在改名/进房前校验昵称是否占用注册用户名（纯 HTTP，不走 WS）
+        
         if (path === '/api/chat/check-nickname') {
           const name = (url.searchParams.get('name') || '').trim();
           if (!name) return jsonResponse(400, null, '昵称不能为空', 400);
@@ -7959,22 +7949,22 @@ export default {
 
         if (!env.CHAT) return jsonResponse(500, null, '聊天服务未绑定（env.CHAT）', 500);
         const chatUrl = new URL(request.url);
-        // 取到房间 key（/api/chat/room/<key>/websocket -> members/public）
+        
         const seg = chatUrl.pathname.replace(/^\/api\/chat/, '').split('/').filter(Boolean);
         const roomKey = seg[0] === 'room' ? seg[1] : null;
         const isMembers = roomKey === ALL_USERS_CHAT_ROOM_KEY;
         const isCustom = !!roomKey && roomKey.startsWith('c_');
 
-        // 游客房（public）昵称若命中注册用户名，握手阶段直接拒绝，保护注册账号的用户名权益。
-        // 已登录用户（携带有效 token，且其用户名与昵称一致）使用自己的用户名，属于本人，不视为占用。
+        
+        
         let identity = null;
         let forwarded = new Request(chatUrl.toString(), request);
         if (roomKey === PUBLIC_CHAT_ROOM_KEY) {
           const guestName = (chatUrl.searchParams.get('nickname') || '').trim();
-          // 先认领登录身份：已登录用户在公共房同样注入身份头，让聊天 Worker 识别"本人多端"，
-          // 否则同一账号多客户端会被误判为昵称重复。此解析必须在 guestName 判断之外执行，
-          // 因为登录用户进公共房时常不带 nickname（用户名走 WS 的 { name }），若只在
-          // guestName 内解析，identity 恒为 null，导致身份头缺失、后端误判游客。
+          
+          
+          
+          
           const token = chatUrl.searchParams.get('token') || '';
           if (token) identity = await resolveAuthIdentity(token, env);
           if (guestName) {
@@ -7995,17 +7985,17 @@ export default {
 
         let maxUsers = 0;
         if (isMembers || isCustom) {
-          // 成员房/自定义房：从握手 URL 提取 token 并校验，成功后注入身份头
+          
           const token = chatUrl.searchParams.get('token') || '';
           identity = await resolveAuthIdentity(token, env);
           if (!identity) return rejectChatSocket('登录已失效，请重新登录后再进入聊天室');
           if (isCustom) {
-            // 自定义房：校验该用户是否为成员，并读取人数上限
+            
             const room = await getRoomForConnect(roomKey, identity.id, env);
             if (!room) return rejectChatSocket('房间不存在或您不在该房间成员列表中');
             maxUsers = room.max_users;
           }
-          // 注入可信身份头（内部绑定调用，聊天 Worker 直接信任）
+          
           forwarded = new Request(chatUrl.toString(), {
             ...request,
             headers: buildAuthHeaders(request.headers, identity).mergedHeaders,
@@ -8017,15 +8007,15 @@ export default {
           }
         }
 
-        // /api/chat/room/... -> /api/room/... ，让聊天 Worker 按官方 /api/room 路由处理
+        
         chatUrl.pathname = '/api' + chatUrl.pathname.slice('/api/chat'.length);
         forwarded = new Request(chatUrl.toString(), forwarded);
         return env.CHAT.fetch(forwarded);
       }
 
-      // ====== 聊天图片（独立于博客媒体库，存于聊天 Worker 的 DO 内）=====
-      // 读取图片：public 免鉴权；members/自定义房需登录（自定义房还需是成员）。
-      // 图片 <img> 无法带自定义 header，故鉴权统一走 URL 上的 ?token=（前端渲染图片时按房间类型附带）。
+      
+      
+      
       async function canViewChatRoomMedia(roomKey, req) {
         if (!env.CHAT) return jsonResponse(500, null, '聊天服务未绑定（env.CHAT）', 500);
         if (roomKey === PUBLIC_CHAT_ROOM_KEY) return true;
@@ -8039,7 +8029,7 @@ export default {
         }
         return true;
       }
-      // 上传图片：仅登录用户；自定义房校验成员身份。
+      
       async function chatUploadMedia(req, env2, user) {
         if (!env2.CHAT) return jsonResponse(500, null, '聊天服务未绑定（env.CHAT）', 500);
         const key = (new URL(req.url).searchParams.get('room') || PUBLIC_CHAT_ROOM_KEY).trim();
@@ -8061,7 +8051,7 @@ export default {
       }
 
       if (method === 'GET' && path.match(/^\/api\/v1\/chat\/media\/[^/]+\/[^/]+$/)) {
-        // path = /api/v1/chat/media/<roomKey>/<id>
+        
         const seg = path.split('/');
         const roomKey = seg[5];
         const id = seg[6];
@@ -8074,26 +8064,26 @@ export default {
         return await requireAuth(request, env, chatUploadMedia);
       }
 
-      // OpenAI 兼容接口（标准路径 /v1/*，供外部客户端直接以域名作为 base URL 调用）
+      
       if (method === 'GET' && path === '/v1/models') return await openaiModels(request, env);
       if (method === 'POST' && path === '/v1/chat/completions') return await openaiChatCompletions(request, env);
       if (method === 'POST' && path === '/v1/embeddings') return await openaiEmbeddings(request, env);
 
-      // 初始化
+      
       if (method === 'POST' && path === '/api/v1/setup') return await setup(env);
 
-      // 公开接口
+      
       if (method === 'GET' && path === '/api/v1/site') return await getSiteConfig(env);
       if (method === 'GET' && path === '/manifest.json') return await getManifest(env, request.url);
       if (method === 'GET' && path === '/api/v1/posts') return await listPosts(env, url);
 
-      // 短链接解析（无需认证，用于解析网易云分享短链接 163cn.tv）
+      
       if (method === 'GET' && path === '/api/v1/resolve-url') return await resolveUrl(request);
 
-      // 图片代理（解决跨域/CDN 域名在 PWA 中显示 URL 的问题）
+      
       if (method === 'GET' && path === '/api/v1/proxy-image') return await proxyImage(request);
 
-      // 文章评论/点赞（需在通用 getPost 之前匹配）
+      
       if (method === 'GET' && path.match(/^\/api\/v1\/posts\/[^/]+\/comments$/)) return await listComments(env, url, path);
       if (method === 'POST' && path.match(/^\/api\/v1\/posts\/[^/]+\/comments$/)) return await requireAuth(request, env, createComment);
       if (method === 'DELETE' && path.match(/^\/api\/v1\/posts\/[^/]+\/comments\/\d+$/)) return await requireAuth(request, env, deleteComment);
@@ -8115,14 +8105,14 @@ export default {
         return await listPostsByTag(env, path);
       }
 
-      // 友链公开接口
+      
       if (method === 'GET' && path === '/api/v1/friends') return await listFriends(env);
-      // 友链申请（需登录）
+      
       if (method === 'POST' && path === '/api/v1/friends/apply') return await requireAuth(request, env, applyFriend);
-      // 我的友链申请记录（需登录）
+      
       if (method === 'GET' && path === '/api/v1/friends/applications/my') return await requireAuth(request, env, listMyFriendApplications);
 
-      // 认证接口
+      
       if (method === 'POST' && path === '/api/v1/auth/register') return await register(request, env);
       if (method === 'POST' && path === '/api/v1/auth/login') return await login(request, env);
       if (method === 'POST' && path === '/api/v1/auth/refresh') return await refreshToken(request, env);
@@ -8132,11 +8122,11 @@ export default {
       if (method === 'POST' && path === '/api/v1/auth/forgot-code') return await sendForgotCode(request, env);
       if (method === 'POST' && path === '/api/v1/auth/reset-password') return await resetPassword(request, env);
 
-      // 人机验证（公开配置 + 算术题）
+      
       if (method === 'GET' && path === '/api/v1/auth/captcha/config') return await getCaptchaConfig(request, env);
       if (method === 'POST' && path === '/api/v1/auth/captcha/math') return await issueMathCaptcha(request, env);
 
-      // 站点公开设置
+      
       if (method === 'GET' && path === '/api/v1/settings/auth') return await getAuthSettings(request, env);
       if (method === 'GET' && path === '/api/v1/settings/email') return await getEmailSettings(request, env);
       if (method === 'GET' && path === '/api/v1/settings/email-template') return await getEmailTemplateSettings(request, env);
@@ -8145,10 +8135,10 @@ export default {
       if (method === 'GET' && path === '/api/v1/settings/chat') return await getChatSettings(request, env);
       if (method === 'GET' && path === '/api/v1/settings/agent') return await getAgentSettings(request, env);
 
-      // 自定义聊天房：当前登录用户可见的房间列表
+      
       if (method === 'GET' && path === '/api/v1/chat/my-rooms') return await requireAuth(request, env, listMyChatRooms);
 
-      // 留言墙公开接口
+      
       if (method === 'GET' && path === '/api/v1/messages/my') return await requireAuth(request, env, listMyMessages);
       if (method === 'GET' && path === '/api/v1/messages') return await listMessages(env, url);
       if (method === 'POST' && path === '/api/v1/messages') {
@@ -8157,26 +8147,26 @@ export default {
       }
       if (method === 'DELETE' && path.match(/^\/api\/v1\/messages\/\d+$/)) return await requireAuth(request, env, deleteMessage);
 
-      // 用户个人设置（主题/UI 等）
+      
       if (method === 'GET' && path === '/api/v1/user/settings') return await requireAuth(request, env, getUserSettings);
       if (method === 'PATCH' && path === '/api/v1/user/settings') return await requireAuth(request, env, updateUserSettings);
-      // 修改登录账号密码（需登录）
+      
       if (method === 'POST' && path === '/api/v1/user/change-password') return await requireAuth(request, env, changePassword);
 
-      // 管理接口
+      
       if (method === 'GET' && path === '/api/v1/admin/dashboard') return await requireAdmin(request, env, getDashboard);
-      // 文章：管理员可写/可改/可发布，仅站主可删除
+      
       if (method === 'GET' && path === '/api/v1/admin/posts') return await requireAdmin(request, env, listAdminPosts);
       if (method === 'GET' && path.startsWith('/api/v1/admin/posts/')) return await requireAdmin(request, env, getAdminPost);
       if (method === 'POST' && path === '/api/v1/admin/posts') return await requireAdmin(request, env, createPost);
       if (method === 'PATCH' && path.startsWith('/api/v1/admin/posts/')) return await requireAdmin(request, env, updatePost);
       if (method === 'DELETE' && path.startsWith('/api/v1/admin/posts/')) return await requireSuperAdmin(request, env, deletePost);
-      // 标签
+      
       if (method === 'GET' && path === '/api/v1/admin/tags') return await requireAdmin(request, env, listAdminTags);
       if (method === 'POST' && path === '/api/v1/admin/tags') return await requireAdmin(request, env, createTag);
       if (method === 'PATCH' && path.startsWith('/api/v1/admin/tags/')) return await requireAdmin(request, env, updateTag);
       if (method === 'DELETE' && path.startsWith('/api/v1/admin/tags/')) return await requireSuperAdmin(request, env, deleteTag);
-      // 站点配置通用保存接口（协议/外观/主题等共用），仅站主
+      
       if (method === 'PATCH' && path === '/api/v1/admin/settings') return await requireSuperAdmin(request, env, updateSettings);
       if (method === 'GET' && path === '/api/v1/admin/settings/auth') return await requireSuperAdmin(request, env, getAuthSettings);
       if (method === 'PATCH' && path === '/api/v1/admin/settings/auth') return await requireSuperAdmin(request, env, updateAuthSettings);
@@ -8184,55 +8174,55 @@ export default {
       if (method === 'PATCH' && path === '/api/v1/admin/settings/email') return await requireSuperAdmin(request, env, updateEmailSettings);
       if (method === 'GET' && path === '/api/v1/admin/settings/email-template') return await requireSuperAdmin(request, env, getEmailTemplateSettings);
       if (method === 'PATCH' && path === '/api/v1/admin/settings/email-template') return await requireSuperAdmin(request, env, updateEmailTemplateSettings);
-      // 评论通知：管理页可读，仅站主可改
+      
       if (method === 'GET' && path === '/api/v1/admin/settings/comment-notify') return await requireAdmin(request, env, getCommentNotifySettings);
       if (method === 'PATCH' && path === '/api/v1/admin/settings/comment-notify') return await requireSuperAdmin(request, env, updateCommentNotifySettings);
-      // 互动设置：仅站主
+      
       if (method === 'GET' && path === '/api/v1/admin/settings/interaction') return await requireSuperAdmin(request, env, getInteractionSettings);
       if (method === 'PATCH' && path === '/api/v1/admin/settings/interaction') return await requireSuperAdmin(request, env, updateInteractionSettings);
-      // 留言墙设置：管理页可读，仅站主可改
+      
       if (method === 'GET' && path === '/api/v1/admin/settings/message-wall') return await requireAdmin(request, env, getMessageWallSettings);
       if (method === 'PATCH' && path === '/api/v1/admin/settings/message-wall') return await requireSuperAdmin(request, env, updateMessageWallSettings);
-      // 聊天室设置：管理页可读，仅站主可改
+      
       if (method === 'GET' && path === '/api/v1/admin/settings/chat') return await requireAdmin(request, env, getChatSettings);
       if (method === 'PATCH' && path === '/api/v1/admin/settings/chat') return await requireSuperAdmin(request, env, updateChatSettings);
-      // 自定义房间管理：管理员可增/改/列表/搜索成员，仅站主可删
+      
       if (method === 'GET' && path === '/api/v1/admin/chat/rooms') return await requireAdmin(request, env, listAdminChatRooms);
       if (method === 'GET' && path === '/api/v1/admin/chat/rooms/search-users') return await requireAdmin(request, env, searchRoomUsers);
       if (method === 'GET' && path.match(/^\/api\/v1\/admin\/chat\/rooms\/[^/]+\/members$/)) return await requireAdmin(request, env, getAdminChatRoomMembers);
       if (method === 'POST' && path === '/api/v1/admin/chat/rooms') return await requireAdmin(request, env, createChatRoom);
       if (method === 'PATCH' && path.match(/^\/api\/v1\/admin\/chat\/rooms\/[^/]+$/)) return await requireAdmin(request, env, updateChatRoom);
       if (method === 'DELETE' && path.match(/^\/api\/v1\/admin\/chat\/rooms\/[^/]+$/)) return await requireSuperAdmin(request, env, deleteChatRoom);
-      // 聊天 DO 数据（存储于聊天 Worker 的 Durable Object，独立于博客媒体库）
+      
       if (method === 'GET' && path === '/api/v1/admin/chat/do/overview') return await requireAdmin(request, env, adminChatDoOverview);
       if (method === 'GET' && path.match(/^\/api\/v1\/admin\/chat\/do\/media\/[^/]+$/)) return await requireAdmin(request, env, adminListChatMedia);
       if (method === 'DELETE' && path.match(/^\/api\/v1\/admin\/chat\/do\/media\/[^/]+\/[^/]+$/)) return await requireAdmin(request, env, adminDeleteChatMedia);
-      // 留言墙管理：管理员可审阅/同意/隐藏，仅站主可删除
+      
       if (method === 'GET' && path === '/api/v1/admin/messages') return await requireAdmin(request, env, listAdminMessages);
       if (method === 'PATCH' && path === '/api/v1/admin/messages/batch') return await requireAdmin(request, env, updateAdminMessagesBatch);
       if (method === 'PATCH' && path.match(/^\/api\/v1\/admin\/messages\/\d+$/)) return await requireAdmin(request, env, updateAdminMessage);
       if (method === 'DELETE' && path.match(/^\/api\/v1\/admin\/messages\/\d+$/)) return await requireSuperAdmin(request, env, deleteAdminMessage);
-      // 评论管理：管理员可审核，仅站主可删除
+      
       if (method === 'GET' && path === '/api/v1/admin/comments') return await requireAdmin(request, env, listAdminComments);
       if (method === 'PATCH' && path === '/api/v1/admin/comments/batch') return await requireAdmin(request, env, updateAdminCommentsBatch);
       if (method === 'PATCH' && path.match(/^\/api\/v1\/admin\/comments\/\d+$/)) return await requireAdmin(request, env, updateAdminComment);
       if (method === 'DELETE' && path.match(/^\/api\/v1\/admin\/comments\/\d+$/)) return await requireSuperAdmin(request, env, deleteAdminComment);
-      // 用户管理：仅站主（列表/改角色/禁删）
+      
       if (method === 'GET' && path === '/api/v1/admin/users') return await requireSuperAdmin(request, env, listAdminUsers);
       if (method === 'PATCH' && path.startsWith('/api/v1/admin/users/')) return await requireSuperAdmin(request, env, updateAdminUser);
       if (method === 'DELETE' && path.match(/^\/api\/v1\/admin\/users\/\d+$/)) return await requireSuperAdmin(request, env, deleteAdminUser);
 
-      // 友链管理：管理员可增/改，仅站主可删
+      
       if (method === 'GET' && path === '/api/v1/admin/friends') return await requireAdmin(request, env, listAdminFriends);
       if (method === 'POST' && path === '/api/v1/admin/friends') return await requireAdmin(request, env, createFriend);
       if (method === 'PATCH' && path.match(/^\/api\/v1\/admin\/friends\/\d+$/)) return await requireAdmin(request, env, updateFriend);
       if (method === 'DELETE' && path.match(/^\/api\/v1\/admin\/friends\/\d+$/)) return await requireSuperAdmin(request, env, deleteFriend);
-      // 友链申请：管理员可通过，仅站主可拒绝/删除
+      
       if (method === 'GET' && path === '/api/v1/admin/friends/applications') return await requireAdmin(request, env, listFriendApplications);
       if (method === 'PATCH' && path.match(/^\/api\/v1\/admin\/friends\/applications\/\d+$/)) return await requireAdmin(request, env, auditFriendApplication);
       if (method === 'DELETE' && path.match(/^\/api\/v1\/admin\/friends\/applications\/\d+$/)) return await requireSuperAdmin(request, env, deleteFriendApplication);
 
-      // 媒体：管理员可上传/改，仅站主可删
+      
       if (method === 'GET' && path === '/api/v1/admin/media') return await requireAdmin(request, env, listAdminMedia);
       if (method === 'GET' && path === '/api/v1/admin/media/usage') return await requireAdmin(request, env, getAdminMediaUsage);
       if (method === 'GET' && path === '/api/v1/admin/media/usage/detail') return await requireAdmin(request, env, getAdminMediaUsageDetail);
@@ -8244,11 +8234,11 @@ export default {
       if (method === 'POST' && path.startsWith('/api/v1/admin/media/finalize/')) return await requireAdmin(request, env, finalizeMediaUpload);
       if (method === 'DELETE' && path.match(/^\/api\/v1\/admin\/media\/\d+$/)) return await requireSuperAdmin(request, env, deleteMedia);
 
-      // 系统/数据库管理接口（仅站主）
+      
       if (method === 'GET' && path === '/api/v1/admin/system/databases') return await requireSuperAdmin(request, env, listDatabases);
       if (method === 'GET' && path === '/api/v1/admin/system/status') return await requireSuperAdmin(request, env, getSystemStatus);
 
-      // AI：写作工具（模型列表/生成/润色/总结/对话）管理员可用；配置/API Key/自定义模型仅站主
+      
       if (method === 'GET' && path === '/api/v1/admin/settings/ai') return await requireAdmin(request, env, getAiSettings);
       if (method === 'PATCH' && path === '/api/v1/admin/settings/ai') return await requireSuperAdmin(request, env, updateAiSettings);
       if (method === 'GET' && path === '/api/v1/admin/ai/models') return await requireAdmin(request, env, listAdminAiModels);
@@ -8257,11 +8247,11 @@ export default {
       if (method === 'POST' && path === '/api/v1/admin/ai/summary') return await requireAdmin(request, env, aiGenerateSummary);
       if (method === 'POST' && path === '/api/v1/admin/ai/chat') return await requireAdmin(request, env, aiChat);
       if (method === 'POST' && path === '/api/v1/admin/ai/agent') return await requireAdmin(request, env, aiAgent);
-      // 写操作确认：唤醒挂起的 AI 轮次（同一流继续）
+      
       if (method === 'POST' && path === '/api/v1/admin/ai/agent/confirm') return await requireAdmin(request, env, confirmWriteAction);
-      // AI 写操作回滚：仅本人可回滚，24 小时内有效
+      
       if (method === 'POST' && path === '/api/v1/admin/ai/agent/undo') return await requireAdmin(request, env, undoAgentWrite);
-      // 管理后台回滚管理：查询所有记录（跨设备）、站长回滚任意记录、删除记录
+      
       if (method === 'GET' && path === '/api/v1/admin/ai/agent/undo/list') return await requireSuperAdmin(request, env, listUndoLogs);
       if (method === 'POST' && path.match(/^\/api\/v1\/admin\/ai\/agent\/undo\/[^/]+$/)) return await requireSuperAdmin(request, env, undoAgentWriteAdmin);
       if (method === 'DELETE' && path.match(/^\/api\/v1\/admin\/ai\/agent\/undo\/[^/]+$/)) return await requireSuperAdmin(request, env, deleteUndoLog);
@@ -8273,7 +8263,7 @@ export default {
       if (method === 'PATCH' && path.match(/^\/api\/v1\/admin\/ai\/custom-models\/\d+$/)) return await requireSuperAdmin(request, env, updateAiCustomModel);
       if (method === 'DELETE' && path.match(/^\/api\/v1\/admin\/ai\/custom-models\/\d+$/)) return await requireSuperAdmin(request, env, deleteAiCustomModelHandler);
 
-      // 主题管理接口（仅站主）
+      
       if (method === 'GET' && path === '/api/v1/admin/themes') return await requireSuperAdmin(request, env, listAdminThemes);
       if (method === 'GET' && path.match(/^\/api\/v1\/admin\/themes\/[^/]+$/)) return await requireSuperAdmin(request, env, getAdminTheme);
       if (method === 'POST' && path === '/api/v1/admin/themes') return await requireSuperAdmin(request, env, createAdminTheme);
@@ -8282,12 +8272,12 @@ export default {
       if (method === 'DELETE' && path.match(/^\/api\/v1\/admin\/themes\/[^/]+$/)) return await requireSuperAdmin(request, env, deleteAdminTheme);
       if (method === 'POST' && path === '/api/v1/admin/themes/clear-active') return await requireSuperAdmin(request, env, clearAdminActiveTheme);
 
-      // OpenAI 兼容接口（供外部工具通过 API Key 调用）
+      
       if (method === 'GET' && path === '/api/v1/ai/v1/models') return await openaiModels(request, env);
       if (method === 'POST' && path === '/api/v1/ai/v1/chat/completions') return await openaiChatCompletions(request, env);
       if (method === 'POST' && path === '/api/v1/ai/v1/embeddings') return await openaiEmbeddings(request, env);
 
-      // 静态资源与 SPA 页面：注入站点分享 meta 后返回
+      
       if (env.ASSETS) {
         const assetResponse = await env.ASSETS.fetch(request);
         if (!assetResponse || assetResponse.status === 404) {
@@ -8311,7 +8301,7 @@ export default {
     } catch (err) {
       console.error(err);
       const msg = err.message || 'Internal Server Error';
-      // 仅把真正的绑定缺失/类型错误归类为 D1 绑定异常，避免 SQL 执行错误被误报
+      
       if (
         msg.includes('D1 数据库绑定') ||
         msg.includes("Cannot read properties of undefined (reading 'prepare')") ||

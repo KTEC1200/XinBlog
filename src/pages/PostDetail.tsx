@@ -36,7 +36,7 @@ export function PostDetail() {
     let mounted = true;
     setLoading(true);
 
-    // 优先从首页文章列表缓存中复用当前文章，避免重复请求和重复加载图片
+    
     const cachedPosts = peekCache<PostsResponse>('/api/v1/posts');
     const cachedPost = cachedPosts.data?.list.find((p) => p.slug === slug);
     const initialPost = cachedPost ? transformPost(cachedPost) : null;
@@ -47,7 +47,7 @@ export function PostDetail() {
       setPost(initialPost);
       setSiblings(initialSiblings);
       setLoading(false);
-      // 后台轻量刷新阅读量等元数据，不阻塞页面展示
+      
       fetchPostBySlug(slug).then((fresh) => {
         if (mounted && fresh) {
           setPost(fresh);
@@ -93,12 +93,15 @@ export function PostDetail() {
               />
             )}
           </Suspense>
+
         )}
 
         {(!isGlassTheme || isMobile) && <TableOfContents headings={headings} />}
         <ReadingProgressButton />
       </Box>
+
     </Fade>
+
   );
 }
 
@@ -199,7 +202,9 @@ function ReadingProgressButton() {
           strokeDashoffset={progressCircumference * (1 - readingProgress)}
         />
       </svg>
+
       <KeyboardArrowUp sx={{ color: 'primary.main', position: 'relative', zIndex: 1 }} />
     </Box>
+
   );
 }

@@ -18,7 +18,7 @@ import {
   type CaptchaPayload,
 } from '@/api/captcha';
 
-// 动态加载第三方验证 SDK（避免改动 index.html）
+
 function loadScript(src: string): Promise<void> {
   return new Promise((resolve, reject) => {
     if (document.querySelector(`script[src="${src}"]`)) {
@@ -34,7 +34,7 @@ function loadScript(src: string): Promise<void> {
   });
 }
 
-// hCaptcha 的全局对象在 api.js onload 之后可能仍未有值，这里轮询等待其就绪
+
 function waitForHcaptcha(timeoutMs = 8000): Promise<boolean> {
   return new Promise((resolve) => {
     const start = Date.now();
@@ -58,39 +58,39 @@ interface HumanCaptchaProps {
   open: boolean;
   onClose: () => void;
   onSuccess: (payload: CaptchaPayload) => void;
-  /** 内嵌模式：直接渲染在页面中间（用于预先加载 Turnstile/极验等加载较慢的验证码），不弹窗 */
+  
   inline?: boolean;
 }
 
 export interface HumanCaptchaHandle {
-  /** 触发验证（如极验的弹出窗口），未通过时点击"发送/提交"会调用它 */
+  
   trigger: () => void;
 }
 
-// 统一人机验证：根据后台配置（none/turnstile/math/geetest）渲染对应验证。
-// inline 模式下不再包裹"安全验证"卡片：Turnstile 直接内嵌组件；极验只给一个"点击验证"按钮，
-// 点击后由极验自带的独立窗口弹出验证。
+
+
+
 export const HumanCaptcha = forwardRef<HumanCaptchaHandle, HumanCaptchaProps>(
   function HumanCaptcha({ open, onClose, onSuccess, inline }, ref) {
     const theme = useTheme();
     const [config, setConfig] = useState<CaptchaConfig | null>(null);
     const [loadingConfig, setLoadingConfig] = useState(false);
 
-    // math
+    
     const [math, setMath] = useState<{ question: string; token: string } | null>(null);
     const [mathAnswer, setMathAnswer] = useState('');
     const [mathLoading, setMathLoading] = useState(false);
     const [mathSubmitted, setMathSubmitted] = useState(false);
 
-    // turnstile
+    
     const turnstileRef = useRef<HTMLDivElement | null>(null);
     const [turnstileError, setTurnstileError] = useState(false);
 
-    // hcaptcha
+    
     const hcaptchaContainerRef = useRef<HTMLDivElement | null>(null);
     const [hcaptchaError, setHcaptchaError] = useState(false);
 
-    // geetest
+    
     const geetestObjRef = useRef<{
       destroy?: () => void;
       showCaptcha?: () => void;
@@ -100,7 +100,7 @@ export const HumanCaptcha = forwardRef<HumanCaptchaHandle, HumanCaptchaProps>(
     const [geetestLoading, setGeetestLoading] = useState(false);
     const [geetestSuccess, setGeetestSuccess] = useState(false);
 
-    // 触发验证：极验为弹窗式，未通过时点击"发送/提交"会调用它
+    
     const trigger = useCallback(() => {
       if (geetestObjRef.current?.showCaptcha) {
         setGeetestLoading(true);
@@ -110,13 +110,13 @@ export const HumanCaptcha = forwardRef<HumanCaptchaHandle, HumanCaptchaProps>(
 
     useImperativeHandle(ref, () => ({ trigger }), [trigger]);
 
-    // 验证通过：onSuccess 上抛负载；弹窗模式自动关闭，内嵌模式保持原位（让 Turnstile 自带成功状态可见）
+    
     const finish = (payload: CaptchaPayload) => {
       onSuccess(payload);
       if (!inline) onClose();
     };
 
-  // 打开时拉取验证配置
+  
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
@@ -138,17 +138,17 @@ export const HumanCaptcha = forwardRef<HumanCaptchaHandle, HumanCaptchaProps>(
       }
       setConfig(cfg);
       if (cfg.mode === 'none') {
-        // 未启用验证：直接放行
+        
         finish({ mode: 'none' });
       }
     });
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, [open]);
 
-  // 关闭时清理第三方验证实例
+  
   useEffect(() => {
     if (open) return;
     const w = window as unknown as Record<string, unknown>;
@@ -156,14 +156,14 @@ export const HumanCaptcha = forwardRef<HumanCaptchaHandle, HumanCaptchaProps>(
       try {
         (w as { turnstile: { remove: (el: HTMLElement) => void } }).turnstile.remove(turnstileRef.current);
       } catch {
-        // 忽略清理异常
+        
       }
     }
     if (geetestObjRef.current?.destroy) {
       try {
         geetestObjRef.current.destroy();
       } catch {
-        // 忽略清理异常
+        
       }
       geetestObjRef.current = null;
     }
@@ -179,14 +179,14 @@ export const HumanCaptcha = forwardRef<HumanCaptchaHandle, HumanCaptchaProps>(
     }
   }, []);
 
-  // math 模式进入时自动发题
+  
   useEffect(() => {
     if (open && config?.mode === 'math') {
       loadMathQuestion();
     }
   }, [open, config, loadMathQuestion]);
 
-  // turnstile 初始化
+  
   useEffect(() => {
     if (!open || !config || config.mode !== 'turnstile') return;
     let cancelled = false;
@@ -226,10 +226,10 @@ export const HumanCaptcha = forwardRef<HumanCaptchaHandle, HumanCaptchaProps>(
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, [open, config]);
 
-  // hcaptcha 初始化
+  
   useEffect(() => {
     if (!open || !config || config.mode !== 'hcaptcha') return;
     let cancelled = false;
@@ -269,10 +269,10 @@ export const HumanCaptcha = forwardRef<HumanCaptchaHandle, HumanCaptchaProps>(
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, [open, config]);
 
-  // geetest 初始化
+  
   useEffect(() => {
     if (!open || !config || config.mode !== 'geetest') return;
     let cancelled = false;
@@ -306,11 +306,11 @@ export const HumanCaptcha = forwardRef<HumanCaptchaHandle, HumanCaptchaProps>(
           captchaObj.onReady(() => {
             if (cancelled) return;
             setGeetestReady(true);
-            // 弹窗模式自动弹出；内嵌模式仅显示"点击验证"按钮，点击后才由极验自弹窗口
+            
             if (!inline) captchaObj.showCaptcha();
           });
           captchaObj.onClose(() => {
-            // 用户关闭极验弹窗：重置加载状态，可再次点击验证
+            
             setGeetestLoading(false);
           });
           captchaObj.onSuccess(() => {
@@ -340,7 +340,7 @@ export const HumanCaptcha = forwardRef<HumanCaptchaHandle, HumanCaptchaProps>(
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, [open, config]);
 
   const handleMathSubmit = () => {
@@ -360,6 +360,7 @@ export const HumanCaptcha = forwardRef<HumanCaptchaHandle, HumanCaptchaProps>(
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
           <CircularProgress size={28} />
         </Box>
+
       );
     }
 
@@ -368,14 +369,18 @@ export const HumanCaptcha = forwardRef<HumanCaptchaHandle, HumanCaptchaProps>(
         <>
           <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
             请计算以下算式的结果：{math ? <b>{math.question} = ?</b> : '...'}
+
           </Typography>
+
           {mathSubmitted ? (
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, width: '100%', minHeight: 48 }}>
               <CheckCircleIcon fontSize="small" color="success" />
               <Typography variant="body2" sx={{ color: 'success.main', fontWeight: 600 }}>
                 已提交
               </Typography>
+
             </Box>
+
           ) : math ? (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%', maxWidth: 340 }}>
               <TextField
@@ -401,11 +406,14 @@ export const HumanCaptcha = forwardRef<HumanCaptchaHandle, HumanCaptchaProps>(
               >
                 提交答案
               </Button>
+
             </Box>
+
           ) : (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
               <CircularProgress size={24} />
             </Box>
+
           )}
           <Button
             type="button"
@@ -416,7 +424,9 @@ export const HumanCaptcha = forwardRef<HumanCaptchaHandle, HumanCaptchaProps>(
           >
             换一题
           </Button>
+
         </>
+
       );
     }
 
@@ -428,8 +438,10 @@ export const HumanCaptcha = forwardRef<HumanCaptchaHandle, HumanCaptchaProps>(
             <Typography variant="body2" color="error" sx={{ textAlign: 'center', mt: 1 }}>
               验证加载失败，请关闭后重试
             </Typography>
+
           )}
         </Box>
+
       );
     }
 
@@ -441,8 +453,10 @@ export const HumanCaptcha = forwardRef<HumanCaptchaHandle, HumanCaptchaProps>(
             <Typography variant="body2" color="error" sx={{ textAlign: 'center', mt: 1 }}>
               验证加载失败，请关闭后重试
             </Typography>
+
           )}
         </Box>
+
       );
     }
 
@@ -472,12 +486,15 @@ export const HumanCaptcha = forwardRef<HumanCaptchaHandle, HumanCaptchaProps>(
                   ? '验证中...'
                   : '点击验证'}
           </Button>
+
           {geetestError && (
             <Typography variant="body2" color="error" sx={{ textAlign: 'center' }}>
               验证加载失败，请重试
             </Typography>
+
           )}
         </Box>
+
       );
     }
 
@@ -485,11 +502,12 @@ export const HumanCaptcha = forwardRef<HumanCaptchaHandle, HumanCaptchaProps>(
   };
 
   if (inline) {
-    // 内嵌：不包裹"安全验证"卡片。Turnstile 直接内嵌组件；极验为"点击验证"按钮；math 直接给交互区
+    
     return (
       <Box sx={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, mt: 0.5, mb: 0.5 }}>
         {renderBody()}
       </Box>
+
     );
   }
 
@@ -505,9 +523,12 @@ export const HumanCaptcha = forwardRef<HumanCaptchaHandle, HumanCaptchaProps>(
         <Typography variant="h6" sx={{ fontWeight: 700, mb: 1, textAlign: 'center' }}>
           安全验证
         </Typography>
+
         {renderBody()}
       </DialogContent>
+
     </Dialog>
+
   );
   }
 );

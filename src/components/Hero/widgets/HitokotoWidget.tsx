@@ -13,7 +13,7 @@ export function HitokotoWidget({ config }: { config: HeroWidgetConfig }) {
   const [data, setData] = useState<HitokotoData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // 根据尺寸决定展示密度
+  
   const { w, h } = config;
   const isTiny = w === 1 && h === 1;
   const isWide = h === 1 && w >= 2;
@@ -77,11 +77,14 @@ export function HitokotoWidget({ config }: { config: HeroWidgetConfig }) {
       >
         {loading ? '正在加载一言...' : data?.hitokoto}
       </Typography>
+
       {!loading && data && showSource && (
         <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'right' }}>
           —— {data.from_who || ''}《{data.from}》
         </Typography>
+
       )}
     </Box>
+
   );
 }
