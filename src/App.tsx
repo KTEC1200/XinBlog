@@ -13,7 +13,6 @@ import { ClickEffect } from '@/components/ClickEffect';
 import { GlobalMusicPlayer } from '@/components/MusicPlayer/GlobalMusicPlayer';
 import { MusicPlayerProvider } from '@/components/MusicPlayer/MusicPlayerContext';
 import { DISABLE_CONTEXT_MENU } from '@/config';
-import './index.css'
 
 function GlobalScrollbarStyles() {
   return (
