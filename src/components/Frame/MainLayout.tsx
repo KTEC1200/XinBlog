@@ -105,7 +105,7 @@ export function MainLayout({ children }: MainLayoutProps) {
           minWidth: 0,
           height: '100dvh',
           overflow: isImmersive ? 'hidden' : 'auto',
-          bgcolor: isImmersive || !hasBackground ? 'transparent' : 'background.default',
+          bgcolor: isImmersive || hasBackground ? 'transparent' : 'background.default',
           transition: (theme) =>
             theme.transitions.create('width', {
               easing: theme.transitions.easing.sharp,
