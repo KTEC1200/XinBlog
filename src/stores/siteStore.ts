@@ -73,6 +73,7 @@ const defaultConfig: SiteConfig = {
   lazyLoadMedia: false,
   enableLatex: false,
   disableSmoothScroll: false,
+  agentEnabled: false,
   enableDashboardStats: true,
   paginationMode: 'load-more',
   pageSize: 9,

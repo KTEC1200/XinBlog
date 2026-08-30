@@ -82,6 +82,10 @@ function invalidateRelatedCaches(path: string) {
     
     const settingKey = base.replace('/api/v1/admin/settings/', '');
     related.push(`/api/v1/settings/${settingKey}`);
+    
+    if (settingKey === 'ai') {
+      related.push('/api/v1/settings/agent');
+    }
   } else if (resourcePrefix.startsWith('/api/v1/admin/friends')) {
     related.push('/api/v1/friends');
   } else if (resourcePrefix.startsWith('/api/v1/admin/media')) {

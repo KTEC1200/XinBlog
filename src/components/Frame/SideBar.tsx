@@ -9,7 +9,7 @@ import {
   darken,
   lighten,
 } from '@mui/material';
-import { ChevronLeft, ChevronRight, Home, Info, LocalOffer, Login, Logout, Settings, AccountCircle, People, MusicNote, Forum, ChatBubble } from '@mui/icons-material';
+import { ChevronLeft, ChevronRight, Home, Info, LocalOffer, Login, Logout, Settings, AccountCircle, People, MusicNote, Forum, ChatBubble, SmartToy } from '@mui/icons-material';
 import { DRAWER_TRANSITION_MS, DrawerHeaderContainer, StyledNavButton, type NavItem } from './drawerShared';
 import { Link, useLocation } from 'react-router-dom';
 import { useState, useEffect, useMemo } from 'react';
@@ -40,6 +40,7 @@ const baseNavItems: NavItem[] = [
   { title: '关于', path: '/about', icon: <Info fontSize="small" /> },
   { title: '个人中心', path: '/profile', icon: <AccountCircle fontSize="small" /> },
   { title: '音乐', path: '/music', icon: <MusicNote fontSize="small" /> },
+  { title: 'AI 助手', path: '/agent', icon: <SmartToy fontSize="small" /> },
 ];
 
 export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
@@ -49,6 +50,9 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
   const { config } = useSiteStore();
   const messageWallEnabled = useMessageWallEnabled();
   const chatEnabled = useChatEnabled();
+  
+  
+  const agentEnabled = config.agentEnabled === true && isContentAdmin(user?.role);
   const [isAnimating, setIsAnimating] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
 
@@ -66,8 +70,11 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
     if (!chatEnabled) {
       items = items.filter((item) => item.path !== '/chat');
     }
+    if (!agentEnabled) {
+      items = items.filter((item) => item.path !== '/agent');
+    }
     return items;
-  }, [config.friends?.enabled, config.music?.showPage, messageWallEnabled, chatEnabled]);
+  }, [config.friends?.enabled, config.music?.showPage, messageWallEnabled, chatEnabled, agentEnabled]);
 
   const handleToggle = () => {
     setIsAnimating(true);

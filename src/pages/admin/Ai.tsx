@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useCallback, useState } from 'react';
 import {
   Box,
   Typography,
@@ -26,7 +26,7 @@ import {
   InputAdornment,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
-import { Add, Delete, ContentCopy, Visibility, VisibilityOff } from '@mui/icons-material';
+import { Add, Delete, ContentCopy, Visibility, VisibilityOff, History, Undo, Refresh } from '@mui/icons-material';
 import {
   fetchAiSettings,
   updateAiSettings,
@@ -38,30 +38,41 @@ import {
   createAiCustomModel,
   updateAiCustomModel,
   deleteAiCustomModel,
+  fetchAiUndoLogs,
+  undoAgentWriteAdmin,
+  deleteAiUndoLog,
   isTextAiModel,
   type AiSettings,
   type AiApiKey,
   type AiModel,
   type AiCustomModel,
+  type AiUndoLog,
 } from '@/api/ai';
 import { Loading } from '@/components/Common/Loading';
 import { ConfirmDialog } from '@/components/Common/ConfirmDialog';
 import { FloatingSaveButton } from '@/components/Common/FloatingSaveButton';
+import { ImageField } from '@/pages/admin/appearance/ImageField';
+import { compressImage, getBase64Size } from '@/utils/image';
+import { uploadMedia } from '@/api/media';
+import { useAgentStore } from '@/stores/agentStore';
 import { useSnackbar } from 'notistack';
 
-type AiTab = 'basic' | 'apikey' | 'custom';
+type AiTab = 'basic' | 'agent' | 'apikey' | 'custom';
 
 export function Ai() {
   const theme = useTheme();
   const isMobileAdmin = useMediaQuery(theme.breakpoints.down('lg'));
   const { enqueueSnackbar } = useSnackbar();
-  const [tab, setTab] = useState<AiTab>('basic');
+  const [tab, setTab] = useState<AiTab>('agent');
   const [settings, setSettings] = useState<AiSettings>({
     enabled: false,
+    agentEnabled: false,
+    webSearch: false,
     model: 'llama-3.3-70b',
     imageModel: 'flux-1-schnell',
     temperature: 0.7,
     maxTokens: 2048,
+    agentAvatar: '',
   });
   const [initialSettings, setInitialSettings] = useState<AiSettings>(settings);
   const [loading, setLoading] = useState(true);
@@ -89,9 +100,13 @@ export function Ai() {
   const [deleteKeyLoading, setDeleteKeyLoading] = useState(false);
   const [deleteCustomConfirm, setDeleteCustomConfirm] = useState<AiCustomModel | null>(null);
   const [deleteCustomLoading, setDeleteCustomLoading] = useState(false);
+  
+  const [workersAiTipOpen, setWorkersAiTipOpen] = useState(false);
+  
 
   const tabs: { id: AiTab; label: string }[] = [
     { id: 'basic', label: '基础设置' },
+    { id: 'agent', label: 'AI 智能体' },
     { id: 'apikey', label: 'API Key' },
     { id: 'custom', label: '自定义模型' },
   ];
@@ -162,6 +177,8 @@ export function Ai() {
     if (updated) {
       setSettings(updated);
       setInitialSettings(updated);
+      
+      useAgentStore.getState().setAgentEnabled(updated.agentEnabled === true && updated.enabled === true);
       enqueueSnackbar('AI 设置已保存', { variant: 'success' });
     } else {
       enqueueSnackbar('保存失败，请稍后再试', { variant: 'error' });
@@ -195,6 +212,23 @@ export function Ai() {
       await loadKeys();
     } else {
       enqueueSnackbar('删除失败', { variant: 'error' });
+    }
+  };
+
+  
+  const handleAgentAvatarUpload = async (file: File, targetSize: number, setter: (url: string) => void, label: string) => {
+    try {
+      const base64 = await compressImage(file, targetSize);
+      if (getBase64Size(base64) > targetSize) {
+        enqueueSnackbar(`${label}压缩后仍超过限制`, { variant: 'error' });
+        return;
+      }
+      const media = await uploadMedia(file.name, base64);
+      setter(media.url);
+      enqueueSnackbar(`${label}上传成功`, { variant: 'success' });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : `${label}处理失败`;
+      enqueueSnackbar(msg, { variant: 'error' });
     }
   };
 
@@ -409,6 +443,69 @@ export function Ai() {
 
         <Fade in timeout={300} key={tab}>
           <Box>
+            {tab === 'agent' && (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: { xs: 2, sm: 3 },
+                    borderRadius: 1,
+                    boxShadow: (theme) =>
+                      theme.palette.mode === 'light'
+                        ? `0 4px 20px ${alpha(theme.palette.primary.main, 0.08)}`
+                        : `0 4px 20px ${alpha(theme.palette.common.black, 0.25)}`,
+                  }}
+                >
+                  <Typography variant="h6" sx={{ fontWeight: 700, mb: 1, overflowWrap: 'break-word' }}>
+                    AI 智能体
+                  </Typography>
+
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                    让 AI 帮你完成复杂任务：读取站点/文章数据、联网搜索、逐子任务执行并汇报。对话保存在本机浏览器，不会上传云端。
+
+                  </Typography>
+
+
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={settings.webSearch === true}
+                        onChange={(e) => setSettings((s) => ({ ...s, webSearch: e.target.checked }))}
+                        disabled={!settings.agentEnabled}
+                      />
+                    }
+                    label="允许 Agent 联网搜索"
+                  />
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                    开启后，Agent 在需要查最新资料时可用 web_search / web_fetch 联网获取信息。
+                  </Typography>
+
+
+                  <Box sx={{ mt: 3 }}>
+                    <ImageField
+                      label="AI 智能体头像"
+                      value={settings.agentAvatar || ''}
+                      onChange={(v) => setSettings((s) => ({ ...s, agentAvatar: v }))}
+                      maxSize={100 * 1024}
+                      acceptUrl
+                      isMobileAdmin={isMobileAdmin}
+                      onUpload={handleAgentAvatarUpload}
+                      hint="显示在 AI 对话的助手头像位置。建议 96×96，压缩到 100KB 以内，也可引用自定义 URL；留空则使用默认机器人图标。"
+                      showSizeSelect={false}
+                    />
+                  </Box>
+
+
+                  <FloatingSaveButton show={isDirty} saving={saving} onClick={handleSave} label="保存设置" />
+                </Paper>
+
+
+                {}
+                <UndoLogsManager />
+              </Box>
+
+            )}
+
             {tab === 'basic' && (
               <Paper
                 elevation={0}
@@ -440,6 +537,35 @@ export function Ai() {
                   {!settings.enabled && (
                     <Typography variant="body2" color="text.secondary">
                       关闭后，文章编辑页的 AI 助手及所有 AI 接口将不可用。
+                    </Typography>
+
+                  )}
+
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={settings.agentEnabled}
+                        onChange={(e) => {
+                          const v = e.target.checked;
+                          setSettings((s) => ({ ...s, agentEnabled: v }));
+                          
+                          if (v) setWorkersAiTipOpen(true);
+                        }}
+                        disabled={!settings.enabled}
+                      />
+                    }
+                    label="启用 AI 智能体"
+                  />
+
+                  {settings.agentEnabled && (
+                    <Typography variant="body2" color="text.secondary">
+                      开启后，侧边栏将显示「AI 助手」入口，用户可在对话页与 AI 直接交流。
+                    </Typography>
+
+                  )}
+                  {!settings.enabled && (
+                    <Typography variant="body2" color="text.secondary">
+                      需先启用 AI 功能才能使用 AI 智能体。
                     </Typography>
 
                   )}
@@ -917,6 +1043,56 @@ export function Ai() {
         </Paper>
 
 
+        <Dialog
+          open={workersAiTipOpen}
+          onClose={() => setWorkersAiTipOpen(false)}
+          BackdropProps={{ 'aria-hidden': false }}
+          sx={{
+            '& .MuiDialog-paper': {
+              width: { xs: '92%', sm: '70%', md: '50%' },
+              maxWidth: 'none',
+              borderRadius: 3,
+            },
+          }}
+        >
+          <DialogTitle sx={{ fontWeight: 700 }}>先看这里：关于 Workers AI 模型</DialogTitle>
+
+          <DialogContent>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+              Cloudflare Workers AI 内置的模型偏轻量演示向。用它来驱动 AI 智能体，回答容易跑偏、工具调用不稳定、联网检索也常会落空，整体效果会大打折扣。
+            </Typography>
+
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+              若想让 AI 真正好用，建议接入自定义模型（如 DeepSeek、OpenRouter 等），并在「基础设置」中把默认文本模型切换过去。一步到位，体验立现。
+            </Typography>
+
+            <Typography variant="body2" color="text.secondary">
+              若只是尝鲜或演示，继续使用 Workers AI 内置模型也可，但请做好体验不佳的心理预期。
+            </Typography>
+
+          </DialogContent>
+
+          <DialogActions sx={{ px: 3, pb: 2, justifyContent: 'flex-end' }}>
+            <Button onClick={() => setWorkersAiTipOpen(false)} sx={{ borderRadius: (t) => Math.max(8, t.shape.borderRadius - 4) }}>
+              我知道了
+            </Button>
+
+            <Button
+              variant="contained"
+              onClick={() => {
+                setWorkersAiTipOpen(false);
+                setTab('custom');
+              }}
+              sx={{ borderRadius: (t) => Math.max(8, t.shape.borderRadius - 4) }}
+            >
+              去配置
+            </Button>
+
+          </DialogActions>
+
+        </Dialog>
+
+
         <Dialog open={showKeyDialog} onClose={() => setShowKeyDialog(false)} fullWidth maxWidth="sm" BackdropProps={{ 'aria-hidden': false }}>
           <DialogTitle sx={{ fontWeight: 700 }}>API Key 创建成功</DialogTitle>
 
@@ -1074,6 +1250,272 @@ export function Ai() {
       </Box>
 
     </Fade>
+
+  );
+}
+
+
+function UndoLogsManager() {
+  const { enqueueSnackbar } = useSnackbar();
+  const [status, setStatus] = useState<'all' | 'pending' | 'used'>('all');
+  const [page, setPage] = useState(1);
+  const pageSize = 20;
+  const [logs, setLogs] = useState<AiUndoLog[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [undoConfirm, setUndoConfirm] = useState<AiUndoLog | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<AiUndoLog | null>(null);
+  const [acting, setActing] = useState(false);
+
+  const load = useCallback(
+    async (s = status, p = page) => {
+      setLoading(true);
+      const res = await fetchAiUndoLogs(s === 'all' ? '' : s, p, pageSize);
+      setLogs(res.list);
+      setTotal(res.total);
+      setLoading(false);
+    },
+    
+    [status, page]
+  );
+
+  useEffect(() => {
+    load();
+    
+  }, [status, page]);
+
+  const changeStatus = (s: 'all' | 'pending' | 'used') => {
+    setStatus(s);
+    setPage(1);
+  };
+
+  const handleUndo = async () => {
+    if (!undoConfirm) return;
+    setActing(true);
+    const r = await undoAgentWriteAdmin(undoConfirm.id);
+    setActing(false);
+    setUndoConfirm(null);
+    if (r.ok) {
+      enqueueSnackbar(r.msg || '回滚成功', { variant: 'success' });
+    } else {
+      enqueueSnackbar(r.msg || '回滚失败', { variant: 'error' });
+    }
+    load();
+  };
+
+  const handleDelete = async () => {
+    if (!deleteConfirm) return;
+    setActing(true);
+    const ok = await deleteAiUndoLog(deleteConfirm.id);
+    setActing(false);
+    setDeleteConfirm(null);
+    if (ok) {
+      enqueueSnackbar('已删除该回滚记录', { variant: 'success' });
+    } else {
+      enqueueSnackbar('删除失败', { variant: 'error' });
+    }
+    load();
+  };
+
+  const fmt = (t: string) => {
+    if (!t) return '';
+    const d = new Date(t);
+    if (Number.isNaN(d.getTime())) return t;
+    return d.toLocaleString('zh-CN', { hour12: false });
+  };
+
+  const statusLabel = (s: AiUndoLog['status']) =>
+    s === 'used' ? { text: '已回滚', color: 'default' as const }
+      : s === 'expired' ? { text: '已过期', color: 'warning' as const }
+      : { text: '可回滚', color: 'success' as const };
+
+  return (
+    <Paper
+      elevation={0}
+      sx={{
+        p: { xs: 2, sm: 3 },
+        borderRadius: 1,
+        boxShadow: (theme) =>
+          theme.palette.mode === 'light'
+            ? `0 4px 20px ${alpha(theme.palette.primary.main, 0.08)}`
+            : `0 4px 20px ${alpha(theme.palette.common.black, 0.25)}`,
+      }}
+    >
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, flexWrap: 'wrap' }}>
+        <History fontSize="small" color="primary" />
+        <Typography variant="h6" sx={{ fontWeight: 700 }}>
+          回滚记录
+        </Typography>
+
+      </Box>
+
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        AI 写操作的回滚记录保存在云端，跨设备可见。站长可在此查看并代为回滚任意记录（操作后 24 小时内有效，每条只能回滚一次）。
+      </Typography>
+
+
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, flexWrap: 'wrap' }}>
+        {(['all', 'pending', 'used'] as const).map((s) => (
+          <Button
+            key={s}
+            size="small"
+            onClick={() => changeStatus(s)}
+            sx={{
+              textTransform: 'none',
+              borderRadius: 1.5,
+              color: status === s ? 'primary.main' : 'text.secondary',
+              bgcolor: status === s ? (t) => alpha(t.palette.primary.main, 0.12) : 'transparent',
+            }}
+          >
+            {s === 'all' ? '全部' : s === 'pending' ? '可回滚' : '已回滚'}
+          </Button>
+
+        ))}
+        <Box sx={{ ml: 'auto' }}>
+          <Button size="small" onClick={() => load()} startIcon={<Refresh fontSize="small" />} sx={{ textTransform: 'none', borderRadius: 1.5 }}>
+            刷新
+          </Button>
+
+        </Box>
+
+      </Box>
+
+
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+          <CircularProgress size={28} />
+        </Box>
+
+      ) : logs.length === 0 ? (
+        <Box sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
+          <Typography variant="body2">暂无回滚记录</Typography>
+
+        </Box>
+
+      ) : (
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+          {logs.map((log) => {
+            const sl = statusLabel(log.status);
+            return (
+              <Box
+                key={log.id}
+                sx={{
+                  p: 1.5,
+                  borderRadius: 1.5,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  bgcolor: 'background.paper',
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                  <Typography variant="body2" sx={{ fontWeight: 600, wordBreak: 'break-word', minWidth: 0, flex: 1 }}>
+                    {log.target}
+                  </Typography>
+
+                  <Chip label={sl.text} size="small" color={sl.color} sx={{ borderRadius: 1 }} />
+                </Box>
+
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5, wordBreak: 'break-word' }}>
+                  回滚：{log.undoPreview}
+                </Typography>
+
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.75, flexWrap: 'wrap' }}>
+                  <Typography variant="caption" color="text.disabled">
+                    操作者：{log.operator}
+                  </Typography>
+
+                  <Typography variant="caption" color="text.disabled">
+                    · {fmt(log.created_at)}
+                  </Typography>
+
+                  {log.status === 'used' && (
+                    <Typography variant="caption" color="text.disabled">
+                      · 回滚于 {fmt(log.used_at || '')}
+                    </Typography>
+
+                  )}
+                  <Box sx={{ ml: 'auto', display: 'flex', gap: 0.5 }}>
+                    {log.status === 'pending' && (
+                      <Button
+                        size="small"
+                        color="primary"
+                        variant="outlined"
+                        startIcon={<Undo fontSize="small" />}
+                        onClick={() => setUndoConfirm(log)}
+                        sx={{ textTransform: 'none', borderRadius: 1.5 }}
+                      >
+                        回滚
+                      </Button>
+
+                    )}
+                    <Button
+                      size="small"
+                      color="error"
+                      variant="text"
+                      startIcon={<Delete fontSize="small" />}
+                      onClick={() => setDeleteConfirm(log)}
+                      sx={{ textTransform: 'none', borderRadius: 1.5 }}
+                    >
+                      删除
+                    </Button>
+
+                  </Box>
+
+                </Box>
+
+              </Box>
+
+            );
+          })}
+        </Box>
+
+      )}
+
+      {total > pageSize && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+          <Button size="small" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))} sx={{ textTransform: 'none', borderRadius: 1.5 }}>
+            上一页
+          </Button>
+
+          <Typography variant="body2" sx={{ mx: 1.5, alignSelf: 'center', color: 'text.secondary' }}>
+            {page} / {Math.max(1, Math.ceil(total / pageSize))}
+          </Typography>
+
+          <Button
+            size="small"
+            disabled={page >= Math.ceil(total / pageSize)}
+            onClick={() => setPage((p) => p + 1)}
+            sx={{ textTransform: 'none', borderRadius: 1.5 }}
+          >
+            下一页
+          </Button>
+
+        </Box>
+
+      )}
+
+      <ConfirmDialog
+        open={Boolean(undoConfirm)}
+        title="确认回滚操作"
+        content={undoConfirm ? `确定要回滚「${undoConfirm.target}」吗？${undoConfirm.undoPreview}。该操作将恢复为操作前状态，且仅可执行一次。` : ''}
+        confirmText="回滚"
+        confirmColor="primary"
+        loading={acting}
+        onClose={() => setUndoConfirm(null)}
+        onConfirm={handleUndo}
+      />
+
+      <ConfirmDialog
+        open={Boolean(deleteConfirm)}
+        title="确认删除记录"
+        content="确定要删除这条回滚记录吗？删除后该操作将无法再回滚。"
+        confirmText="删除"
+        confirmColor="error"
+        loading={acting}
+        onClose={() => setDeleteConfirm(null)}
+        onConfirm={handleDelete}
+      />
+    </Paper>
 
   );
 }

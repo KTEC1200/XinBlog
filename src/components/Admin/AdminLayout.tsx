@@ -8,6 +8,7 @@ import {
   adminMiniDrawerWidth,
   adminMobileDrawerWidth,
 } from './AdminSideBar';
+import { AdminVersionNotice } from './AdminVersionNotice';
 import { useUIStore } from '@/stores/uiStore';
 import { useSmoothScroll } from '@/hooks/useSmoothScroll';
 import { useSafeMediaQuery } from '@/hooks/useSafeMediaQuery';
@@ -85,6 +86,7 @@ export function AdminLayout() {
           }}
         >
           <Toolbar sx={{ display: adminNavHidden ? 'none' : { md: 'none' } }} />
+          <AdminVersionNotice />
           <Box sx={{ flexGrow: 1, minWidth: 0, minHeight: 0, overflow: 'hidden' }}>
             <Fade in timeout={400} key={location.pathname}>
               <Box sx={{ minWidth: 0, height: '100%' }}>

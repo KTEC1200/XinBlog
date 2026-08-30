@@ -68,51 +68,8 @@ export function MainLayout({ children }: MainLayoutProps) {
   
   
   
-  if (location.pathname.startsWith('/chat/')) {
-    return (
-      <Box
-        sx={{
-          position: 'relative',
-          zIndex: 0,
-          display: 'flex',
-          height: '100dvh',
-          width: '100%',
-          overflow: 'hidden',
-          bgcolor: 'transparent',
-        }}
-      >
-        {backgroundLayer}
-        <SideBar mobileOpen={mobileOpen} onMobileClose={() => setMobileOpen(false)} />
-        <Box
-          ref={mainRef}
-          component="main"
-          sx={{
-            position: 'relative',
-            zIndex: 0,
-            width: `calc(100% - ${currentDrawerWidth}px)`,
-            flexGrow: 1,
-            minWidth: 0,
-            height: '100dvh',
-            overflow: 'hidden',
-            transition: (theme) =>
-              theme.transitions.create('width', {
-                easing: theme.transitions.easing.sharp,
-                duration: theme.transitions.duration.enteringScreen,
-              }),
-            willChange: 'width',
-          }}
-        >
-          <Fade in timeout={400} key={location.pathname}>
-            <Box sx={{ height: '100dvh' }}>{children}</Box>
-
-          </Fade>
-
-        </Box>
-
-      </Box>
-
-    );
-  }
+  
+  const isImmersive = location.pathname.startsWith('/chat/') || location.pathname.startsWith('/agent/');
 
   return (
     <Box
@@ -128,12 +85,14 @@ export function MainLayout({ children }: MainLayoutProps) {
       }}
     >
       {backgroundLayer}
-      <NavBar
-        onMenuClick={handleDrawerToggle}
-        drawerOpen
-        drawerWidth={currentDrawerWidth}
-        scrollTargetRef={mainRef}
-      />
+      {!isImmersive && (
+        <NavBar
+          onMenuClick={handleDrawerToggle}
+          drawerOpen
+          drawerWidth={currentDrawerWidth}
+          scrollTargetRef={mainRef}
+        />
+      )}
       <SideBar mobileOpen={mobileOpen} onMobileClose={() => setMobileOpen(false)} />
       <Box
         ref={mainRef}
@@ -145,8 +104,8 @@ export function MainLayout({ children }: MainLayoutProps) {
           flexGrow: 1,
           minWidth: 0,
           height: '100dvh',
-          overflow: 'auto',
-          bgcolor: hasBackground ? 'transparent' : 'background.default',
+          overflow: isImmersive ? 'hidden' : 'auto',
+          bgcolor: isImmersive || !hasBackground ? 'transparent' : 'background.default',
           transition: (theme) =>
             theme.transitions.create('width', {
               easing: theme.transitions.easing.sharp,
@@ -160,24 +119,33 @@ export function MainLayout({ children }: MainLayoutProps) {
             minHeight: '100dvh',
             display: 'flex',
             flexDirection: 'column',
-            px: { xs: `${spacing.mainPaddingX.mobile}px`, md: `${spacing.mainPaddingX.desktop}px` },
+            px: isImmersive
+              ? 0
+              : { xs: `${spacing.mainPaddingX.mobile}px`, md: `${spacing.mainPaddingX.desktop}px` },
           }}
         >
-          <Toolbar />
-          <Box sx={{ flexGrow: 1 }}>
+          {!isImmersive && <Toolbar />}
+          <Box sx={isImmersive ? { flex: 1, height: '100dvh', minHeight: 0 } : { flexGrow: 1 }}>
             <Fade in timeout={400} key={location.pathname}>
-              <Box sx={{ minHeight: '100%' }}>{children}</Box>
+              <Box
+                sx={{
+                  height: isImmersive ? '100dvh' : 'auto',
+                  minHeight: isImmersive ? undefined : '100%',
+                }}
+              >
+                {children}
+              </Box>
 
             </Fade>
 
           </Box>
 
-          <Footer />
+          {!isImmersive && <Footer />}
         </Box>
 
       </Box>
 
-      <Live2DWidget />
+      {!isImmersive && <Live2DWidget />}
     </Box>
 
   );

@@ -195,6 +195,306 @@ function ensureDbConfig(env) {
   }
 }
 
+
+
+
+
+let _agentSessionInitialized = false;
+
+const AGENT_SESSION_PART_SIZE = 10;
+
+
+function chunkAgentMessages(messages) {
+  const chunks = [];
+  for (let i = 0; i < messages.length; i += AGENT_SESSION_PART_SIZE) {
+    chunks.push({ messages: messages.slice(i, i + AGENT_SESSION_PART_SIZE) });
+  }
+  return chunks;
+}
+
+async function ensureAgentSessionTable(env) {
+  
+  
+  
+  if (_agentSessionInitialized) return;
+  const db = getConfigDb(env);
+  try {
+    const hasSessions = await tableExists(db, 'agent_sessions');
+    const hasSub = await tableExists(db, 'agent_session_messages');
+    
+    if (hasSessions && hasSub) {
+      _agentSessionInitialized = true;
+      return;
+    }
+    
+    await db
+      .prepare(
+        `CREATE TABLE IF NOT EXISTS agent_sessions (
+          id TEXT PRIMARY KEY,
+          title TEXT NOT NULL DEFAULT '新对话',
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        )`
+      )
+      .run();
+    
+    await db
+      .prepare(
+        `CREATE TABLE IF NOT EXISTS agent_session_messages (
+          session_id TEXT NOT NULL,
+          part_index INTEGER NOT NULL,
+          part_data TEXT NOT NULL,
+          PRIMARY KEY (session_id, part_index)
+        )`
+      )
+      .run();
+    await db.prepare('CREATE INDEX IF NOT EXISTS idx_agent_sessions_updated ON agent_sessions(updated_at DESC)').run();
+    await db.prepare('CREATE INDEX IF NOT EXISTS idx_agent_sm_session ON agent_session_messages(session_id)').run();
+
+    
+    
+    if (hasSessions && (await columnExists(db, 'agent_sessions', 'messages'))) {
+      const old = await db
+        .prepare("SELECT id, messages FROM agent_sessions WHERE messages IS NOT NULL AND messages != '' AND messages != '[]'")
+        .all();
+      for (const row of old.results || []) {
+        let arr = [];
+        try {
+          arr = JSON.parse(row.messages);
+        } catch {}
+        if (Array.isArray(arr) && arr.length) {
+          await migrateAgentMessagesToParts(db, row.id, arr);
+        }
+      }
+      
+      try {
+        await db.prepare('ALTER TABLE agent_sessions DROP COLUMN messages').run();
+      } catch (e) {
+        console.error('ensureAgentSessionTable drop messages col:', e && e.message);
+      }
+    }
+
+    
+    await db
+      .prepare('INSERT OR REPLACE INTO system (key, value, updated_at) VALUES (\'agent_sessions_init\', \'1\', datetime(\'now\'))')
+      .run();
+    _agentSessionInitialized = true;
+  } catch (e) {
+    
+    console.error('ensureAgentSessionTable:', e && e.message);
+  }
+}
+
+
+async function tableExists(db, name) {
+  const r = await db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?").bind(name).first();
+  return !!r;
+}
+
+
+async function columnExists(db, table, col) {
+  const r = await db.prepare(`PRAGMA table_info(${table})`).all();
+  return (r.results || []).some((c) => c.name === col);
+}
+
+
+async function migrateAgentMessagesToParts(db, id, messages) {
+  const chunks = chunkAgentMessages(messages);
+  if (!chunks.length) return;
+  const insert = db.prepare('INSERT OR REPLACE INTO agent_session_messages (session_id, part_index, part_data) VALUES (?, ?, ?)');
+  for (let i = 0; i < chunks.length; i++) {
+    await insert.bind(id, i, JSON.stringify(chunks[i].messages)).run();
+  }
+}
+
+function normalizeAgentMessage(m) {
+  if (!m) return null;
+  const content = m && typeof m.content === 'string' ? m.content : '';
+  let role = m && m.role;
+  if (role !== 'user' && role !== 'assistant') role = 'user';
+  if (!content) return null;
+  return { role, content };
+}
+
+async function agentSessionGet(env, id) {
+  
+  await ensureAgentSessionTable(env);
+  const db = getConfigDb(env);
+  const row = await db
+    .prepare('SELECT id, title, created_at, updated_at FROM agent_sessions WHERE id = ?')
+    .bind(id)
+    .first();
+  if (!row) return null;
+  let messages = [];
+  try {
+    const parts = await db
+      .prepare('SELECT part_index, part_data FROM agent_session_messages WHERE session_id = ? ORDER BY part_index ASC')
+      .bind(id)
+      .all();
+    for (const p of parts.results || []) {
+      const arr = JSON.parse(p.part_data);
+      if (Array.isArray(arr)) messages = messages.concat(arr);
+    }
+  } catch (e) {
+    console.error('agentSessionGet parts:', e && e.message);
+  }
+  return { id: row.id, title: row.title, messages, createdAt: row.created_at, updatedAt: row.updated_at };
+}
+
+
+
+async function agentSessionGetPart(env, id, partIndex) {
+  const db = getConfigDb(env);
+  const row = await db
+    .prepare('SELECT part_index, part_data FROM agent_session_messages WHERE session_id = ? ORDER BY part_index ASC')
+    .bind(id)
+    .all();
+  const parts = (row.results || []).map((p) => ({
+    index: Number(p.part_index),
+    data: (() => {
+      try {
+        const arr = JSON.parse(p.part_data);
+        return Array.isArray(arr) ? arr : [];
+      } catch {
+        return [];
+      }
+    })(),
+  }));
+  const total = parts.length;
+  let target = null;
+  let n = Number(partIndex);
+  if (!Number.isFinite(n)) n = -1;
+  if (total === 0) {
+    target = null;
+  } else if (n < 0) {
+    
+    
+    const merged = [];
+    for (const p of parts) merged.push(...p.data);
+    return { total, partIndex: -1, messages: merged };
+  } else {
+    
+    target = parts.find((p) => p.index === n) || parts[parts.length - 1];
+  }
+  return { total, partIndex: target ? target.index : -1, messages: target ? target.data : [] };
+}
+
+async function agentSessionSave(env, id, title, messages) {
+  
+  
+  
+  await ensureAgentSessionTable(env);
+  const db = getConfigDb(env);
+  const slug = String(title || '新对话').slice(0, 60);
+  const nowIso = new Date().toISOString();
+  const existing = await db.prepare('SELECT created_at FROM agent_sessions WHERE id = ?').bind(id).first();
+  const createdAt = existing ? existing.created_at : nowIso;
+  
+  const capped = messages.slice(-2000);
+  await db
+    .prepare('INSERT OR REPLACE INTO agent_sessions (id, title, created_at, updated_at) VALUES (?, ?, ?, ?)')
+    .bind(id, slug, createdAt, nowIso)
+    .run();
+  
+  
+  
+  const blocks = splitAgentSessionMessages(capped);
+  await db.prepare('DELETE FROM agent_session_messages WHERE session_id = ?').bind(id).run();
+  for (let i = 0; i < blocks.length; i++) {
+    await db
+      .prepare('INSERT OR REPLACE INTO agent_session_messages (session_id, part_index, part_data) VALUES (?, ?, ?)')
+      .bind(id, i, JSON.stringify(blocks[i]))
+      .run();
+  }
+  
+  return { updatedAt: nowIso };
+}
+
+
+
+function splitAgentSessionMessages(messages) {
+  const blocks = [];
+  let cur = [];
+  for (const m of messages) {
+    if (m.role === 'user' && cur.length) {
+      blocks.push(cur);
+      cur = [];
+    }
+    cur.push(m);
+  }
+  if (cur.length) blocks.push(cur);
+  return blocks.length ? blocks : [[]];
+}
+
+
+
+function makeAssistantDisplay(content, trail, stats) {
+  const m = { role: 'assistant' };
+  if (content) m.content = content;
+  if (trail && trail.length) m.trail = trail;
+  m._display = true;
+  if (stats && stats.rounds) m.rounds = stats.rounds;
+  if (stats && stats.tokens && (stats.tokens.prompt || stats.tokens.completion || stats.tokens.total)) {
+    m.usage = stats.tokens;
+  }
+  m.updatedAt = new Date().toISOString();
+  return m;
+}
+
+async function agentSessionList(env, limit = 50) {
+  const db = getConfigDb(env);
+  const rows = await db
+    .prepare('SELECT id, title, created_at, updated_at FROM agent_sessions ORDER BY updated_at DESC LIMIT ?')
+    .bind(Math.min(Number(limit) || 50, 100))
+    .all();
+  return (rows.results || []).map((r) => ({
+    id: r.id,
+    title: r.title,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+  }));
+}
+
+async function agentSessionDelete(env, id) {
+  const db = getConfigDb(env);
+  await db.prepare('DELETE FROM agent_sessions WHERE id = ?').bind(id).run();
+  await db.prepare('DELETE FROM agent_session_messages WHERE session_id = ?').bind(id).run();
+}
+
+
+const SESSION_ID_EPOCH = new Date('2026-01-01T00:00:00.000Z').getTime();
+function makeAgentSessionId() {
+  const tick = Date.now() - SESSION_ID_EPOCH;
+  return `s_${tick.toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+
+
+async function agentWebSearch(query, maxResults = 5) {
+  const q = String(query || '').trim();
+  if (!q) return { ok: false, error: '缺少搜索关键词' };
+  const results = [];
+  try {
+    
+    const url = 'https://api.duckduckgo.com/?q=' + encodeURIComponent(q) + '&format=json&no_html=1';
+    const res = await fetch(url, { headers: { 'User-Agent': 'XinBlog-Agent/1.0' } });
+    if (res.ok) {
+      const data = await res.json();
+      const abstract = data && data.AbstractText;
+      if (abstract) results.push({ kind: 'abstract', title: '摘要', url: data.AbstractURL || '', snippet: abstract });
+      const related = (data && Array.isArray(data.RelatedTopics) ? data.RelatedTopics : [])
+        .filter((t) => t && t.Text)
+        .slice(0, maxResults)
+        .map((t) => ({ kind: 'related', title: t.Text, url: t.FirstURL || '', snippet: t.Text }));
+      results.push(...related);
+    }
+  } catch (e) {
+    return { ok: false, error: '搜索失败：' + (e && e.message) };
+  }
+  if (!results.length) return { ok: false, error: '没有找到相关结果，可尝试换关键词' };
+  return { ok: true, data: { query: q, results: results.slice(0, maxResults) } };
+}
+
 function isBindingError(err) {
   const msg = err?.message || '';
   return (
@@ -440,6 +740,7 @@ async function getSiteConfigObject(env) {
   const hero = (await getSetting(env, 'hero')) || {};
   const about = (await getSetting(env, 'about')) || {};
   const friends = (await getSetting(env, 'friends')) || {};
+  const ai = (await getSetting(env, 'ai')) || {};
   
   
   const activeThemeId = (await getSetting(env, 'active_theme')) || '';
@@ -449,6 +750,9 @@ async function getSiteConfigObject(env) {
   return {
     ...defaultSiteConfig,
     ...site,
+    
+    
+    agentEnabled: ai.agentEnabled === true && ai.enabled === true,
     cardTheme,
     hero: { ...defaultSiteConfig.hero, ...hero, ...(site.hero || {}) },
     about: { ...defaultSiteConfig.about, ...about, ...(site.about || {}) },
@@ -1052,20 +1356,40 @@ async function listAdminPosts(request, env, user) {
   const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10));
   const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get('limit') || '10', 10)));
   const offset = (page - 1) * limit;
+  const keyword = (url.searchParams.get('keyword') || '').trim();
 
-  const posts = await env.DB_POSTS.prepare(
-    `SELECT id, title, slug, excerpt, status, views, reading_time, created_at, updated_at
-     FROM posts ORDER BY created_at DESC LIMIT ? OFFSET ?`
-  )
-    .bind(limit, offset)
-    .all();
-  const countRow = await env.DB_POSTS.prepare('SELECT COUNT(*) as c FROM posts').first();
+  let posts, countRow;
+  if (keyword) {
+    const like = `%${keyword}%`;
+    posts = await env.DB_POSTS.prepare(
+      `SELECT id, title, slug, excerpt, status, views, reading_time, created_at, updated_at
+       FROM posts WHERE title LIKE ? OR excerpt LIKE ? ORDER BY created_at DESC LIMIT ? OFFSET ?`
+    )
+      .bind(like, like, limit, offset)
+      .all();
+    countRow = await env.DB_POSTS.prepare(
+      'SELECT COUNT(*) as c FROM posts WHERE title LIKE ? OR excerpt LIKE ?'
+    )
+      .bind(like, like)
+      .first();
+  } else {
+    posts = await env.DB_POSTS.prepare(
+      `SELECT id, title, slug, excerpt, status, views, reading_time, created_at, updated_at
+       FROM posts ORDER BY created_at DESC LIMIT ? OFFSET ?`
+    )
+      .bind(limit, offset)
+      .all();
+    countRow = await env.DB_POSTS.prepare('SELECT COUNT(*) as c FROM posts').first();
+  }
   const list = await fillPostTags(env, posts.results || []);
   return jsonResponse(0, { list, total: countRow.c, page, limit });
 }
 
 async function getAdminPost(request, env, user) {
-  const id = parseInt(request.url.split('/').pop(), 10);
+  const url = new URL(request.url);
+  const id = url.searchParams.get('id')
+    ? parseInt(url.searchParams.get('id'), 10)
+    : parseInt(request.url.split('/').pop(), 10);
   const post = await env.DB_POSTS.prepare(
     `SELECT id, title, slug, excerpt, content, cover_base64, author_id, status, views, reading_time, created_at, updated_at
      FROM posts WHERE id = ?`
@@ -1263,10 +1587,21 @@ async function updateSettings(request, env, user) {
   const body = await request.json();
   if (body.site) {
     const { hero, about, friends, ...siteRest } = body.site;
-    await setSetting(env, 'site', siteRest);
-    if (hero) await setSetting(env, 'hero', hero);
-    if (about) await setSetting(env, 'about', about);
-    if (friends) await setSetting(env, 'friends', friends);
+    
+    const currentSite = (await getSetting(env, 'site')) || {};
+    await setSetting(env, 'site', { ...currentSite, ...siteRest });
+    if (hero) {
+      const curHero = (await getSetting(env, 'hero')) || {};
+      await setSetting(env, 'hero', { ...curHero, ...hero });
+    }
+    if (about) {
+      const curAbout = (await getSetting(env, 'about')) || {};
+      await setSetting(env, 'about', { ...curAbout, ...about });
+    }
+    if (friends) {
+      const curFriends = (await getSetting(env, 'friends')) || {};
+      await setSetting(env, 'friends', { ...curFriends, ...friends });
+    }
   }
   return jsonResponse(0, null, '保存成功');
 }
@@ -1727,7 +2062,10 @@ async function getAdminMediaUsageDetail(request, env, user) {
 }
 
 async function getAdminMedia(request, env, user) {
-  const id = parseInt(request.url.split('/').pop(), 10);
+  const url = new URL(request.url);
+  const id = url.searchParams.get('id')
+    ? parseInt(url.searchParams.get('id'), 10)
+    : parseInt(request.url.split('/').pop(), 10);
   if (!id) return jsonResponse(400, null, '媒体 ID 无效');
 
   const row = await env.DB_MEDIA.prepare(
@@ -2229,10 +2567,22 @@ async function updateEmailTemplateSettings(request, env, user) {
   const isReset = body.kind === 'reset';
   const prefix = isReset ? 'email_reset' : 'email';
   const fallback = isReset ? defaultResetEmailTemplate : defaultEmailTemplate;
+  
+  
+  const [subjectRow, htmlRow, textRow] = await Promise.all([
+    db.prepare('SELECT value FROM settings WHERE key = ?').bind(`${prefix}_subject`).first(),
+    db.prepare('SELECT value FROM settings WHERE key = ?').bind(`${prefix}_html`).first(),
+    db.prepare('SELECT value FROM settings WHERE key = ?').bind(`${prefix}_text`).first(),
+  ]);
+  const existing = {
+    subject: subjectRow?.value || fallback.subject,
+    html: htmlRow?.value || fallback.html,
+    text: textRow?.value || fallback.text,
+  };
   const data = {
-    subject: String(body.subject || fallback.subject),
-    html: String(body.html || fallback.html),
-    text: String(body.text || fallback.text),
+    subject: body.subject !== undefined ? String(body.subject) : existing.subject,
+    html: body.html !== undefined ? String(body.html) : existing.html,
+    text: body.text !== undefined ? String(body.text) : existing.text,
   };
   
   await db.prepare('INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES (?, ?, ?)')
@@ -3481,28 +3831,31 @@ async function listAdminComments(request, env, user) {
   let comments;
   let total;
   const validStatuses = ['pending', 'approved', 'rejected'];
+  const kw = (url.searchParams.get('keyword') || '').trim();
+  const useStatus = status && validStatuses.includes(status);
+  const like = kw ? `%${kw}%` : '';
 
-  if (status && validStatuses.includes(status)) {
-    comments = await env.DB_POSTS.prepare(
-      `SELECT id, post_id, user_id, content, status, created_at, updated_at
-       FROM comments WHERE status = ? ORDER BY created_at DESC LIMIT ? OFFSET ?`
-    )
-      .bind(status, limit, offset)
-      .all();
-    const countRow = await env.DB_POSTS.prepare('SELECT COUNT(*) as c FROM comments WHERE status = ?')
-      .bind(status)
-      .first();
-    total = countRow.c;
-  } else {
-    comments = await env.DB_POSTS.prepare(
-      `SELECT id, post_id, user_id, content, status, created_at, updated_at
-       FROM comments ORDER BY created_at DESC LIMIT ? OFFSET ?`
-    )
-      .bind(limit, offset)
-      .all();
-    const countRow = await env.DB_POSTS.prepare('SELECT COUNT(*) as c FROM comments').first();
-    total = countRow.c;
+  const where = [];
+  const params = [];
+  if (useStatus) {
+    where.push('status = ?');
+    params.push(status);
   }
+  if (kw) {
+    where.push('content LIKE ?');
+    params.push(like);
+  }
+  const whereSql = where.length ? ' WHERE ' + where.join(' AND ') : '';
+
+  comments = await env.DB_POSTS.prepare(
+    `SELECT id, post_id, user_id, content, status, created_at, updated_at
+     FROM comments${whereSql} ORDER BY created_at DESC LIMIT ? OFFSET ?`
+  )
+    .bind(...params, limit, offset)
+    .all();
+  total = (
+    await env.DB_POSTS.prepare(`SELECT COUNT(*) as c FROM comments${whereSql}`).bind(...params).first()
+  ).c;
 
   const list = comments.results || [];
   const postIds = [...new Set(list.map((c) => c.post_id))];
@@ -3771,9 +4124,11 @@ async function searchRoomUsers(request, env, user) {
 
 
 async function getAdminChatRoomMembers(request, env, user) {
-  
+  const url = new URL(request.url);
   const parts = request.url.split('/');
-  const key = decodeURIComponent(parts[parts.length - 2]);
+  const key = url.searchParams.get('key')
+    ? decodeURIComponent(url.searchParams.get('key'))
+    : decodeURIComponent(parts[parts.length - 2]);
   await ensureChatRoomTables(env);
   const db = getConfigDb(env);
   const rows = await db.prepare(
@@ -4180,13 +4535,27 @@ async function listAdminUsers(request, env, user) {
   const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10));
   const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get('limit') || '10', 10)));
   const offset = (page - 1) * limit;
+  const keyword = (url.searchParams.get('keyword') || '').trim();
 
-  const list = await env.DB_USERS.prepare(
-    'SELECT id, username, email, role, status, created_at, updated_at FROM users ORDER BY created_at DESC LIMIT ? OFFSET ?'
-  )
-    .bind(limit, offset)
-    .all();
-  const countRow = await env.DB_USERS.prepare('SELECT COUNT(*) as c FROM users').first();
+  let list, countRow;
+  if (keyword) {
+    const like = `%${keyword}%`;
+    list = await env.DB_USERS.prepare(
+      'SELECT id, username, email, role, status, created_at, updated_at FROM users WHERE username LIKE ? OR email LIKE ? ORDER BY created_at DESC LIMIT ? OFFSET ?'
+    )
+      .bind(like, like, limit, offset)
+      .all();
+    countRow = await env.DB_USERS.prepare('SELECT COUNT(*) as c FROM users WHERE username LIKE ? OR email LIKE ?')
+      .bind(like, like)
+      .first();
+  } else {
+    list = await env.DB_USERS.prepare(
+      'SELECT id, username, email, role, status, created_at, updated_at FROM users ORDER BY created_at DESC LIMIT ? OFFSET ?'
+    )
+      .bind(limit, offset)
+      .all();
+    countRow = await env.DB_USERS.prepare('SELECT COUNT(*) as c FROM users').first();
+  }
 
   return jsonResponse(0, { list: list.results || [], total: countRow.c, page, limit });
 }
@@ -4544,11 +4913,20 @@ function extractAiResponse(result) {
   if (!result) return '';
   if (typeof result.response === 'string') return result.response;
   if (typeof result.content === 'string') return result.content;
+  
+  if (Array.isArray(result.choices)) {
+    if (result.choices.length === 0) return '';
+    const first = result.choices[0];
+    const part = (first && (first.delta || first.message)) || first;
+    if (part && typeof part.content === 'string') return part.content;
+    if (part && typeof part.reasoning_content === 'string') return part.reasoning_content;
+    return '';
+  }
   if (typeof result.response === 'object' && result.response !== null) {
     return JSON.stringify(result.response);
   }
   if (typeof result === 'string') return result;
-  return JSON.stringify(result);
+  return '';
 }
 
 function isCustomModel(modelAlias) {
@@ -4639,27 +5017,37 @@ function buildCustomModelEndpoint(custom) {
 
 async function callCustomModelNonStream(custom, body) {
   const url = buildCustomModelEndpoint(custom);
+  const reqBody = {
+    model: custom.modelId,
+    messages: body.messages,
+    temperature: body.temperature,
+    max_tokens: body.max_tokens,
+    stream: false,
+  };
+  if (Array.isArray(body.tools) && body.tools.length) {
+    reqBody.tools = body.tools;
+    if (body.tool_choice) reqBody.tool_choice = body.tool_choice;
+  }
   const res = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${custom.apiKey}`,
     },
-    body: JSON.stringify({
-      model: custom.modelId,
-      messages: body.messages,
-      temperature: body.temperature,
-      max_tokens: body.max_tokens,
-      stream: false,
-    }),
+    body: JSON.stringify(reqBody),
   });
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`自定义模型请求失败 (${res.status}): ${text}`);
   }
   const json = await res.json();
-  const content = json.choices?.[0]?.message?.content || '';
-  return { content };
+  const message = json.choices?.[0]?.message || {};
+  return {
+    content: message.content || '',
+    tool_calls: Array.isArray(message.tool_calls) ? message.tool_calls : [],
+    message,
+    usage: json.usage || null,
+  };
 }
 
 async function callCustomModelStream(custom, body) {
@@ -4676,6 +5064,7 @@ async function callCustomModelStream(custom, body) {
       temperature: body.temperature,
       max_tokens: body.max_tokens,
       stream: true,
+      ...(Array.isArray(body.tools) && body.tools.length ? { tools: body.tools } : {}),
     }),
   });
   if (!res.ok) {
@@ -4687,9 +5076,10 @@ async function callCustomModelStream(custom, body) {
 
 function stripThinkingTags(text) {
   if (!text || typeof text !== 'string') return text;
+  
   return text
-    .replace(/<think>[\s\S]*?<\/think>/gi, '')
-    .replace(/<thinking>[\s\S]*?<\/thinking>/gi, '')
+    .replace(/<thinking\s*>[\s\S]*?<\/thinking\s*>/gi, '')
+    .replace(/<thinking\s*>/gi, '')
     .trim();
 }
 
@@ -4793,10 +5183,13 @@ function aiNowUnix() {
 
 const defaultAiSettings = {
   enabled: false,
+  agentEnabled: false,
+  webSearch: false,
   model: 'llama-3.3-70b',
   imageModel: 'flux-1-schnell',
   temperature: 0.7,
   maxTokens: 4096,
+  agentAvatar: '',
 };
 
 async function getAiSettings(request, env, user) {
@@ -4815,10 +5208,13 @@ async function updateAiSettings(request, env, user) {
   const body = await request.json();
   const data = {
     enabled: body.enabled === true,
+    agentEnabled: body.agentEnabled === true,
+    webSearch: body.webSearch === true,
     model: String(body.model || defaultAiSettings.model),
     imageModel: String(body.imageModel || defaultAiSettings.imageModel),
     temperature: Math.min(2, Math.max(0, parseFloat(body.temperature ?? defaultAiSettings.temperature) || defaultAiSettings.temperature)),
-    maxTokens: Math.min(8192, Math.max(2048, parseInt(body.maxTokens ?? defaultAiSettings.maxTokens, 10) || defaultAiSettings.maxTokens)),
+    maxTokens: Math.min(65536, Math.max(2048, parseInt(body.maxTokens ?? defaultAiSettings.maxTokens, 10) || defaultAiSettings.maxTokens)),
+    agentAvatar: typeof body.agentAvatar === 'string' ? body.agentAvatar.slice(0, 200000) : '',
   };
   await setSetting(env, 'ai', data);
   return jsonResponse(0, data, '保存成功');
@@ -4827,6 +5223,16 @@ async function updateAiSettings(request, env, user) {
 async function checkAiEnabled(env) {
   const settings = (await getSetting(env, 'ai')) || {};
   return settings.enabled === true;
+}
+
+async function getAgentSettings(request, env) {
+  try {
+    const settings = (await getSetting(env, 'ai')) || {};
+    return jsonResponseWithCache(0, { enabled: settings.agentEnabled === true && settings.enabled === true }, 'ok', 200, 'public, max-age=60');
+  } catch (err) {
+    if (isBindingError(err)) return jsonResponse(0, { enabled: false }, 'ok');
+    throw err;
+  }
 }
 
 async function verifyAiApiKey(request, env) {
@@ -4964,24 +5370,58 @@ async function deleteAiCustomModelHandler(request, env, user) {
   return jsonResponse(0, null, '删除成功');
 }
 
-async function loadPrompt(env, request, name) {
-  if (name === 'article-generation') {
-    return `你是一位专业的中文博客作者。请根据用户提供的主题生成一篇完整的博客文章。
+
+
+const DEFAULT_PROMPTS = {
+  'article-generation': `你是一位专业的中文博客作者。请根据用户提供的主题生成一篇完整的博客文章。
 必须严格按照以下 json 格式返回，不要包含任何其他解释文字、markdown 代码块或 XML 标签：
 {
   "title": "文章标题",
   "excerpt": "160字以内的摘要",
   "tags": ["标签1", "标签2"],
   "content": "Markdown 格式的正文内容，800-2000字"
-}`;
+}`,
+  'format-optimization': '你是一位专业的文字编辑。请优化用户提供的 Markdown 文本，改善排版和表达，保持原意不变。只返回优化后的 Markdown 内容，不要包含任何解释。',
+  'article-summary': '你是一位专业的文章摘要助手。请根据用户提供的文章标题和正文，生成一段简洁的中文摘要。要求：1. 160 字以内；2. 保留文章的核心观点和关键信息；3. 语言通顺、客观，避免使用第一人称；4. 只返回摘要文本本身，不要添加任何解释、引号、markdown 标记或"以下是摘要"之类的前缀。',
+  'agent-core': `你是这个博客站点的 AI 助手，由超级管理员直接使用。你的目标是「用户让你做什么，你就能自己完成什么」——但前提是：想清楚再动手、做一步汇报一步、绝不擅自越权。
+
+【铁律，必须无条件遵守】
+1. 严禁乱调工具。技能清单里没有的、或用户没让做的事，一律不碰。能用纯回答处理的问题，绝不调用任何技能。
+2. 动手前必须思考。思考就是普通的文本：每执行一个子任务之前，先在这条回复里用 <thinking>...</thinking> 标签把这一步想清楚、写详细，再调用工具。思考写在回复文本里、和工具调用同一轮产出，不额外占用轮次；想一步、做一步，再想下一步、再做下一步。分步任务每一步动手前都要先写出思考；不思考就调用工具，视为违规。
+3. 先拆解再执行。把用户的一句话拆成明确、有序的多个子任务，按顺序逐个完成，全部完成后再统一汇报；不许做到一半就停下，也不许跳步、并行抢跑。
+4. 写操作必须征得同意。凡是删除、修改、发布、改权限、批审核等一切改动数据的操作，先清楚说明「要做什么、影响哪些内容」，等用户明确确认后才能真正执行；用户没点头，宁可不做，绝不擅自改数据。
+5. 只答事实、不脑补。技能返回什么就基于什么回答；数据里看不到的，就明说「看不到/没有」，禁止编造数字或结论。
+6. 控制范围与篇幅。不要在一个回答里塞无关内容，不要长篇大论；说明讲清楚即可，输出用 Markdown，代码/列表规范排版。
+
+【输出格式硬性要求】
+1. 凡是这一轮要调用工具，必须先在这条回复里用 <thinking>...</thinking> 写出思考过程，紧跟着再给出工具调用；思考与工具调用必须在同一轮输出中一起产出，先思考、后调用，禁止先调工具再补思考。
+2. 思考过程不设固定模板、不规定内容，由你自由展开，尽量写详细、写充分（意图分析、拆解步骤、判断依据、取舍理由等，怎么想就怎么写），给自己留足思考空间。
+3. 不写 <thinking> 就直接调用工具，视为违规，会被要求重做。
+4. 纯文本回答（不调用任何工具）也要先用 <thinking> 想一下再答。
+
+【工作方式】
+- 一句话：把用户诉求拆解为有序子任务 →（必要时）open_skills 打开技能 → 按「思考（<thinking> 文本）→ 调用技能 → 再思考 → …」的链路逐步执行，直到全部完成 → 最后归纳成自然语言回答。
+- 每一步动手前先把这一步的打算写进 <thinking>，让用户看到你在想什么，也让多步任务的顺序清晰可见。
+- 普通闲聊（问候、介绍站点等）：不需要技能，直接回答，零工具开销。
+- 全程中文、口语化、语气温和友好，但立场要坚定、规则要清楚。
+
+【状态自查】每次动手前自查：我这一步是不是用户要的？会不会改动数据？要不要先问用户？三条都过关才执行。`,
+};
+
+async function loadPrompt(env, request, name) {
+  try {
+    if (env.ASSETS && request) {
+      const url = new URL(`/prompts/${name}.txt`, request.url).href;
+      const res = await env.ASSETS.fetch(new Request(url));
+      if (res && res.ok) {
+        const text = (await res.text()).trim();
+        if (text) return text;
+      }
+    }
+  } catch (_) {
+    
   }
-  if (name === 'format-optimization') {
-    return '你是一位专业的文字编辑。请优化用户提供的 Markdown 文本，改善排版和表达，保持原意不变。只返回优化后的 Markdown 内容，不要包含任何解释。';
-  }
-  if (name === 'article-summary') {
-    return '你是一位专业的文章摘要助手。请根据用户提供的文章标题和正文，生成一段简洁的中文摘要。要求：1. 160 字以内；2. 保留文章的核心观点和关键信息；3. 语言通顺、客观，避免使用第一人称；4. 只返回摘要文本本身，不要添加任何解释、引号、markdown 标记或"以下是摘要"之类的前缀。';
-  }
-  return '';
+  return DEFAULT_PROMPTS[name] || '';
 }
 
 async function findOrCreateTags(env, tagNames) {
@@ -5160,7 +5600,7 @@ async function aiChat(request, env, user) {
   const parsedMaxTokens = parseInt(body.max_tokens, 10);
   const maxTokens = Number.isNaN(parsedMaxTokens)
     ? (aiSettings.maxTokens ?? defaultAiSettings.maxTokens)
-    : Math.min(8192, Math.max(256, parsedMaxTokens));
+    : Math.min(65536, Math.max(256, parsedMaxTokens));
 
   const options = { messages, temperature, max_tokens: maxTokens };
   if (stream) options.stream = true;
@@ -5321,6 +5761,1676 @@ async function aiChat(request, env, user) {
       } catch (err) {
         console.error('stream error:', err);
         controller.error(err);
+      } finally {
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(readable, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      Connection: 'keep-alive',
+    },
+  });
+}
+
+
+
+
+
+
+
+const OPEN_SKILLS_TOOL = {
+  type: 'function',
+  function: {
+    name: 'open_skills',
+    description:
+      '将当前任务需要用到的技能「打开」以获得它们的完整参数用法。当普通对话无法满足用户、需要查询/处理站点数据或执行管理任务时调用；一次可打开多个技能，之后就可以直接调用这些技能。',
+    parameters: {
+      type: 'object',
+      properties: {
+        ids: {
+          type: 'array',
+          items: { type: 'string' },
+          description: '要打开的技能 id 列表，例如 ["app.ping","content.stats"]',
+        },
+      },
+      required: ['ids'],
+    },
+  },
+};
+
+
+
+
+
+
+
+const ALWAYS_ACTIVE_SKILLS = [
+  
+  'article.list',
+  'article.read',
+  'article.create',
+  'article.update',
+  'article.delete',
+  'comment.list',
+  'comment.review',
+  'comment.delete',
+  'tag.list',
+  'tag.create',
+  'tag.update',
+  'tag.delete',
+  
+  'site.info',
+  'dashboard.stat',
+  
+  'message.list',
+  'user.list',
+  'friend.list',
+  'media.list',
+  'media.usage',
+  'chat.room.list',
+  'ai.models',
+  'ai.settings',
+];
+
+
+
+
+async function agentSkillCall(env, user, handler, query = {}) {
+  const q = new URLSearchParams(query).toString();
+  const req = new Request('https://agent.local' + (q ? '?' + q : ''), { method: 'GET' });
+  const res = await handler(req, env, user);
+  let json = null;
+  try {
+    json = await res.json();
+  } catch {}
+  if (!res.ok || !json || json.code !== 0) {
+    return { ok: false, error: (json && json.message) || `请求失败 ${res.status}` };
+  }
+  return { ok: true, data: json.data };
+}
+
+
+
+
+const SKILL_PACKAGE_FILES = [
+  '01-site',
+  '02-content-articles',
+  '03-content-tags',
+  '04-content-comments',
+  '05-content-messages',
+  '06-users',
+  '07-friends',
+  '08-media',
+  '09-chat',
+  '10-ai',
+];
+
+
+const SKILL_HANDLERS = {
+  getDashboard,
+  listAdminPosts,
+  getAdminPost,
+  listAdminTags,
+  listAdminComments,
+  listAdminUsers,
+  listAdminFriends,
+  listFriendApplications,
+  listAdminMedia,
+  getAdminMedia,
+  getAdminMediaUsage,
+  getAdminMediaUsageDetail,
+  listAdminMessages,
+  listAdminChatRooms,
+  getAdminChatRoomMembers,
+  searchRoomUsers,
+  adminChatDoOverview,
+  getSystemStatus,
+  listDatabases,
+  listAdminAiModels,
+  getAiSettings,
+  getAuthSettings,
+  getEmailSettings,
+  getEmailTemplateSettings,
+  getCommentNotifySettings,
+  getInteractionSettings,
+  getMessageWallSettings,
+  getChatSettings,
+};
+
+
+const SKILL_EXECUTORS = {
+  'site.info': async (ctx) => ({ ok: true, data: await getSiteConfig(ctx.env) }),
+};
+
+
+
+
+const SKILL_WRITE = {
+  'article.create': { handler: createPost, method: 'POST', keyParam: null, params: ['title', 'slug', 'content', 'excerpt', 'coverBase64', 'tagIds', 'status'], superAdmin: false },
+  'article.update': { handler: updatePost, method: 'PATCH', keyParam: 'id', params: ['title', 'slug', 'content', 'excerpt', 'coverBase64', 'tagIds', 'status'], superAdmin: false },
+  'article.delete': { handler: deletePost, method: 'DELETE', keyParam: 'id', params: [], superAdmin: true },
+  'tag.create': { handler: createTag, method: 'POST', keyParam: null, params: ['name', 'slug', 'color'], superAdmin: false },
+  'tag.update': { handler: updateTag, method: 'PATCH', keyParam: 'id', params: ['name', 'slug', 'color'], superAdmin: false },
+  'tag.delete': { handler: deleteTag, method: 'DELETE', keyParam: 'id', params: [], superAdmin: true },
+  'comment.review': { handler: updateAdminCommentsBatch, method: 'PATCH', keyParam: null, params: ['ids', 'status', 'action'], superAdmin: false },
+  'comment.delete': { handler: deleteAdminComment, method: 'DELETE', keyParam: 'id', params: [], superAdmin: true },
+  'message.review': { handler: updateAdminMessagesBatch, method: 'PATCH', keyParam: null, params: ['ids', 'status', 'action'], superAdmin: false },
+  'message.delete': { handler: deleteAdminMessage, method: 'DELETE', keyParam: 'id', params: [], superAdmin: true },
+  'friend.create': { handler: createFriend, method: 'POST', keyParam: null, params: ['name', 'url', 'avatar', 'description'], superAdmin: false },
+  'friend.application.review': { handler: auditFriendApplication, method: 'PATCH', keyParam: 'id', params: ['status', 'remark'], superAdmin: false },
+  'user.update': { handler: updateAdminUser, method: 'PATCH', keyParam: 'id', params: ['role', 'status', 'emailVerified'], superAdmin: true },
+  'user.delete': { handler: deleteAdminUser, method: 'DELETE', keyParam: 'id', params: [], superAdmin: true },
+  
+  'site.settings.emailTemplate.update': { handler: updateEmailTemplateSettings, method: 'PATCH', keyParam: null, params: ['kind', 'subject', 'html', 'text'], superAdmin: true },
+  'site.terms.update': { handler: updateSettings, method: 'PATCH', keyParam: null, params: ['termsAgreement', 'termsPrivacy'], superAdmin: true, wrapSite: true },
+  'site.info.update': { handler: updateSettings, method: 'PATCH', keyParam: null, params: ['description', 'announcement', 'title', 'subtitle'], superAdmin: true, wrapSite: true },
+  
+  'friend.update': { handler: updateFriend, method: 'PATCH', keyParam: 'id', params: ['name', 'url', 'description', 'avatar', 'sortOrder'], superAdmin: false },
+  'friend.application.delete': { handler: deleteFriendApplication, method: 'DELETE', keyParam: 'id', params: [], superAdmin: true },
+  
+  'chat.room.create': { handler: createChatRoom, method: 'POST', keyParam: null, params: ['name', 'description', 'cover', 'maxUsers', 'members'], superAdmin: false },
+  'chat.room.update': { handler: updateChatRoom, method: 'PATCH', keyParam: 'key', params: ['name', 'description', 'cover', 'maxUsers', 'enabled', 'members'], superAdmin: false },
+  'chat.room.delete': { handler: deleteChatRoom, method: 'DELETE', keyParam: 'key', params: [], superAdmin: true },
+};
+
+
+const writeConfirmMap = new Map();
+
+function waitWriteConfirm(token, timeoutMs = 5 * 60 * 1000) {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => {
+      writeConfirmMap.delete(token);
+      resolve({ approved: false, reason: '确认超时，操作未执行' });
+    }, timeoutMs);
+    writeConfirmMap.set(token, { resolve, timer });
+  });
+}
+
+
+async function confirmWriteAction(request, env, user) {
+  const body = await request.json().catch(() => ({}));
+  const token = String(body.token || '').trim();
+  const approved = body.approved !== false;
+  const pending = token && writeConfirmMap.get(token);
+  if (!pending) return jsonResponse(404, null, '确认请求不存在或已超时', 404);
+  clearTimeout(pending.timer);
+  writeConfirmMap.delete(token);
+  pending.resolve({ approved });
+  return jsonResponse(0, { ok: true, approved });
+}
+
+
+function describeWriteAction(skillId, args) {
+  const brief = (v) => (v === undefined || v === null ? '' : String(v).slice(0, 40));
+  switch (skillId) {
+    case 'article.delete': return `删除文章（id ${brief(args.id)}）`;
+    case 'article.create': return `创建文章《${brief(args.title)}》`;
+    case 'article.update': return `编辑文章（id ${brief(args.id)}）`;
+    case 'tag.delete': return `删除标签（id ${brief(args.id)}）`;
+    case 'tag.create': return `创建标签「${brief(args.name)}」`;
+    case 'tag.update': return `编辑标签（id ${brief(args.id)}）`;
+    case 'comment.delete': return `删除评论（id ${brief(args.id)}）`;
+    case 'comment.review': return `审核评论（ids ${brief(args.ids)} → ${brief(args.status || args.action)}）`;
+    case 'message.delete': return `删除留言（id ${brief(args.id)}）`;
+    case 'message.review': return `审核留言（ids ${brief(args.ids)} → ${brief(args.status || args.action)}）`;
+    case 'friend.create': return `添加友链「${brief(args.name)}」`;
+    case 'friend.application.review': return `审核友链申请（id ${brief(args.id)} → ${brief(args.status)}）`;
+    case 'user.update': return `修改用户（id ${brief(args.id)}，role/status）`;
+    case 'user.delete': return `删除用户（id ${brief(args.id)}）`;
+    case 'site.settings.emailTemplate.update': {
+      const which = args.kind === 'reset' ? '找回密码' : '通用';
+      return `更新${which}邮件模板（主题：${brief(args.subject)}）`;
+    }
+    case 'site.terms.update': return `更新协议/隐私政策内容（${args.termsAgreement !== undefined ? '用户协议' : ''}${args.termsPrivacy !== undefined ? (args.termsAgreement !== undefined ? '、' : '') + '隐私政策' : ''}）`;
+    case 'site.info.update': return `更新站点信息（${Object.keys(args || {}).map((k) => k).filter((k) => args[k] !== undefined).join('、') || '无' }）`;
+    case 'friend.update': return `编辑友链（id ${brief(args.id)}${args.name ? '，名称 ' + brief(args.name) : ''}）`;
+    case 'friend.application.delete': return `删除友链申请（id ${brief(args.id)}）`;
+    case 'chat.room.create': return `创建聊天室「${brief(args.name)}」`;
+    case 'chat.room.update': return `编辑聊天室（key ${brief(args.key)}${args.name ? '，名称 ' + brief(args.name) : ''}）`;
+    case 'chat.room.delete': return `删除聊天室（key ${brief(args.key)}）`;
+    default: return `执行写操作 ${skillId}`;
+  }
+}
+
+
+
+let _undoTableInitialized = false;
+async function ensureUndoLogTable(env) {
+  if (_undoTableInitialized) return;
+  const db = getConfigDb(env);
+  await db
+    .prepare(
+      `CREATE TABLE IF NOT EXISTS ai_undo_log (
+        id TEXT PRIMARY KEY,
+        skill TEXT NOT NULL,
+        args TEXT NOT NULL DEFAULT '{}',
+        before_data TEXT,
+        after_data TEXT,
+        operator TEXT,
+        created_at TEXT NOT NULL,
+        used_at TEXT
+      )`
+    )
+    .run();
+  _undoTableInitialized = true;
+}
+
+function safeParse(s) {
+  try {
+    if (s === null || s === undefined) return null;
+    return JSON.parse(s);
+  } catch {
+    return null;
+  }
+}
+
+
+async function collectCommentsByPost(env, postId) {
+  const rows = await env.DB_POSTS.prepare('SELECT * FROM comments WHERE post_id = ? ORDER BY id ASC').bind(postId).all();
+  return rows.results || [];
+}
+
+
+async function collectCommentsByUser(env, userId) {
+  const rows = await env.DB_POSTS.prepare('SELECT * FROM comments WHERE user_id = ? ORDER BY id ASC').bind(userId).all();
+  return rows.results || [];
+}
+
+
+async function collectCommentSubtreeRows(env, rootId) {
+  const all = await env.DB_POSTS.prepare('SELECT * FROM comments WHERE id = ? OR parent_id = ?').bind(rootId, rootId).all();
+  return all.results || [];
+}
+
+
+const UNDO_MAP = {
+  
+  'article.create': {
+    snapshot: () => null,
+    after: (result) => ({ id: result && result.id }),
+    restore: async (env, log) => {
+      const after = safeParse(log.after_data) || {};
+      const id = Number(after.id);
+      if (!id) return { ok: false, error: '缺少新文章 id' };
+      await env.DB_POSTS.prepare('DELETE FROM post_tags WHERE post_id = ?').bind(id).run();
+      await env.DB_POSTS.prepare('DELETE FROM comments WHERE post_id = ?').bind(id).run();
+      await env.DB_POSTS.prepare('DELETE FROM likes WHERE post_id = ?').bind(id).run();
+      await env.DB_POSTS.prepare('DELETE FROM posts WHERE id = ?').bind(id).run();
+      return { ok: true, message: `已删除创建的文章 #${id}` };
+    },
+  },
+  'article.update': {
+    snapshot: async (env, args) => {
+      const id = Number(args.id);
+      const post = await env.DB_POSTS.prepare('SELECT * FROM posts WHERE id = ?').bind(id).first();
+      if (!post) return null;
+      const tags = await env.DB_POSTS.prepare('SELECT tag_id FROM post_tags WHERE post_id = ?').bind(id).all();
+      return { post, tags: (tags.results || []).map((r) => r.tag_id) };
+    },
+    after: null,
+    restore: async (env, log) => {
+      const before = safeParse(log.before_data);
+      if (!before || !before.post) return { ok: false, error: '缺少文章快照' };
+      const p = before.post;
+      await env.DB_POSTS.prepare(
+        'UPDATE posts SET title = ?, slug = ?, excerpt = ?, content = ?, cover_base64 = ?, status = ?, views = ?, reading_time = ?, updated_at = ? WHERE id = ?'
+      )
+        .bind(p.title, p.slug, p.excerpt, p.content, p.cover_base64, p.status, p.views, p.reading_time, now(), p.id)
+        .run();
+      await env.DB_POSTS.prepare('DELETE FROM post_tags WHERE post_id = ?').bind(p.id).run();
+      for (const tagId of before.tags || []) {
+        await env.DB_POSTS.prepare('INSERT OR IGNORE INTO post_tags (post_id, tag_id) VALUES (?, ?)').bind(p.id, tagId).run();
+      }
+      return { ok: true, message: `已恢复文章《${p.title}》` };
+    },
+  },
+  'article.delete': {
+    snapshot: async (env, args) => {
+      const id = Number(args.id);
+      const post = await env.DB_POSTS.prepare('SELECT * FROM posts WHERE id = ?').bind(id).first();
+      if (!post) return null;
+      const postTags = await env.DB_POSTS.prepare('SELECT tag_id FROM post_tags WHERE post_id = ?').bind(id).all();
+      const comments = await collectCommentsByPost(env, id);
+      const likes = await env.DB_POSTS.prepare('SELECT * FROM likes WHERE post_id = ?').bind(id).all();
+      return { post, postTags: (postTags.results || []).map((r) => r.tag_id), comments, likes: likes.results || [] };
+    },
+    after: null,
+    restore: async (env, log) => {
+      const before = safeParse(log.before_data);
+      if (!before || !before.post) return { ok: false, error: '缺少文章快照' };
+      const p = before.post;
+      await env.DB_POSTS.prepare(
+        'INSERT OR IGNORE INTO posts (id, title, slug, excerpt, content, cover_base64, author_id, status, views, reading_time, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)'
+      )
+        .bind(p.id, p.title, p.slug, p.excerpt, p.content, p.cover_base64, p.author_id, p.status, p.views, p.reading_time, p.created_at, now())
+        .run();
+      for (const tagId of before.postTags || []) {
+        await env.DB_POSTS.prepare('INSERT OR IGNORE INTO post_tags (post_id, tag_id) VALUES (?, ?)').bind(p.id, tagId).run();
+      }
+      for (const c of before.comments || []) {
+        await env.DB_POSTS.prepare(
+          'INSERT OR IGNORE INTO comments (id, post_id, user_id, content, parent_id, status, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?)'
+        )
+          .bind(c.id, c.post_id, c.user_id, c.content, c.parent_id, c.status, c.created_at, c.updated_at)
+          .run();
+      }
+      for (const l of before.likes || []) {
+        await env.DB_POSTS.prepare('INSERT OR IGNORE INTO likes (id, post_id, user_id, created_at) VALUES (?,?,?,?)')
+          .bind(l.id, l.post_id, l.user_id, l.created_at)
+          .run();
+      }
+      return { ok: true, message: `已恢复文章《${p.title}》` };
+    },
+  },
+  
+  'tag.create': {
+    snapshot: () => null,
+    after: (result) => ({ id: result && result.id }),
+    restore: async (env, log) => {
+      const id = Number((safeParse(log.after_data) || {}).id);
+      if (!id) return { ok: false, error: '缺少新标签 id' };
+      await env.DB_POSTS.prepare('DELETE FROM post_tags WHERE tag_id = ?').bind(id).run();
+      await env.DB_POSTS.prepare('DELETE FROM tags WHERE id = ?').bind(id).run();
+      return { ok: true, message: `已删除创建的标签 #${id}` };
+    },
+  },
+  'tag.update': {
+    snapshot: async (env, args) => {
+      const id = Number(args.id);
+      const tag = await env.DB_POSTS.prepare('SELECT * FROM tags WHERE id = ?').bind(id).first();
+      return tag || null;
+    },
+    after: null,
+    restore: async (env, log) => {
+      const t = safeParse(log.before_data);
+      if (!t || !t.id) return { ok: false, error: '缺少标签快照' };
+      await env.DB_POSTS.prepare('UPDATE tags SET name = ?, slug = ?, color = ? WHERE id = ?')
+        .bind(t.name, t.slug, t.color, t.id)
+        .run();
+      return { ok: true, message: `已恢复标签「${t.name}」` };
+    },
+  },
+  'tag.delete': {
+    snapshot: async (env, args) => {
+      const id = Number(args.id);
+      const tag = await env.DB_POSTS.prepare('SELECT * FROM tags WHERE id = ?').bind(id).first();
+      if (!tag) return null;
+      const links = await env.DB_POSTS.prepare('SELECT post_id FROM post_tags WHERE tag_id = ?').bind(id).all();
+      return { tag, links: (links.results || []).map((r) => r.post_id) };
+    },
+    after: null,
+    restore: async (env, log) => {
+      const before = safeParse(log.before_data);
+      if (!before || !before.tag) return { ok: false, error: '缺少标签快照' };
+      const t = before.tag;
+      await env.DB_POSTS.prepare('INSERT OR IGNORE INTO tags (id, name, slug, color) VALUES (?,?,?,?)')
+        .bind(t.id, t.name, t.slug, t.color)
+        .run();
+      for (const postId of before.links || []) {
+        await env.DB_POSTS.prepare('INSERT OR IGNORE INTO post_tags (post_id, tag_id) VALUES (?, ?)').bind(postId, t.id).run();
+      }
+      return { ok: true, message: `已恢复标签「${t.name}」` };
+    },
+  },
+  
+  'comment.review': {
+    snapshot: async (env, args) => {
+      const ids = (args.ids || []).filter((i) => Number.isInteger(Number(i))).map(Number);
+      if (!ids.length) return null;
+      const rows = await env.DB_POSTS.prepare(
+        `SELECT id, status FROM comments WHERE id IN (${ids.map(() => '?').join(',')})`
+      )
+        .bind(...ids)
+        .all();
+      return (rows.results || []).map((r) => ({ id: r.id, status: r.status }));
+    },
+    after: null,
+    restore: async (env, log) => {
+      const before = safeParse(log.before_data);
+      if (!Array.isArray(before) || !before.length) return { ok: false, error: '缺少评论状态快照' };
+      for (const row of before) {
+        await env.DB_POSTS.prepare('UPDATE comments SET status = ?, updated_at = ? WHERE id = ?')
+          .bind(row.status, now(), row.id)
+          .run();
+      }
+      return { ok: true, message: `已恢复 ${before.length} 条评论状态` };
+    },
+  },
+  'comment.delete': {
+    snapshot: async (env, args) => {
+      const id = Number(args.id);
+      const root = await env.DB_POSTS.prepare('SELECT * FROM comments WHERE id = ?').bind(id).first();
+      if (!root) return null;
+      const rows = await collectCommentSubtreeRows(env, id);
+      return { comments: rows.sort((a, b) => a.id - b.id) };
+    },
+    after: null,
+    restore: async (env, log) => {
+      const before = safeParse(log.before_data);
+      const list = (before && before.comments) || [];
+      if (!list.length) return { ok: false, error: '缺少评论快照' };
+      for (const c of list) {
+        await env.DB_POSTS.prepare(
+          'INSERT OR IGNORE INTO comments (id, post_id, user_id, content, parent_id, status, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?)'
+        )
+          .bind(c.id, c.post_id, c.user_id, c.content, c.parent_id, c.status, c.created_at, c.updated_at)
+          .run();
+      }
+      return { ok: true, message: `已恢复 ${list.length} 条评论` };
+    },
+  },
+  
+  'message.review': {
+    snapshot: async (env, args) => {
+      const ids = (args.ids || []).filter((i) => Number.isInteger(Number(i))).map(Number);
+      if (!ids.length) return null;
+      const rows = await getConfigDb(env)
+        .prepare(`SELECT id, status FROM message_wall WHERE id IN (${ids.map(() => '?').join(',')})`)
+        .bind(...ids)
+        .all();
+      return (rows.results || []).map((r) => ({ id: r.id, status: r.status }));
+    },
+    after: null,
+    restore: async (env, log) => {
+      const before = safeParse(log.before_data);
+      if (!Array.isArray(before) || !before.length) return { ok: false, error: '缺少留言状态快照' };
+      for (const row of before) {
+        await getConfigDb(env)
+          .prepare('UPDATE message_wall SET status = ?, updated_at = ? WHERE id = ?')
+          .bind(row.status, now(), row.id)
+          .run();
+      }
+      return { ok: true, message: `已恢复 ${before.length} 条留言状态` };
+    },
+  },
+  'message.delete': {
+    snapshot: async (env, args) => {
+      const id = Number(args.id);
+      const row = await getConfigDb(env).prepare('SELECT * FROM message_wall WHERE id = ?').bind(id).first();
+      return row || null;
+    },
+    after: null,
+    restore: async (env, log) => {
+      const m = safeParse(log.before_data);
+      if (!m || !m.id) return { ok: false, error: '缺少留言快照' };
+      await getConfigDb(env)
+        .prepare('INSERT OR IGNORE INTO message_wall (id, content, nickname, user_id, status, created_at, updated_at) VALUES (?,?,?,?,?,?,?)')
+        .bind(m.id, m.content, m.nickname, m.user_id, m.status, m.created_at, m.updated_at)
+        .run();
+      return { ok: true, message: '已恢复该留言' };
+    },
+  },
+  
+  'friend.create': {
+    snapshot: () => null,
+    after: (result) => ({ id: result && result.id }),
+    restore: async (env, log) => {
+      const id = Number((safeParse(log.after_data) || {}).id);
+      if (!id) return { ok: false, error: '缺少新友链 id' };
+      await env.DB_CONFIG.prepare('DELETE FROM friends WHERE id = ?').bind(id).run();
+      return { ok: true, message: `已删除创建的友链 #${id}` };
+    },
+  },
+  'friend.update': {
+    snapshot: async (env, args) => {
+      const id = Number(args.id);
+      const row = await env.DB_CONFIG.prepare('SELECT * FROM friends WHERE id = ?').bind(id).first();
+      return row || null;
+    },
+    after: null,
+    restore: async (env, log) => {
+      const f = safeParse(log.before_data);
+      if (!f || !f.id) return { ok: false, error: '缺少友链快照' };
+      await env.DB_CONFIG.prepare(
+        'UPDATE friends SET name = ?, url = ?, description = ?, avatar = ?, sort_order = ?, updated_at = ? WHERE id = ?'
+      )
+        .bind(f.name, f.url, f.description, f.avatar, f.sort_order, now(), f.id)
+        .run();
+      return { ok: true, message: `已恢复友链「${f.name}」` };
+    },
+  },
+  'friend.application.review': {
+    snapshot: async (env, args) => {
+      const list = (await getSetting(env, 'friend_applications')) || [];
+      const app = list.find((a) => Number(a.id) === Number(args.id));
+      return app ? { ...app } : null;
+    },
+    after: (result, args) => ({ status: args.status }),
+    restore: async (env, log) => {
+      const before = safeParse(log.before_data);
+      const after = safeParse(log.after_data) || {};
+      if (!before || !before.id) return { ok: false, error: '缺少申请快照' };
+      
+      if (after.status === 'approved') {
+        await env.DB_CONFIG.prepare('DELETE FROM friends WHERE name = ? AND url = ?').bind(before.name, before.url).run();
+      }
+      const list = (await getSetting(env, 'friend_applications')) || [];
+      const idx = list.findIndex((a) => Number(a.id) === Number(before.id));
+      if (idx !== -1) list[idx] = { ...list[idx], status: before.status, updatedAt: now() };
+      await setSetting(env, 'friend_applications', list);
+      return { ok: true, message: `已恢复友链申请（${before.name}）状态` };
+    },
+  },
+  'friend.application.delete': {
+    snapshot: async (env, args) => {
+      const list = (await getSetting(env, 'friend_applications')) || [];
+      const app = list.find((a) => Number(a.id) === Number(args.id));
+      return app ? { ...app } : null;
+    },
+    after: null,
+    restore: async (env, log) => {
+      const app = safeParse(log.before_data);
+      if (!app || !app.id) return { ok: false, error: '缺少申请快照' };
+      const list = (await getSetting(env, 'friend_applications')) || [];
+      if (list.some((a) => Number(a.id) === Number(app.id))) return { ok: true, message: '该申请已存在，无需恢复' };
+      list.push(app);
+      await setSetting(env, 'friend_applications', list);
+      return { ok: true, message: `已恢复友链申请（${app.name}）` };
+    },
+  },
+  
+  'user.update': {
+    snapshot: async (env, args) => {
+      const id = Number(args.id);
+      const row = await env.DB_USERS.prepare('SELECT * FROM users WHERE id = ?').bind(id).first();
+      return row || null;
+    },
+    after: null,
+    restore: async (env, log) => {
+      const u = safeParse(log.before_data);
+      if (!u || !u.id) return { ok: false, error: '缺少用户快照' };
+      await env.DB_USERS.prepare(
+        'UPDATE users SET username = ?, email = ?, email_verified = ?, role = ?, status = ?, updated_at = ? WHERE id = ?'
+      )
+        .bind(u.username, u.email, u.email_verified, u.role, u.status, now(), u.id)
+        .run();
+      return { ok: true, message: `已恢复用户「${u.username}」` };
+    },
+  },
+  'user.delete': {
+    snapshot: async (env, args) => {
+      const id = Number(args.id);
+      const user = await env.DB_USERS.prepare('SELECT * FROM users WHERE id = ?').bind(id).first();
+      if (!user) return null;
+      const likes = await env.DB_POSTS.prepare('SELECT * FROM likes WHERE user_id = ?').bind(id).all();
+      const comments = await collectCommentsByUser(env, id);
+      return { user, likes: likes.results || [], comments };
+    },
+    after: null,
+    restore: async (env, log) => {
+      const before = safeParse(log.before_data);
+      if (!before || !before.user) return { ok: false, error: '缺少用户快照' };
+      const u = before.user;
+      try {
+        await env.DB_USERS.prepare(
+          'INSERT OR IGNORE INTO users (id, username, email, email_verified, password_hash, password_salt, avatar_base64, theme, ui, role, status, verify_code, verify_code_expires_at, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)'
+        )
+          .bind(u.id, u.username, u.email, u.email_verified, u.password_hash, u.password_salt, u.avatar_base64, u.theme, u.ui, u.role, u.status, u.verify_code, u.verify_code_expires_at, u.created_at, u.updated_at)
+          .run();
+      } catch (e) {
+        if (e.message && e.message.includes('UNIQUE')) {
+          return { ok: false, error: `恢复失败：用户名/邮箱已被占用（${e.message.split(':').pop() || ''}）` };
+        }
+        throw e;
+      }
+      for (const c of before.comments || []) {
+        await env.DB_POSTS.prepare(
+          'INSERT OR IGNORE INTO comments (id, post_id, user_id, content, parent_id, status, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?)'
+        )
+          .bind(c.id, c.post_id, c.user_id, c.content, c.parent_id, c.status, c.created_at, c.updated_at)
+          .run();
+      }
+      for (const l of before.likes || []) {
+        await env.DB_POSTS.prepare('INSERT OR IGNORE INTO likes (id, post_id, user_id, created_at) VALUES (?,?,?,?)')
+          .bind(l.id, l.post_id, l.user_id, l.created_at)
+          .run();
+      }
+      return { ok: true, message: `已恢复用户「${u.username}」` };
+    },
+  },
+  
+  'site.settings.emailTemplate.update': {
+    snapshot: async (env, args) => {
+      const prefix = args.kind === 'reset' ? 'email_reset' : 'email';
+      const db = getConfigDb(env);
+      const get = async (k) => (await db.prepare('SELECT value FROM settings WHERE key = ?').bind(k).first())?.value ?? null;
+      return { prefix, subject: await get(`${prefix}_subject`), html: await get(`${prefix}_html`), text: await get(`${prefix}_text`) };
+    },
+    after: null,
+    restore: async (env, log) => {
+      const before = safeParse(log.before_data);
+      if (!before || !before.prefix) return { ok: false, error: '缺少模板快照' };
+      const db = getConfigDb(env);
+      const restore = async (key, value) => {
+        if (value === null || value === undefined) {
+          await db.prepare('DELETE FROM settings WHERE key = ?').bind(key).run();
+        } else {
+          await db.prepare('INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES (?,?,?)').bind(key, value, now()).run();
+        }
+      };
+      await restore(`${before.prefix}_subject`, before.subject);
+      await restore(`${before.prefix}_html`, before.html);
+      await restore(`${before.prefix}_text`, before.text);
+      return { ok: true, message: '已恢复邮件模板' };
+    },
+  },
+  'site.terms.update': {
+    snapshot: async (env) => (await getSetting(env, 'site')) || null,
+    after: null,
+    restore: async (env, log) => {
+      const before = safeParse(log.before_data);
+      if (!before) return { ok: false, error: '缺少站点配置快照' };
+      await setSetting(env, 'site', before);
+      return { ok: true, message: '已恢复协议/隐私配置' };
+    },
+  },
+  'site.info.update': {
+    snapshot: async (env) => (await getSetting(env, 'site')) || null,
+    after: null,
+    restore: async (env, log) => {
+      const before = safeParse(log.before_data);
+      if (!before) return { ok: false, error: '缺少站点配置快照' };
+      await setSetting(env, 'site', before);
+      return { ok: true, message: '已恢复站点信息' };
+    },
+  },
+  
+  'chat.room.create': {
+    snapshot: () => null,
+    after: (result) => ({ key: result && result.room_key }),
+    restore: async (env, log) => {
+      const key = (safeParse(log.after_data) || {}).key;
+      if (!key) return { ok: false, error: '缺少新房间 key' };
+      await ensureChatRoomTables(env);
+      const db = getConfigDb(env);
+      await db.prepare('DELETE FROM chat_room_members WHERE room_key = ?').bind(key).run();
+      await db.prepare('DELETE FROM chat_rooms WHERE room_key = ?').bind(key).run();
+      return { ok: true, message: `已删除创建的聊天室（${key}）` };
+    },
+  },
+  'chat.room.update': {
+    snapshot: async (env, args) => {
+      await ensureChatRoomTables(env);
+      const db = getConfigDb(env);
+      const key = String(args.key || '');
+      if (!key) return null;
+      const room = await db.prepare('SELECT * FROM chat_rooms WHERE room_key = ?').bind(key).first();
+      if (!room) return null;
+      const members = await db.prepare('SELECT * FROM chat_room_members WHERE room_key = ?').bind(key).all();
+      return { room, members: members.results || [] };
+    },
+    after: null,
+    restore: async (env, log) => {
+      const before = safeParse(log.before_data);
+      if (!before || !before.room) return { ok: false, error: '缺少聊天室快照' };
+      const db = getConfigDb(env);
+      const r = before.room;
+      await db.prepare(
+        'UPDATE chat_rooms SET name = ?, description = ?, cover = ?, max_users = ?, enabled = ?, updated_at = ? WHERE room_key = ?'
+      )
+        .bind(r.name, r.description, r.cover, r.max_users, r.enabled, now(), r.room_key)
+        .run();
+      await db.prepare('DELETE FROM chat_room_members WHERE room_key = ?').bind(r.room_key).run();
+      for (const m of before.members || []) {
+        await db.prepare('INSERT OR IGNORE INTO chat_room_members (room_key, user_id, username, added_at) VALUES (?,?,?,?)')
+          .bind(m.room_key, m.user_id, m.username, m.added_at)
+          .run();
+      }
+      return { ok: true, message: `已恢复聊天室「${r.name}」` };
+    },
+  },
+  'chat.room.delete': {
+    snapshot: async (env, args) => {
+      await ensureChatRoomTables(env);
+      const db = getConfigDb(env);
+      const key = String(args.key || '');
+      if (!key) return null;
+      const room = await db.prepare('SELECT * FROM chat_rooms WHERE room_key = ?').bind(key).first();
+      if (!room) return null;
+      const members = await db.prepare('SELECT * FROM chat_room_members WHERE room_key = ?').bind(key).all();
+      return { room, members: members.results || [] };
+    },
+    after: null,
+    restore: async (env, log) => {
+      const before = safeParse(log.before_data);
+      if (!before || !before.room) return { ok: false, error: '缺少聊天室快照' };
+      const db = getConfigDb(env);
+      const r = before.room;
+      await db.prepare(
+        'INSERT OR IGNORE INTO chat_rooms (room_key, name, description, cover, max_users, enabled, created_by, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?)'
+      )
+        .bind(r.room_key, r.name, r.description, r.cover, r.max_users, r.enabled, r.created_by, r.created_at, now())
+        .run();
+      for (const m of before.members || []) {
+        await db.prepare('INSERT OR IGNORE INTO chat_room_members (room_key, user_id, username, added_at) VALUES (?,?,?,?)')
+          .bind(m.room_key, m.user_id, m.username, m.added_at)
+          .run();
+      }
+      return { ok: true, message: `已恢复聊天室「${r.name}」` };
+    },
+  },
+};
+
+
+function describeWriteDone(skillId, args, result) {
+  switch (skillId) {
+    case 'article.create': return `已创建文章《${String(args.title || '').slice(0, 20)}》`;
+    case 'article.update': return `已编辑文章 #${args.id}`;
+    case 'article.delete': return `已删除文章 #${args.id}`;
+    case 'tag.create': return `已创建标签「${String(args.name || '').slice(0, 20)}」`;
+    case 'tag.update': return `已编辑标签 #${args.id}`;
+    case 'tag.delete': return `已删除标签 #${args.id}`;
+    case 'comment.review': return `已审核 ${(args.ids || []).length} 条评论 → ${args.status || args.action}`;
+    case 'comment.delete': return `已删除评论 #${args.id}`;
+    case 'message.review': return `已审核 ${(args.ids || []).length} 条留言 → ${args.status || args.action}`;
+    case 'message.delete': return `已删除留言 #${args.id}`;
+    case 'friend.create': return `已添加友链「${String(args.name || '').slice(0, 20)}」`;
+    case 'friend.update': return `已编辑友链 #${args.id}`;
+    case 'friend.application.review': return `已审核友链申请 #${args.id} → ${args.status}`;
+    case 'friend.application.delete': return `已删除友链申请 #${args.id}`;
+    case 'user.update': return `已修改用户 #${args.id}`;
+    case 'user.delete': return `已删除用户 #${args.id}`;
+    case 'site.settings.emailTemplate.update': return `已更新邮件模板`;
+    case 'site.terms.update': return `已更新协议/隐私配置`;
+    case 'site.info.update': return `已更新站点信息`;
+    case 'chat.room.create': return `已创建聊天室「${String(args.name || '').slice(0, 20)}」`;
+    case 'chat.room.update': return `已编辑聊天室（${args.key}）`;
+    case 'chat.room.delete': return `已删除聊天室（${args.key}）`;
+    default: return '已执行';
+  }
+}
+
+
+function describeUndoPreview(skillId, before) {
+  const trunc = (s, n = 18) => {
+    const t = String(s || '');
+    return t.length > n ? t.slice(0, n) + '…' : t;
+  };
+  try {
+    switch (skillId) {
+      case 'article.update': {
+        const p = before && before.post;
+        return p ? `将文章《${trunc(p.title)}》恢复为操作前的标题、摘要、内容、标签与封面` : '将文章恢复为操作前状态';
+      }
+      case 'article.delete': {
+        const b = before || {};
+        return `将恢复已删除的文章《${trunc(b.post && b.post.title)}》及 ${(b.comments || []).length} 条评论、${(b.likes || []).length} 个点赞`;
+      }
+      case 'article.create': return '将删除新建的文章及其评论、点赞';
+      case 'tag.update': return before && before.name ? `将标签恢复为「${trunc(before.name)}」` : '将标签恢复为操作前状态';
+      case 'tag.delete': {
+        const b = before || {};
+        return `将恢复已删除的标签「${trunc(b.tag && b.tag.name)}」及其关联的 ${(b.links || []).length} 篇文章`;
+      }
+      case 'tag.create': return '将删除新建的标签';
+      case 'comment.review': {
+        const list = Array.isArray(before) ? before : [];
+        return list.length ? `将 ${list.length} 条评论状态恢复为操作前` : '将评论状态恢复为操作前';
+      }
+      case 'comment.delete': {
+        const list = (before && before.comments) || [];
+        return list.length ? `将恢复 ${list.length} 条评论（含回复）` : '将恢复被删除的评论';
+      }
+      case 'message.review': {
+        const list = Array.isArray(before) ? before : [];
+        return list.length ? `将 ${list.length} 条留言状态恢复为操作前` : '将留言状态恢复为操作前';
+      }
+      case 'message.delete': return before ? `将恢复留言「${trunc(before.content)}」` : '将恢复被删除的留言';
+      case 'friend.create': return '将删除新建的友链';
+      case 'friend.update': return before && before.name ? `将友链「${trunc(before.name)}」恢复为操作前信息` : '将友链恢复为操作前信息';
+      case 'friend.application.review': return before && before.name ? `将友链申请（${trunc(before.name)}）状态恢复为操作前` : '将友链申请状态恢复为操作前';
+      case 'friend.application.delete': return before && before.name ? `将恢复已删除的友链申请「${trunc(before.name)}」` : '将恢复已删除的友链申请';
+      case 'user.update': return before && before.username ? `将用户「${trunc(before.username)}」的账号信息恢复为操作前` : '将用户信息恢复为操作前';
+      case 'user.delete': {
+        const b = before || {};
+        return `将恢复已删除的用户「${trunc(b.user && b.user.username)}」及 ${(b.comments || []).length} 条评论、${(b.likes || []).length} 个点赞`;
+      }
+      case 'site.settings.emailTemplate.update': return '将邮件模板恢复为操作前内容';
+      case 'site.terms.update': return '将协议/隐私配置恢复为操作前';
+      case 'site.info.update': return '将站点信息恢复为操作前';
+      case 'chat.room.create': return '将删除新建的聊天室';
+      case 'chat.room.update': return before && before.room ? `将聊天室「${trunc(before.room.name)}」恢复为操作前信息及成员` : '将聊天室恢复为操作前状态';
+      case 'chat.room.delete': return before && before.room ? `将恢复已删除的聊天室「${trunc(before.room.name)}」及 ${(before.members || []).length} 位成员` : '将恢复已删除的聊天室';
+      default: return '将恢复到操作前状态';
+    }
+  } catch {
+    return '将恢复到操作前状态';
+  }
+}
+
+
+
+async function executeWriteSkill(skillId, args, ctx) {
+  const meta = SKILL_WRITE[skillId];
+  if (!meta) return { ok: false, error: `未知写技能：${skillId}` };
+  if (!ctx.send || !ctx.waitWriteConfirm) {
+    return { ok: false, needConfirm: true, error: '此操作需要确认后才能执行' };
+  }
+  const token = `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+  const target = describeWriteAction(skillId, args);
+  ctx.send('confirm_request', { token, skill: skillId, target, params: summarizeToolArgsJson(args) });
+  const decision = await ctx.waitWriteConfirm(token);
+  if (!decision || !decision.approved) {
+    return { ok: false, cancelled: true, error: decision && decision.reason ? decision.reason : '用户取消了此操作' };
+  }
+  
+  if (meta.superAdmin && ctx.user && ctx.user.role !== 'super_admin') {
+    return { ok: false, error: '需要站点（站长）权限才能执行该操作' };
+  }
+  
+  const ud = UNDO_MAP[skillId];
+  let before = null;
+  if (ud && ud.snapshot) {
+    try {
+      before = await ud.snapshot(ctx.env, args);
+    } catch (e) {
+      before = null;
+    }
+  }
+  const result = await doWriteSkill(meta, args, ctx);
+  
+  if (result.ok && ud && ctx.send) {
+    try {
+      await ensureUndoLogTable(ctx.env);
+      const after = ud.after ? ud.after(result.data, args) : null;
+      await getConfigDb(ctx.env)
+        .prepare(
+          'INSERT INTO ai_undo_log (id, skill, args, before_data, after_data, operator, created_at) VALUES (?,?,?,?,?,?,?)'
+        )
+        .bind(
+          token,
+          skillId,
+          JSON.stringify(args || {}),
+          before ? JSON.stringify(before) : null,
+          after ? JSON.stringify(after) : null,
+          ctx.user ? String(ctx.user.id) : null,
+          now()
+        )
+        .run();
+      ctx.send('write_result', {
+        token,
+        undoId: token,
+        skill: skillId,
+        target,
+        ok: true,
+        message: describeWriteDone(skillId, args, result),
+        undoPreview: describeUndoPreview(skillId, before),
+      });
+    } catch (e) {
+      console.error('record undo failed:', e);
+    }
+  } else if (ctx.send) {
+    
+    ctx.send('write_result', {
+      token,
+      skill: skillId,
+      target,
+      ok: false,
+      message: (result && result.error) || '操作执行失败',
+      error: (result && result.error) || '操作执行失败',
+    });
+  }
+  return result;
+}
+
+
+
+async function applyUndo(env, log) {
+  const restorer = UNDO_MAP[log.skill];
+  if (!restorer || !restorer.restore) return { ok: false, error: `该操作不支持回滚（${log.skill}）` };
+  let r;
+  try {
+    r = await restorer.restore(env, log);
+  } catch (e) {
+    return { ok: false, error: `回滚失败：${e.message || String(e)}` };
+  }
+  if (!r || !r.ok) return { ok: false, error: (r && r.error) || '回滚失败' };
+  await getConfigDb(env).prepare('UPDATE ai_undo_log SET used_at = ? WHERE id = ?').bind(now(), log.id).run();
+  return { ok: true, message: (r && r.message) || '已回滚' };
+}
+
+async function undoAgentWrite(request, env, user) {
+  const body = await request.json().catch(() => ({}));
+  const undoId = String(body.undoId || '').trim();
+  if (!undoId) return jsonResponse(400, null, '缺少 undoId');
+  await ensureUndoLogTable(env);
+  const db = getConfigDb(env);
+  const log = await db.prepare('SELECT * FROM ai_undo_log WHERE id = ?').bind(undoId).first();
+  if (!log) return jsonResponse(404, null, '回滚记录不存在或已过期', 404);
+  if (log.used_at) return jsonResponse(400, null, '该操作已回滚过');
+  const created = Date.parse(log.created_at);
+  if (Number.isNaN(created) || Date.now() - created > 24 * 3600 * 1000) {
+    return jsonResponse(400, null, '回滚已过期（操作后 24 小时内有效）');
+  }
+  if (log.operator && String(log.operator) !== String(user.id)) {
+    return jsonResponse(403, null, '只能回滚自己执行的操作', 403);
+  }
+  const r = await applyUndo(env, log);
+  if (!r.ok) return jsonResponse(500, null, r.error, 500);
+  return jsonResponse(0, null, r.message);
+}
+
+
+async function undoAgentWriteAdmin(request, env, user) {
+  const id = String(new URL(request.url).pathname.split('/').pop() || '').trim();
+  if (!id) return jsonResponse(400, null, '缺少记录 id');
+  await ensureUndoLogTable(env);
+  const db = getConfigDb(env);
+  const log = await db.prepare('SELECT * FROM ai_undo_log WHERE id = ?').bind(id).first();
+  if (!log) return jsonResponse(404, null, '回滚记录不存在', 404);
+  if (log.used_at) return jsonResponse(400, null, '该操作已回滚过');
+  const created = Date.parse(log.created_at);
+  if (Number.isNaN(created) || Date.now() - created > 24 * 3600 * 1000) {
+    return jsonResponse(400, null, '回滚已过期（操作后 24 小时内有效）');
+  }
+  const r = await applyUndo(env, log);
+  if (!r.ok) return jsonResponse(500, null, r.error, 500);
+  return jsonResponse(0, null, r.message);
+}
+
+
+async function listUndoLogs(request, env, user) {
+  await ensureUndoLogTable(env);
+  const db = getConfigDb(env);
+  const url = new URL(request.url);
+  const status = url.searchParams.get('status') || '';
+  const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10) || 1);
+  const pageSize = Math.min(50, Math.max(1, parseInt(url.searchParams.get('pageSize') || '20', 10) || 20));
+  const offset = (page - 1) * pageSize;
+  const where = [];
+  const binds = [];
+  if (status === 'used') where.push('used_at IS NOT NULL');
+  else if (status === 'pending') where.push('used_at IS NULL');
+  const whereSql = where.length ? 'WHERE ' + where.join(' AND ') : '';
+  const totalRow = await db.prepare(`SELECT COUNT(*) AS c FROM ai_undo_log ${whereSql}`).bind(...binds).first();
+  const rows = await db
+    .prepare(`SELECT * FROM ai_undo_log ${whereSql} ORDER BY created_at DESC LIMIT ? OFFSET ?`)
+    .bind(...binds, pageSize, offset)
+    .all();
+  const opIds = [...new Set((rows.results || []).map((r) => r.operator).filter(Boolean))];
+  const userMap = {};
+  for (const id of opIds) {
+    const u = await env.DB_USERS.prepare('SELECT id, username FROM users WHERE id = ?').bind(id).first();
+    if (u) userMap[id] = u.username;
+  }
+  const list = (rows.results || []).map((r) => {
+    const args = safeParse(r.args) || {};
+    const before = safeParse(r.before_data);
+    const expired = !r.used_at && (Number.isNaN(Date.parse(r.created_at)) || Date.now() - Date.parse(r.created_at) > 24 * 3600 * 1000);
+    return {
+      id: r.id,
+      skill: r.skill,
+      args,
+      target: describeWriteAction(r.skill, args),
+      undoPreview: describeUndoPreview(r.skill, before),
+      operator: r.operator ? userMap[r.operator] || '已删除用户' : '站内系统',
+      created_at: r.created_at,
+      used_at: r.used_at,
+      status: r.used_at ? 'used' : expired ? 'expired' : 'pending',
+    };
+  });
+  return jsonResponse(0, { list, total: totalRow ? totalRow.c || 0 : 0, page, pageSize });
+}
+
+
+async function deleteUndoLog(request, env, user) {
+  const id = String(new URL(request.url).pathname.split('/').pop() || '').trim();
+  if (!id) return jsonResponse(400, null, '缺少记录 id');
+  await ensureUndoLogTable(env);
+  const db = getConfigDb(env);
+  const res = await db.prepare('DELETE FROM ai_undo_log WHERE id = ?').bind(id).run();
+  if (!res.meta || !res.meta.changes) return jsonResponse(404, null, '回滚记录不存在', 404);
+  return jsonResponse(0, null, '已删除该回滚记录');
+}
+
+
+async function doWriteSkill(meta, args, ctx) {
+  let body = {};
+  for (const f of meta.params || []) if (args[f] !== undefined) body[f] = args[f];
+  
+  if (body.maxUsers !== undefined && body.max_users === undefined) {
+    body.max_users = body.maxUsers;
+    delete body.maxUsers;
+  }
+  
+  if (meta.wrapSite) body = { site: body };
+  let path = '';
+  if (meta.keyParam && args[meta.keyParam] !== undefined) path += '/' + encodeURIComponent(args[meta.keyParam]);
+  const req = new Request('https://agent.local' + path, {
+    method: meta.method || 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const res = await meta.handler(req, ctx.env, ctx.user);
+  let json = null;
+  try { json = await res.json(); } catch {}
+  if (!res.ok || !json || json.code !== 0) {
+    return { ok: false, error: (json && json.message) || `执行失败 HTTP ${res.status}` };
+  }
+  return { ok: true, data: json.data };
+}
+
+function summarizeToolArgsJson(args) {
+  try {
+    const s = JSON.stringify(args || {});
+    return s.length > 200 ? s.slice(0, 200) + '…' : s;
+  } catch {
+    return String(args || '');
+  }
+}
+
+function _parseParams(def) {
+  let p;
+  try {
+    p = JSON.parse(def.params || '{}');
+  } catch {
+    p = {};
+  }
+  
+  
+  if (!p || typeof p !== 'object' || Array.isArray(p) || p.type !== 'object') {
+    p = { type: 'object', properties: {}, additionalProperties: false };
+  }
+  return p;
+}
+
+function buildSkillFromDef(def) {
+  const exec = SKILL_EXECUTORS[def.skill];
+  
+  
+  const toolName = def.skill.replace(/[^a-zA-Z0-9_-]/g, '_');
+  return {
+    id: def.skill,
+    toolName,
+    name: def.name || def.skill,
+    description: def.desc || '',
+    visible: def.visible !== 'false',
+    toolDef: {
+      type: 'function',
+      function: { name: toolName, description: def.desc || '', parameters: _parseParams(def) },
+    },
+    execute: exec
+      ? exec
+      : SKILL_WRITE[def.skill]
+        ? (ctx, args) => executeWriteSkill(def.skill, args, ctx)
+        : (ctx, args) => {
+            const handler = SKILL_HANDLERS[def.handler];
+            if (!handler) return Promise.resolve({ ok: false, error: `未知 handler：${def.handler}` });
+            const allowed = new Set(Object.keys(_parseParams(def).properties || {}));
+            const q = {};
+            for (const key of allowed) if (args[key] !== undefined) q[key] = args[key];
+            return agentSkillCall(ctx.env, ctx.user, handler, q);
+          },
+  };
+}
+
+function parseSkillFile(text) {
+  const skills = [];
+  const blocks = String(text || '').split(/^---+\s*$/m);
+  for (const block of blocks) {
+    const def = {};
+    for (const raw of block.split('\n')) {
+      const line = raw.trim();
+      if (!line || line.startsWith('#')) continue;
+      const eq = line.indexOf('=');
+      if (eq < 1) continue;
+      def[line.slice(0, eq).trim()] = line.slice(eq + 1).trim();
+    }
+    if (def.skill) skills.push(def);
+  }
+  return skills;
+}
+
+let agentSkillCache = null;
+
+async function ensureSkills(env, request) {
+  if (agentSkillCache) return agentSkillCache;
+  const map = {};
+  for (const pkg of SKILL_PACKAGE_FILES) {
+    let text = null;
+    try {
+      const url = new URL(`/skills/${pkg}.txt`, request.url);
+      const res = await fetch(url.toString());
+      if (res.ok) text = await res.text();
+    } catch {}
+    if (!text) continue;
+    for (const def of parseSkillFile(text)) {
+      map[def.skill] = buildSkillFromDef(def);
+    }
+  }
+  
+  map['open_skills'] = {
+    id: 'open_skills',
+    name: '打开技能',
+    description: '打开一个或多个技能的完整用法，以实现当前任务',
+    visible: false,
+    toolDef: OPEN_SKILLS_TOOL,
+    execute: null,
+  };
+  map['app.ping'] = {
+    id: 'app.ping',
+    name: '在线检测',
+    description: '测试 Agent 是否在线。无参数。',
+    visible: true,
+    toolDef: {
+      type: 'function',
+      function: {
+        name: 'app.ping',
+        description: '测试 Agent 是否在线。返回 pong 与当前时间。',
+        parameters: { type: 'object', properties: {}, additionalProperties: false },
+      },
+    },
+    async execute(ctx) {
+      return { ok: true, data: { pong: 'pong', time: new Date().toISOString() } };
+    },
+  };
+  
+  map['web.search'] = {
+    id: 'web.search',
+    name: '联网搜索',
+    description: '联网搜索关键词并返回结构化结果（含摘要与链接），用于查证最新信息、找资料。注意：结果可能不完整，必要时再配 web.fetch 抓取原文。',
+    visible: true,
+    toolDef: {
+      type: 'function',
+      function: {
+        name: 'web_search',
+        description: '联网搜索关键词并返回结构化结果（含摘要与链接）。参数 query: 搜索关键词字符串。',
+        parameters: {
+          type: 'object',
+          properties: { query: { type: 'string', description: '要搜索的关键词' } },
+          required: ['query'],
+          additionalProperties: false,
+        },
+      },
+    },
+    async execute(ctx, args) {
+      return await agentWebSearch(args && args.query, 5);
+    },
+  };
+  
+  map['web.fetch'] = {
+    id: 'web.fetch',
+    name: '抓取网页',
+    description: '抓取指定 URL 的网页正文（纯文本），用于读取搜索结果对应的原文内容。',
+    visible: true,
+    toolDef: {
+      type: 'function',
+      function: {
+        name: 'web_fetch',
+        description: '抓取指定 URL 的网页正文（纯文本，去除标签）。参数 url: 以 http(s):// 开头的完整网址。',
+        parameters: {
+          type: 'object',
+          properties: { url: { type: 'string', description: '要抓取的完整网页地址' } },
+          required: ['url'],
+          additionalProperties: false,
+        },
+      },
+    },
+    async execute(ctx, args) {
+      const url = String((args && args.url) || '').trim();
+      if (!/^https?:\/\//i.test(url)) return { ok: false, error: 'url 必须是 http(s):// 开头的完整地址' };
+      try {
+        const res = await fetch(url, {
+          headers: { 'User-Agent': 'Mozilla/5.0 XinBlog-Agent/1.0', Accept: 'text/html,text/plain' },
+          redirect: 'follow',
+        });
+        if (!res.ok) return { ok: false, error: `请求失败 HTTP ${res.status}` };
+        const text = await res.text();
+        const plain = stripHtmlTags(text);
+        const maxLen = 6000;
+        const body = plain.length > maxLen ? plain.slice(0, maxLen) + '\n…(已截断)' : plain;
+        if (!body.trim()) return { ok: false, error: '网页没有可读取的正文' };
+        return { ok: true, data: { url, text: body } };
+      } catch (e) {
+        return { ok: false, error: '抓取失败：' + (e && e.message) };
+      }
+    },
+  };
+  agentSkillCache = map;
+  return map;
+}
+
+
+function stripHtmlTags(html) {
+  let s = String(html || '');
+  s = s.replace(/<script[\s\S]*?<\/script>/gi, ' ');
+  s = s.replace(/<style[\s\S]*?<\/style>/gi, ' ');
+  s = s.replace(/<[^>]+>/g, ' ');
+  s = s.replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+  s = s.replace(/\s+/g, ' ').trim();
+  return s;
+}
+
+function agentSkillManifest(skills) {
+  const lines = Object.values(skills)
+    .filter((s) => s.visible)
+    .map((s) => `- ${s.id}：${s.description}`);
+  return lines.length ? lines.join('\n') : '（暂无可用技能）';
+}
+
+function extractToolCalls(result) {
+  if (!result) return [];
+  if (Array.isArray(result.tool_calls)) return result.tool_calls;
+  if (Array.isArray(result.choices)) {
+    const first = result.choices[0];
+    const msg = first && (first.message || first.delta);
+    if (msg && Array.isArray(msg.tool_calls)) return msg.tool_calls;
+  }
+  if (typeof result.output === 'string') {
+    try {
+      const p = JSON.parse(result.output);
+      if (Array.isArray(p.tool_calls)) return p.tool_calls;
+    } catch {}
+  }
+  return [];
+}
+
+function normalizeToolCall(tc) {
+  if (!tc) return null;
+  const fn = tc.function || {};
+  const name = fn.name || tc.name || '';
+  const id = tc.id || `call_${Math.random().toString(36).slice(2, 10)}`;
+  let args = {};
+  if (typeof fn.arguments === 'string') {
+    try {
+      args = JSON.parse(fn.arguments);
+    } catch {}
+  } else if (fn.arguments && typeof fn.arguments === 'object') {
+    args = fn.arguments;
+  }
+  return { id, name, args };
+}
+
+async function executeAgentSkill(name, args, ctx, active, skills) {
+  if (name === 'open_skills') {
+    const ids = Array.isArray(args.ids) ? args.ids : [];
+    const opened = [];
+    for (const id of ids) {
+      const s = skills[id];
+      if (s) {
+        active.add(id);
+        opened.push({ id: s.id, name: s.name, description: s.description, parameters: s.toolDef.function.parameters });
+      } else {
+        opened.push({ id, error: '技能不存在或未注册' });
+      }
+    }
+    return { ok: true, data: { opened, tip: '这些技能已打开，接下来可以直接调用它们完成子任务。' } };
+  }
+  
+  let skill = skills[name];
+  if (!skill) {
+    const byTool = Object.values(skills).find((s) => s.toolName === name);
+    skill = byTool;
+  }
+  if (!skill || typeof skill.execute !== 'function') return { ok: false, error: `未知技能：${name}` };
+  try {
+    return await skill.execute(ctx, args);
+  } catch (e) {
+    return { ok: false, error: e.message || String(e) };
+  }
+}
+
+
+function mergeStreamToolCalls(acc, deltas) {
+  for (const d of deltas || []) {
+    const idx = d.index ?? 0;
+    let cur = acc[idx];
+    if (!cur) {
+      cur = { id: d.id || '', type: d.type || 'function', function: { name: '', arguments: '' } };
+      acc[idx] = cur;
+    }
+    if (d.id) cur.id = d.id;
+    if (d.function && typeof d.function.name === 'string' && d.function.name) cur.function.name = d.function.name;
+    if (d.function && typeof d.function.arguments === 'string') cur.function.arguments += d.function.arguments;
+  }
+  return acc;
+}
+
+
+
+
+
+
+
+async function* streamAgentTurn(env, modelAlias, custom, messages, tools) {
+  const decoder = new TextDecoder();
+  let upstream;
+  if (custom) {
+    upstream = await callCustomModelStream(custom, { messages, temperature: 0.6, max_tokens: 2048, tools });
+  } else {
+    const model = resolveAiModel(modelAlias);
+    upstream = await env.AI.run(model, { messages, temperature: 0.6, max_tokens: 2048, tools, stream: true });
+  }
+  const reader = upstream.getReader();
+
+  let accContent = '';
+  let accReasoning = '';
+  let toolCalls = [];
+  let usage = null;
+
+  
+  
+  let buf = '';
+  let inThink = false;
+  let thinkAcc = '';
+  const pending = [];
+  const findOpenIdx = (s) => {
+    const m = s.match(/<thinking\s*>/i);
+    return m ? m.index : -1;
+  };
+  const findCloseIdx = (s) => {
+    const m = s.match(/<\/thinking\s*>/i);
+    return m ? m.index : -1;
+  };
+  const closeTagLen = (s) => {
+    const m = s.match(/<\/thinking\s*>/i);
+    return m ? m[0].length : '</thinking>'.length;
+  };
+  const pushText = (text) => {
+    buf += text;
+    while (buf.length) {
+      if (!inThink) {
+        const open = findOpenIdx(buf);
+        if (open === -1) {
+          
+          
+          accContent += buf;
+          pending.push({ type: 'content_delta', text: buf });
+          buf = '';
+          break;
+        }
+        const head = buf.slice(0, open);
+        if (head) {
+          accContent += head;
+          pending.push({ type: 'content_delta', text: head });
+        }
+        buf = buf.slice(open);
+        inThink = true;
+      } else {
+        const close = findCloseIdx(buf);
+        if (close === -1) {
+          thinkAcc += buf;
+          buf = '';
+          break;
+        }
+        thinkAcc += buf.slice(0, close);
+        buf = buf.slice(close + closeTagLen(buf));
+        if (thinkAcc.trim()) {
+          accReasoning += thinkAcc;
+          pending.push({ type: 'reasoning', text: thinkAcc });
+        }
+        thinkAcc = '';
+        inThink = false;
+      }
+    }
+  };
+
+  let rawLines = '';
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    rawLines += decoder.decode(value, { stream: true });
+    const lines = rawLines.split('\n');
+    rawLines = lines.pop() || '';
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      const jsonText = trimmed.startsWith('data:') ? trimmed.slice(5).trim() : trimmed;
+      if (!jsonText || jsonText === '[DONE]') continue;
+      let chunk;
+      try {
+        chunk = JSON.parse(jsonText);
+      } catch {
+        continue;
+      }
+      if (chunk.usage) usage = chunk.usage;
+      const choice = chunk.choices && chunk.choices[0];
+      const delta = choice && (choice.delta || choice.message);
+      if (!delta) continue;
+      if (typeof delta.reasoning_content === 'string' && delta.reasoning_content) {
+        accReasoning += delta.reasoning_content;
+        pending.push({ type: 'reasoning', text: delta.reasoning_content });
+      }
+      if (typeof delta.content === 'string' && delta.content) pushText(delta.content);
+      if (Array.isArray(delta.tool_calls) && delta.tool_calls.length) {
+        toolCalls = mergeStreamToolCalls(toolCalls, delta.tool_calls);
+      }
+    }
+    while (pending.length) yield pending.shift();
+  }
+  
+  if (thinkAcc.trim()) {
+    accReasoning += thinkAcc;
+    pending.push({ type: 'reasoning', text: thinkAcc });
+    thinkAcc = '';
+  }
+  while (pending.length) yield pending.shift();
+  yield { type: 'done', content: accContent, reasoning: accReasoning, tool_calls: toolCalls, usage };
+}
+
+function describeToolData(data) {
+  if (!data) return '';
+  if (typeof data !== 'object') return `（${String(data).slice(0, 40)}）`;
+  return `（${Object.keys(data).length} 项字段）`;
+}
+
+function summarizeToolArg(args) {
+  try {
+    const s = JSON.stringify(args === undefined ? {} : args);
+    return s.length > 160 ? `${s.slice(0, 160)}…` : s;
+  } catch {
+    return String(args || '');
+  }
+}
+
+function summarizeToolOutput(exec) {
+  try {
+    const data = exec && exec.ok ? exec.data : null;
+    if (data == null) return '';
+    let s = typeof data === 'string' ? data : JSON.stringify(data);
+    if (!s) return '';
+    if (s.length > 300) s = `${s.slice(0, 300)}…`;
+    return s;
+  } catch {
+    return '';
+  }
+}
+
+function sumUsage(acc, usage) {
+  if (!usage || typeof usage !== 'object') return acc;
+  const get = (k) => {
+    const v = usage[k];
+    return typeof v === 'number' ? v : 0;
+  };
+  acc.prompt += get('prompt_tokens') || get('input_tokens');
+  acc.completion += get('completion_tokens') || get('output_tokens');
+  acc.total += get('total_tokens') || 0;
+  return acc;
+}
+
+
+const AGENT_PERSONA = {
+  warm: {
+    name: '温柔体贴',
+    block:
+      '【当前性格：温柔体贴】用极其温柔、体贴、有耐心的语气说话，轻声细语、语气温馨，多表达关心与鼓励，让用户感到被照顾。规则照旧铁打不动：涉及写操作仍必须先征得用户确认。',
+  },
+  humorous: {
+    name: '幽默风趣',
+    block:
+      '【当前性格：幽默风趣】轻松俏皮、妙语连珠，偶尔开个无伤大雅的小玩笑或打个生动有趣的比方，让对话不枯燥。但玩笑绝不影响准确性与纪律、不冒犯；涉及写操作的确认铁律照旧，一个都不能省。',
+  },
+  professional: {
+    name: '严谨专业',
+    block:
+      '【当前性格：严谨专业】简明扼要、直奔结论，先给答案再给必要依据，用词精准克制，不废话不煽情。写操作确认从无例外，严格按流程执行。',
+  },
+};
+
+
+async function aiAgent(request, env, user) {
+  const enabled = await checkAiEnabled(env);
+  if (!enabled) return jsonResponse(403, null, 'AI 功能已关闭', 403);
+
+  const body = await request.json();
+  
+  const userMessages = (Array.isArray(body.messages) ? body.messages : [])
+    .map((m) => ({ role: m.role === 'system' ? 'user' : m.role, content: String(m.content || '') }))
+    .filter((m) => m.content && (m.role === 'user' || m.role === 'assistant'));
+  if (!userMessages.length) return jsonResponse(400, null, '缺少消息', 400);
+  
+  const sessionMessages = [];
+  const sessionTitle = null;
+
+  const aiSettings = (await getSetting(env, 'ai')) || {};
+  const modelAlias = body.model || aiSettings.model || defaultAiSettings.model;
+  const mode = AGENT_PERSONA[body.mode] ? body.mode : 'warm';
+
+  
+  let skills;
+  try {
+    skills = await ensureSkills(env, request);
+  } catch (e) {
+    skills = { app: () => null };
+  }
+
+  let systemPrompt = await loadPrompt(env, request, 'agent-core');
+  if (!systemPrompt) systemPrompt = DEFAULT_PROMPTS['agent-core'] || '';
+  systemPrompt = `${systemPrompt}\n\n${AGENT_PERSONA[mode].block}\n\n## 当前可用技能清单\n${agentSkillManifest(skills)}\n（需要时用 open_skills 打开技能的完整用法；普通聊天不要使用技能。）`;
+
+  const encoder = new TextEncoder();
+  const maxIters = 8;
+
+  const readable = new ReadableStream({
+    async start(controller) {
+      const send = (type, data) => controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type, data })}\n\n`));
+      try {
+        const custom = isCustomModel(modelAlias)
+          ? await getCustomModelById(env, parseCustomModelId(modelAlias))
+          : null;
+        if (isCustomModel(modelAlias) && (!custom || !custom.enabled)) throw new Error('自定义模型不存在或已禁用');
+        if (!custom && !env.AI) throw new Error('AI 绑定未配置');
+
+        const historyMessages = [...sessionMessages, ...userMessages];
+        
+        
+        const contextMessages = historyMessages
+          .filter((m) =>
+            m.role === 'user'
+              ? m.content !== undefined
+              : m.role === 'tool'
+                ? !!m.tool_call_id
+                : m.content !== undefined || (Array.isArray(m.tool_calls) && m.tool_calls.length)
+          )
+          .map((m) => {
+            const out = { role: m.role };
+            if (m.content !== undefined && m.content !== null) out.content = String(m.content);
+            if (m.role === 'tool' && m.tool_call_id) out.tool_call_id = m.tool_call_id;
+            if (m.role === 'assistant' && Array.isArray(m.tool_calls) && m.tool_calls.length) out.tool_calls = m.tool_calls;
+            return out;
+          });
+        const messages = [
+          
+          ...contextMessages.slice(0, Math.max(0, contextMessages.length - 1)),
+          { role: 'system', content: systemPrompt },
+          ...contextMessages.slice(-1),
+        ];
+        
+        
+        
+        const active = new Set(ALWAYS_ACTIVE_SKILLS.filter((id) => skills[id] && skills[id].visible));
+        let finished = false;
+        
+        let stats = { rounds: 0, tokens: { prompt: 0, completion: 0, total: 0 } };
+
+        for (let it = 0; it < maxIters && !finished; it++) {
+          const webSearchOn = aiSettings.webSearch === true;
+          const tools = [
+            OPEN_SKILLS_TOOL,
+            ...[...active]
+              .map((id) => (skills[id] ? skills[id].toolDef : null))
+              .filter((td) => td && (webSearchOn || (td.function && td.function.name !== 'web_search' && td.function.name !== 'web_fetch'))),
+          ];
+          
+          
+          let turnContent = '';
+          let turnReasoning = '';
+          let turnToolCalls = [];
+          let turnUsage = null;
+          for await (const evt of streamAgentTurn(env, modelAlias, custom, messages, tools)) {
+            if (evt.type === 'content_delta') {
+              
+              send('content_delta', { text: evt.text });
+            } else if (evt.type === 'reasoning') {
+              turnReasoning += evt.text;
+              send('think_delta', { text: evt.text });
+            } else if (evt.type === 'done') {
+              turnContent = evt.content || '';
+              turnReasoning = evt.reasoning || '';
+              turnToolCalls = evt.tool_calls || [];
+              turnUsage = evt.usage || null;
+            }
+          }
+          const content = turnContent.trim();
+          stats.rounds += 1;
+          stats.tokens = sumUsage(stats.tokens, turnUsage);
+
+          const toolCalls = turnToolCalls.map(normalizeToolCall).filter(Boolean);
+
+          if (toolCalls.length) {
+            
+            if (!turnReasoning.trim() && !content) {
+              const fallbackThink =
+                `我准备调用工具${toolCalls.map((tc) => `「${tc.name}」`).join('、')}来完成这一步：` +
+                toolCalls.map((tc) => `${tc.name}(${summarizeToolArg(tc.args)})`).join('；');
+              send('think_delta', { text: fallbackThink });
+            }
+            
+            const assistantMsg = { role: 'assistant', content: null, tool_calls: turnToolCalls };
+            messages.push(assistantMsg);
+          } else {
+            
+            finished = true;
+            break;
+          }
+
+          for (let ci = 0; ci < toolCalls.length; ci++) {
+            const tc = toolCalls[ci];
+            const paramsPreview = summarizeToolArg(tc.args);
+            send('tool_start', { id: tc.id, name: tc.name, params: paramsPreview, idx: ci });
+            let exec;
+            try {
+              exec = await executeAgentSkill(tc.name, tc.args, { env, request, user, send, waitWriteConfirm }, active, skills);
+            } catch (e) {
+              exec = { ok: false, error: e.message || String(e) };
+            }
+            const toolResultMsg = { role: 'tool', tool_call_id: tc.id, content: JSON.stringify(exec) };
+            messages.push(toolResultMsg);
+            const summary = exec && exec.ok ? '完成' + describeToolData(exec.data) : `出错：${exec && exec.error}`;
+            const output = summarizeToolOutput(exec);
+            send('tool_result', {
+              id: tc.id,
+              name: tc.name,
+              ok: !!(exec && exec.ok),
+              summary,
+              output,
+              idx: ci,
+            });
+          }
+        }
+
+        if (!finished) send('error', { message: '已超过最大步骤数，请精简描述后重试' });
+        send('stats', { rounds: stats.rounds, tokens: stats.tokens });
+        
+        send('done', {});
+      } catch (err) {
+        console.error('agent error:', err);
+        send('error', { message: err.message || String(err) });
+        send('done', {});
       } finally {
         controller.close();
       }
@@ -5504,7 +7614,7 @@ async function openaiChatCompletions(request, env) {
   const parsedMaxTokens = parseInt(body.max_tokens, 10);
   const maxTokens = Number.isNaN(parsedMaxTokens)
     ? defaultAiSettings.maxTokens
-    : Math.min(8192, Math.max(256, parsedMaxTokens));
+    : Math.min(65536, Math.max(256, parsedMaxTokens));
 
   const options = { messages, temperature, max_tokens: maxTokens };
 
@@ -6023,6 +8133,7 @@ export default {
       if (method === 'GET' && path === '/api/v1/settings/interaction') return await getInteractionSettings(request, env);
       if (method === 'GET' && path === '/api/v1/settings/message-wall') return await getMessageWallSettings(request, env);
       if (method === 'GET' && path === '/api/v1/settings/chat') return await getChatSettings(request, env);
+      if (method === 'GET' && path === '/api/v1/settings/agent') return await getAgentSettings(request, env);
 
       
       if (method === 'GET' && path === '/api/v1/chat/my-rooms') return await requireAuth(request, env, listMyChatRooms);
@@ -6135,6 +8246,15 @@ export default {
       if (method === 'POST' && path === '/api/v1/admin/ai/format') return await requireAdmin(request, env, aiFormatOptimize);
       if (method === 'POST' && path === '/api/v1/admin/ai/summary') return await requireAdmin(request, env, aiGenerateSummary);
       if (method === 'POST' && path === '/api/v1/admin/ai/chat') return await requireAdmin(request, env, aiChat);
+      if (method === 'POST' && path === '/api/v1/admin/ai/agent') return await requireAdmin(request, env, aiAgent);
+      
+      if (method === 'POST' && path === '/api/v1/admin/ai/agent/confirm') return await requireAdmin(request, env, confirmWriteAction);
+      
+      if (method === 'POST' && path === '/api/v1/admin/ai/agent/undo') return await requireAdmin(request, env, undoAgentWrite);
+      
+      if (method === 'GET' && path === '/api/v1/admin/ai/agent/undo/list') return await requireSuperAdmin(request, env, listUndoLogs);
+      if (method === 'POST' && path.match(/^\/api\/v1\/admin\/ai\/agent\/undo\/[^/]+$/)) return await requireSuperAdmin(request, env, undoAgentWriteAdmin);
+      if (method === 'DELETE' && path.match(/^\/api\/v1\/admin\/ai\/agent\/undo\/[^/]+$/)) return await requireSuperAdmin(request, env, deleteUndoLog);
       if (method === 'GET' && path === '/api/v1/admin/ai/keys') return await requireSuperAdmin(request, env, listAiApiKeys);
       if (method === 'POST' && path === '/api/v1/admin/ai/keys') return await requireSuperAdmin(request, env, createAiApiKey);
       if (method === 'DELETE' && path.match(/^\/api\/v1\/admin\/ai\/keys\/\d+$/)) return await requireSuperAdmin(request, env, deleteAiApiKey);

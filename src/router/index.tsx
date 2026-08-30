@@ -41,6 +41,8 @@ const MusicPage = lazy(() => import('@/pages/Music').then((m) => ({ default: m.M
 const MessageWall = lazy(() => import('@/pages/MessageWall').then((m) => ({ default: m.default })));
 const Chat = lazy(() => import('@/pages/Chat').then((m) => ({ default: m.default })));
 const ChatRoom = lazy(() => import('@/pages/ChatRoom').then((m) => ({ default: m.default })));
+const Agent = lazy(() => import('@/pages/Agent').then((m) => ({ default: m.default })));
+const AgentChat = lazy(() => import('@/pages/AgentChat').then((m) => ({ default: m.default })));
 
 function SuspensePage({ children }: { children: React.ReactNode }) {
   return <Suspense fallback={<PageLoading />}>{children}</Suspense>;
@@ -185,6 +187,8 @@ export const router = createBrowserRouter([
 
       { path: 'chat/:roomKey', element: <SuspensePage><ChatRoom /></SuspensePage> },
 
+      { path: 'agent', element: <RequireAuth><SuspensePage><Agent /></SuspensePage></RequireAuth> },
+      { path: 'agent/:dialogId', element: <RequireAuth><SuspensePage><AgentChat /></SuspensePage></RequireAuth> },
       { path: 'agreement', element: <SuspensePage><Terms /></SuspensePage> },
 
       { path: 'privacy', element: <SuspensePage><Terms /></SuspensePage> },

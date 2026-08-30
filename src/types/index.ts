@@ -263,6 +263,8 @@ export interface SiteConfig {
   enableLatex?: boolean;
   disableSmoothScroll?: boolean;
   
+  agentEnabled?: boolean;
+  
   imageDisplayMode?: 'fixed' | 'natural';
   
   enableDashboardStats?: boolean;

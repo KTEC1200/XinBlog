@@ -107,3 +107,14 @@ CREATE INDEX IF NOT EXISTS idx_message_wall_user ON message_wall(user_id);
 
 INSERT OR IGNORE INTO settings (key, value, updated_at) VALUES
 ('message_wall', '{"enabled":false,"allowAnonymous":true,"auditEnabled":false,"defaultStyle":"danmaku"}', datetime('now'));
+
+CREATE TABLE IF NOT EXISTS ai_undo_log (
+  id TEXT PRIMARY KEY,
+  skill TEXT NOT NULL,
+  args TEXT NOT NULL DEFAULT '{}',
+  before_data TEXT,
+  after_data TEXT,
+  operator TEXT,
+  created_at TEXT NOT NULL,
+  used_at TEXT
+);

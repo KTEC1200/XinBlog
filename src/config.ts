@@ -9,7 +9,7 @@ export function toAbsoluteCloudUrl(relative: string): string {
 }
 
 
-export const APP_VERSION = import.meta.env.VITE_APP_VERSION || '0.4.8';
+export const APP_VERSION = import.meta.env.VITE_APP_VERSION || '0.5.6';
 export const SITE_NAME = import.meta.env.VITE_SITE_NAME || 'XinBlog';
 export const SITE_HOMEPAGE_URL = import.meta.env.VITE_SITE_URL || 'https://xinblog.zhyhome.top';
 
