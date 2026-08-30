@@ -7,7 +7,7 @@ function cleanOldAssets(): Plugin {
     name: 'clean-old-assets',
     async writeBundle(_options, bundle) {
       const fs = await import('fs/promises')
-      const outDir = path.resolve(__dirname, '../deploy')
+      const outDir = path.resolve(__dirname, '../dist')
       const assetsDir = path.join(outDir, 'assets')
       const emitted = new Set<string>(Object.keys(bundle))
       const files = await fs.readdir(assetsDir).catch(() => [] as string[])
@@ -34,7 +34,7 @@ export default defineConfig({
     host: true,
   },
   build: {
-    outDir: '../deploy',
+    outDir: '../dist',
     emptyOutDir: false,
   },
 })
