@@ -12,7 +12,7 @@ interface DarkParams extends Record<string, unknown> {
   otherSharpCorner: BubbleCorners;
 }
 
-
+/** 酷黑白夜：近黑实底 + 白字，高对比夜聊反转风 */
 export const darkBubbleRenderer: ChatBubbleRenderer<DarkParams> = {
   id: 'dark',
   name: '酷黑',

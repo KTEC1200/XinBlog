@@ -1,6 +1,9 @@
 import type { ThemePackage } from '@/types';
 
-
+/**
+ * 内置场景主题包。
+ * 渲染器由 src/themes/scene/renderers 提供。
+ */
 export const BUILTIN_SCENE_THEMES: ThemePackage[] = [
   {
     id: 'sakura-morning',

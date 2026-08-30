@@ -144,6 +144,5 @@ export function LazyImage({
         />
       )}
     </Box>
-
   );
 }

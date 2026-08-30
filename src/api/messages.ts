@@ -30,7 +30,7 @@ function writeLocalCache(data: MessageWallSettings) {
   try {
     localStorage.setItem(MESSAGE_WALL_CACHE_KEY, JSON.stringify({ data, ts: Date.now() }));
   } catch {
-    
+    // ignore
   }
 }
 
@@ -39,7 +39,7 @@ function clearLocalCache() {
   try {
     localStorage.removeItem(MESSAGE_WALL_CACHE_KEY);
   } catch {
-    
+    // ignore
   }
 }
 

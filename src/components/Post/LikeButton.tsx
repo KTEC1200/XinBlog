@@ -135,7 +135,6 @@ export default function LikeButton({ slug }: LikeButtonProps) {
           }}
         />
       </Box>
-
       <Typography
         component="span"
         variant="body2"
@@ -147,7 +146,6 @@ export default function LikeButton({ slug }: LikeButtonProps) {
       >
         {status.count}
       </Typography>
-
       <Typography
         component="span"
         variant="body2"
@@ -159,8 +157,6 @@ export default function LikeButton({ slug }: LikeButtonProps) {
       >
         {loading ? '点赞中' : '赞'}
       </Typography>
-
     </Button>
-
   );
 }

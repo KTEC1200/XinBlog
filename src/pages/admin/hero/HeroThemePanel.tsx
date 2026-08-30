@@ -123,17 +123,14 @@ function ThemePreviewThumb({ bento }: { bento?: boolean }) {
           <rect x="8" y="32" width="24" height="20" rx="4" fill={fill} opacity={0.14} />
           <rect x="36" y="32" width="36" height="20" rx="4" fill={fill} opacity={0.2} />
         </>
-
       ) : (
         <>
           <rect x="12" y="16" width="56" height="8" rx="4" fill="currentColor" opacity={0.2} />
           <rect x="20" y="30" width="40" height="6" rx="3" fill="currentColor" opacity={0.12} />
           <rect x="28" y="42" width="24" height="6" rx="3" fill="currentColor" opacity={0.12} />
         </>
-
       )}
     </svg>
-
   );
 }
 
@@ -155,7 +152,7 @@ export function HeroThemePanel() {
     widget: null,
   });
 
-  
+  // 参考 ThemeSettings 文章卡片面板：只在挂载时加载一次配置，避免保存时的乐观更新触发状态重置导致保存按钮消失。
   useEffect(() => {
     let mounted = true;
     const load = async () => {
@@ -173,7 +170,7 @@ export function HeroThemePanel() {
     return () => {
       mounted = false;
     };
-    
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const savedHero = useMemo(() => site.config.hero || {}, [site.config.hero]);
@@ -298,7 +295,7 @@ export function HeroThemePanel() {
       setCachedSiteConfig(optimistic);
       const ok = await site.saveConfig({ hero: nextHero });
       if (!ok) throw new Error('英雄区主题保存失败');
-      
+      // 保存成功后对齐原始快照，确保 isDirty 立即归零、悬浮保存按钮隐藏。
       setOriginalSnapshot(JSON.parse(JSON.stringify(nextHero)));
       enqueueSnackbar('英雄区主题已保存', { variant: 'success' });
     } catch (err) {
@@ -331,7 +328,6 @@ export function HeroThemePanel() {
           <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
             英雄区主题
           </Typography>
-
           <Grid container spacing={2}>
             <Grid item xs={12} sm={6} md={4} sx={{ display: 'flex' }}>
               <Paper
@@ -354,18 +350,14 @@ export function HeroThemePanel() {
                 <Box sx={{ width: 80, height: 60, flexShrink: 0, mb: 1.5, color: 'text.primary' }}>
                   <ThemePreviewThumb />
                 </Box>
-
                 <Box sx={{ flex: 1, minWidth: 0 }}>
                   <Typography variant="subtitle2" fontWeight={700}>
                     默认主题
                   </Typography>
-
                   <Typography variant="caption" color="text.secondary" sx={{ wordBreak: 'break-word', whiteSpace: 'normal' }}>
                     经典英雄区，显示标题、副标题和搜索
                   </Typography>
-
                 </Box>
-
                 <Box sx={{ mt: 1.5 }}>
                   <Button
                     variant={pendingMode === 'classic' ? 'outlined' : 'contained'}
@@ -377,13 +369,9 @@ export function HeroThemePanel() {
                   >
                     {pendingMode === 'classic' ? '已选中' : '恢复默认'}
                   </Button>
-
                 </Box>
-
               </Paper>
-
             </Grid>
-
             <Grid item xs={12} sm={6} md={4} sx={{ display: 'flex' }}>
               <Paper
                 elevation={0}
@@ -422,22 +410,17 @@ export function HeroThemePanel() {
                 >
                   测试功能
                 </Box>
-
                 <Box sx={{ width: 80, height: 60, flexShrink: 0, mb: 1.5, color: 'text.primary' }}>
                   <ThemePreviewThumb bento />
                 </Box>
-
                 <Box sx={{ flex: 1, minWidth: 0 }}>
                   <Typography variant="subtitle2" fontWeight={700}>
                     自定义多功能
                   </Typography>
-
                   <Typography variant="caption" color="text.secondary" sx={{ wordBreak: 'break-word', whiteSpace: 'normal' }}>
                     像拼积木一样自由组合个人介绍、时间、图片等组件
                   </Typography>
-
                 </Box>
-
                 <Box sx={{ mt: 1.5 }}>
                   <Button
                     variant={pendingMode === 'bento' ? 'outlined' : 'contained'}
@@ -449,17 +432,11 @@ export function HeroThemePanel() {
                   >
                     {pendingMode === 'bento' ? '已选中' : '应用'}
                   </Button>
-
                 </Box>
-
               </Paper>
-
             </Grid>
-
           </Grid>
-
         </Paper>
-
 
         {pendingMode === 'bento' && (
           <Fade in timeout={400}>
@@ -478,11 +455,9 @@ export function HeroThemePanel() {
                 <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
                   组件库
                 </Typography>
-
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                   点击卡片即可添加组件；每个组件尺寸已按类型预设，在下方预览区直接拖拽调整位置。
                 </Typography>
-
                 <Box
                   sx={{
                     display: 'grid',
@@ -535,12 +510,10 @@ export function HeroThemePanel() {
                         >
                           {Icon ? <Icon sx={{ fontSize: 26 }} /> : <Add sx={{ fontSize: 26 }} />}
                         </Box>
-
                         <Box sx={{ textAlign: 'center' }}>
                           <Typography variant="body2" fontWeight={700}>
                             {def.name}
                           </Typography>
-
                           <Typography
                             variant="caption"
                             color="text.secondary"
@@ -553,9 +526,7 @@ export function HeroThemePanel() {
                           >
                             {def.description}
                           </Typography>
-
                         </Box>
-
                         <Box
                           sx={{
                             position: 'absolute',
@@ -575,15 +546,11 @@ export function HeroThemePanel() {
                         >
                           <Add sx={{ fontSize: 14 }} />
                         </Box>
-
                       </Box>
-
                     );
                   })}
                 </Box>
-
               </Paper>
-
 
               <Paper
                 elevation={0}
@@ -600,15 +567,12 @@ export function HeroThemePanel() {
                   <Typography variant="h6" sx={{ fontWeight: 700 }}>
                     实时预览
                   </Typography>
-
                   {hasCollisions && (
                     <Typography variant="caption" color="error" fontWeight={600}>
                       检测到组件重叠，保存前请调整布局
                     </Typography>
-
                   )}
                 </Box>
-
                 <Box sx={{ borderRadius: 1, overflow: 'hidden' }}>
                   <HeroBento
                     hero={previewHero}
@@ -618,13 +582,9 @@ export function HeroThemePanel() {
                     onDelete={handleDelete}
                   />
                 </Box>
-
               </Paper>
-
             </Stack>
-
           </Fade>
-
         )}
 
         <FloatingSaveButton show={isDirty} saving={saving} onClick={handleSave} label="保存英雄区主题" />
@@ -640,7 +600,6 @@ export function HeroThemePanel() {
           PaperProps={{ sx: { borderRadius: { xs: 2, sm: '12px' } } }}
         >
           <DialogTitle sx={{ fontWeight: 700 }}>编辑组件</DialogTitle>
-
           <DialogContent>
             {editingWidget && (
               <Stack spacing={3} sx={{ mt: 0.5 }}>
@@ -661,7 +620,6 @@ export function HeroThemePanel() {
                   return (
                     <FormControl fullWidth>
                       <InputLabel id="widget-size-label">组件尺寸</InputLabel>
-
                       <Select
                         labelId="widget-size-label"
                         value={current ? `${current.w}x${current.h}` : `${def.sizes[0].w}x${def.sizes[0].h}`}
@@ -677,12 +635,9 @@ export function HeroThemePanel() {
                           <MenuItem key={`${s.w}x${s.h}`} value={`${s.w}x${s.h}`}>
                             {s.label || `${s.w} × ${s.h}`}
                           </MenuItem>
-
                         ))}
                       </Select>
-
                     </FormControl>
-
                   );
                 })()}
 
@@ -706,7 +661,6 @@ export function HeroThemePanel() {
                     return (
                       <FormControl key={schema.key} fullWidth>
                         <InputLabel id={`prop-${schema.key}-label`}>{schema.label}</InputLabel>
-
                         <Select
                           labelId={`prop-${schema.key}-label`}
                           value={String(value ?? '')}
@@ -717,12 +671,9 @@ export function HeroThemePanel() {
                             <MenuItem key={opt.value} value={opt.value}>
                               {opt.label}
                             </MenuItem>
-
                           ))}
                         </Select>
-
                       </FormControl>
-
                     );
                   }
                   if (schema.type === 'number') {
@@ -732,7 +683,6 @@ export function HeroThemePanel() {
                         <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
                           {schema.label}：{numeric.toFixed(2)}
                         </Typography>
-
                         <Slider
                           value={numeric}
                           onChange={(_, v) => setEditProps((p) => ({ ...p, [schema.key]: v as number }))}
@@ -742,7 +692,6 @@ export function HeroThemePanel() {
                           valueLabelDisplay="auto"
                         />
                       </Box>
-
                     );
                   }
                   return (
@@ -757,23 +706,17 @@ export function HeroThemePanel() {
                   );
                 })}
               </Stack>
-
             )}
           </DialogContent>
-
           <DialogActions sx={{ px: 3, pb: 2 }}>
             <Button onClick={() => setEditOpen(false)} color="inherit">
               取消
             </Button>
-
             <Button onClick={handleSaveEdit} variant="contained" startIcon={<Save />}>
               保存
             </Button>
-
           </DialogActions>
-
         </Dialog>
-
 
         <ConfirmDialog
           open={deleteDialog.open}
@@ -785,8 +728,6 @@ export function HeroThemePanel() {
           onConfirm={confirmDelete}
         />
       </Stack>
-
     </Fade>
-
   );
 }

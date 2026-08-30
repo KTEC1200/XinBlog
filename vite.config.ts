@@ -21,7 +21,7 @@ function cleanOldAssets(): Plugin {
   }
 }
 
-
+// https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), cleanOldAssets()],
   resolve: {

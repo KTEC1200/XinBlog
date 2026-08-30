@@ -79,7 +79,6 @@ export function AdvancedSettings() {
         高级设置
       </Typography>
 
-
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         <FormControlLabel
           control={
@@ -93,7 +92,6 @@ export function AdvancedSettings() {
         <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: 'break-word' }}>
           开启后，大于 500KB 的大图片（文章封面、正文图片、主页背景、Logo 等）将在页面主要文字内容加载完成后，再按需要分批加载。这样可以加快首屏渲染速度，提升浏览体验；但图片请求会更多，可能多消耗 Worker 请求额度。媒体资源仍会通过浏览器缓存机制被缓存，重复访问时不会重复下载。
         </Typography>
-
         <FormControlLabel
           control={
             <Switch
@@ -106,7 +104,6 @@ export function AdvancedSettings() {
         <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: 'break-word' }}>
           启用后，文章中的 <code>$...$</code> 和 <code>$$...$$</code> 语法将被渲染为数学公式。开启会增加约 50KB 的页面加载量。如果不需要写公式，建议保持关闭。
         </Typography>
-
         <FormControlLabel
           control={
             <Switch
@@ -119,7 +116,6 @@ export function AdvancedSettings() {
         <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: 'break-word' }}>
           关闭平滑滚动，页面将回退到浏览器原生滚动行为。当平滑滚动导致页面内部某些滚动区域无法正常使用（如目录、评论区或横向滚动容器）时，可开启此项解决。
         </Typography>
-
         <FormControlLabel
           control={
             <Switch
@@ -132,7 +128,6 @@ export function AdvancedSettings() {
         <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: 'break-word' }}>
           开启后，文章正文图片按自身真实比例渲染，和原图长相一致，长条图不会被收窄或留大片空白。但图片区域高度不再固定，目录锚点定位可能不精准。关闭则每张图片占用固定区域（默认 4:3），目录定位稳定。
         </Typography>
-
         <FormControlLabel
           control={
             <Switch
@@ -145,14 +140,10 @@ export function AdvancedSettings() {
         <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: 'break-word' }}>
           开启后，站点概览页会显示「内容趋势」折线统计（新增文章 / 评论 / 点赞 / 注册 / 媒体 的逐日变化）与总阅读量。管理员打开概览页时才会计算，对访客无任何影响。不需要的话可以关闭以隐藏该面板。
         </Typography>
-
       </Box>
-
 
       <FloatingSaveButton show={isDirty} saving={saving} onClick={handleSave} label="保存设置" />
     </Paper>
-
     </Fade>
-
   );
 }

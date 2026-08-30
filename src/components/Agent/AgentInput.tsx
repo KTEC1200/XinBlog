@@ -79,7 +79,7 @@ export default function AgentInput({ disabled, onSend, modelOptions, selectedMod
         borderColor: (t) => alpha(t.palette.divider, 0.8),
       }}
     >
-      {}
+      {/* 模型选择行（对齐 dsh-edge composer 的模型选择器） */}
       {modelOptions && modelOptions.length > 0 && (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.25 }}>
           <SmartToyIcon sx={{ fontSize: 14, color: 'text.disabled', flexShrink: 0 }} />
@@ -113,19 +113,14 @@ export default function AgentInput({ disabled, onSend, modelOptions, selectedMod
                   <Box component="span" sx={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {o.name || o.id}
                   </Box>
-
                 </Tooltip>
-
               </MenuItem>
-
             ))}
           </Select>
-
           <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.72rem' }}>
             选择本次对话使用的模型
           </Typography>
-
-          {}
+          {/* 自动折叠思考开关：开启后新生成的深度思考默认折叠、工具参数返回默认不展开 */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, ml: 'auto', flexShrink: 0 }}>
             <Switch
               size="small"
@@ -136,11 +131,8 @@ export default function AgentInput({ disabled, onSend, modelOptions, selectedMod
             <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.72rem', userSelect: 'none' }}>
               自动折叠思考
             </Typography>
-
           </Box>
-
         </Box>
-
       )}
 
       <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 1 }}>
@@ -187,7 +179,6 @@ export default function AgentInput({ disabled, onSend, modelOptions, selectedMod
         >
           <SendIcon sx={{ fontSize: 22 }} />
         </IconButton>
-
         <IconButton
           color={open ? 'primary' : 'default'}
           disabled={disabled}
@@ -206,9 +197,7 @@ export default function AgentInput({ disabled, onSend, modelOptions, selectedMod
         >
           <AddCircleOutlineIcon sx={{ fontSize: 26 }} />
         </IconButton>
-
       </Box>
-
 
       <Box
         sx={{
@@ -262,15 +251,11 @@ export default function AgentInput({ disabled, onSend, modelOptions, selectedMod
                 >
                   <SentimentSatisfiedAltIcon sx={{ fontSize: 28 }} />
                 </Box>
-
                 <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                   表情
                 </Typography>
-
               </Box>
-
             </Box>
-
           )}
 
           {(open || panelHeight > 0) && activeView === 'emoji' && (
@@ -279,28 +264,19 @@ export default function AgentInput({ disabled, onSend, modelOptions, selectedMod
                 <IconButton size="small" onClick={() => setActiveView('menu')} aria-label="返回菜单">
                   <ArrowBackIcon sx={{ fontSize: 20 }} />
                 </IconButton>
-
                 <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
                   表情
                 </Typography>
-
               </Box>
-
               <Suspense fallback={<Box sx={{ height: 240, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Typography variant="caption" color="text.secondary">加载中…</Typography></Box>}>
                 <Box sx={{ p: 0.5 }}>
                   <EmojiPicker onEmoji={insertEmoji} />
                 </Box>
-
               </Suspense>
-
             </Box>
-
           )}
         </Box>
-
       </Box>
-
     </Box>
-
   );
 }

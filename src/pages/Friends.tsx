@@ -99,10 +99,9 @@ function ApplyFriendDialog({ open, needsAudit, onClose, onSubmitted }: {
     <Dialog open={open} onClose={() => !submitting && onClose()} maxWidth="sm" fullWidth TransitionComponent={Zoom} BackdropProps={{ 'aria-hidden': false }}>
       <form onSubmit={handleSubmit}>
         <DialogTitle>申请友链</DialogTitle>
-
         <DialogContent>
           <Stack spacing={3} sx={{ mt: 0.5 }}>
-            {}
+            {/* 头像 */}
             <Stack direction="row" spacing={2} alignItems="center">
               {avatar ? (
                 <Avatar src={avatar} variant="rounded" sx={{ width: 56, height: 56 }} />
@@ -112,9 +111,7 @@ function ApplyFriendDialog({ open, needsAudit, onClose, onSubmitted }: {
                     <CloudUpload fontSize="small" />
                     <input type="file" accept="image/*" style={{ position: 'absolute', width: 1, height: 1, padding: 0, margin: -1, overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap', border: 0 }} onChange={(e) => { handleAvatarUpload(e.target.files?.[0]); e.target.value = ''; }} />
                   </IconButton>
-
                 </Avatar>
-
               )}
               <Box>
                 <Stack direction="row" spacing={1}>
@@ -122,23 +119,17 @@ function ApplyFriendDialog({ open, needsAudit, onClose, onSubmitted }: {
                     上传头像
                     <input type="file" accept="image/*" style={{ position: 'absolute', width: 1, height: 1, padding: 0, margin: -1, overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap', border: 0 }} onChange={(e) => { handleAvatarUpload(e.target.files?.[0]); e.target.value = ''; }} />
                   </Button>
-
                   {avatar && (
                     <IconButton size="small" color="inherit" onClick={() => setAvatar('')} disabled={avatarUploading} aria-label="清除头像">
                       <Delete fontSize="small" />
                     </IconButton>
-
                   )}
                 </Stack>
-
                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
                   选填，建议正方形图片，30KB 以内自动压缩
                 </Typography>
-
               </Box>
-
             </Stack>
-
             <TextField label="站点名称" value={name} onChange={(e) => setName(e.target.value)} fullWidth required placeholder="你的站点名称" />
             <TextField
               label="站点链接"
@@ -160,22 +151,15 @@ function ApplyFriendDialog({ open, needsAudit, onClose, onSubmitted }: {
               helperText="用于通过审核或需要确认时的联系方式，不会公开展示"
             />
           </Stack>
-
         </DialogContent>
-
         <DialogActions sx={{ px: 3, pb: 2, justifyContent: 'flex-end' }}>
           <Button onClick={onClose} color="inherit" disabled={submitting}>取消</Button>
-
           <Button type="submit" variant="contained" startIcon={submitting ? <CircularProgress size={16} color="inherit" /> : <Add />} disabled={submitting}>
             {submitting ? '提交中...' : '提交申请'}
           </Button>
-
         </DialogActions>
-
       </form>
-
     </Dialog>
-
   );
 }
 
@@ -204,24 +188,21 @@ function MyApplicationsDialog({ open, onClose }: { open: boolean; onClose: () =>
         setLoading(false);
       }
     })();
-    
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth TransitionComponent={Zoom}>
       <DialogTitle>我的友链申请</DialogTitle>
-
       <DialogContent>
         {loading && apps.length === 0 ? (
           <Box sx={{ textAlign: 'center', py: 4 }}>
             <CircularProgress size={28} />
           </Box>
-
         ) : apps.length === 0 ? (
           <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
             暂无申请记录
           </Typography>
-
         ) : (
           <Stack spacing={1.5}>
             {apps.map((a) => (
@@ -230,7 +211,6 @@ function MyApplicationsDialog({ open, onClose }: { open: boolean; onClose: () =>
                   <Typography variant="body2" sx={{ fontWeight: 600 }}>
                     {a.name}
                   </Typography>
-
                   <Typography
                     variant="body2"
                     sx={{
@@ -241,37 +221,26 @@ function MyApplicationsDialog({ open, onClose }: { open: boolean; onClose: () =>
                   >
                     {a.status === 'approved' ? '已通过' : a.status === 'rejected' ? '已驳回' : '待审核'}
                   </Typography>
-
                 </Stack>
-
                 <Typography variant="caption" color="text.secondary">
                   {a.url}
                 </Typography>
-
                 {a.status === 'rejected' && (
                   <Box sx={{ mt: 1, p: 1, bgcolor: 'action.hover', borderRadius: 1 }}>
                     <Typography variant="caption" color="error.main">
                       {a.remark ? `驳回原因：${a.remark}` : '您的申请已被驳回'}
                     </Typography>
-
                   </Box>
-
                 )}
               </Box>
-
             ))}
           </Stack>
-
         )}
       </DialogContent>
-
       <DialogActions>
         <Button onClick={onClose}>关闭</Button>
-
       </DialogActions>
-
     </Dialog>
-
   );
 }
 
@@ -338,7 +307,6 @@ function FriendCard({ friend, config }: { friend: FriendLink; config: FriendsCon
             style={{ width: '100%', height: '100%', borderRadius: 'inherit' }}
           />
         </Box>
-
       ) : (
         <Box
           sx={{
@@ -358,7 +326,6 @@ function FriendCard({ friend, config }: { friend: FriendLink; config: FriendsCon
         >
           {friend.name.charAt(0)}
         </Box>
-
       )}
 
       <Box sx={{ flex: 1, minWidth: 0, width: '100%' }}>
@@ -374,7 +341,6 @@ function FriendCard({ friend, config }: { friend: FriendLink; config: FriendsCon
           >
             {friend.name}
           </Typography>
-
           <LinkIcon
             fontSize="small"
             sx={{
@@ -385,7 +351,6 @@ function FriendCard({ friend, config }: { friend: FriendLink; config: FriendsCon
             }}
           />
         </Box>
-
         {config.showDescription && friend.description && (
           <Typography
             variant="body2"
@@ -401,7 +366,6 @@ function FriendCard({ friend, config }: { friend: FriendLink; config: FriendsCon
           >
             {friend.description}
           </Typography>
-
         )}
         <Typography
           variant="caption"
@@ -415,13 +379,9 @@ function FriendCard({ friend, config }: { friend: FriendLink; config: FriendsCon
         >
           {getHostName(friend.url)}
         </Typography>
-
       </Box>
-
       </CardActionArea>
-
     </Card>
-
   );
 }
 
@@ -496,7 +456,6 @@ export function Friends() {
           >
             {friendsConfig?.title || '友链'}
           </Typography>
-
           {friendsConfig?.subtitle && (
             <Typography
               variant="h6"
@@ -509,10 +468,8 @@ export function Friends() {
             >
               {friendsConfig.subtitle}
             </Typography>
-
           )}
         </Paper>
-
 
         {!friendsConfig?.enabled ? (
           <Paper
@@ -532,23 +489,18 @@ export function Friends() {
             <Typography variant="h6" sx={{ fontWeight: 600, mb: 1, color: 'text.primary' }}>
               友链功能暂未开启
             </Typography>
-
             <Typography variant="body2" color="text.secondary">
               站长正在整理有趣的站点，稍后再来看看吧～
             </Typography>
-
           </Paper>
-
         ) : loading ? (
           <Grid container spacing={{ xs: 2, md: 3 }}>
             {Array.from({ length: 6 }).map((_, index) => (
               <Grid item xs={12} sm={6} md={4} key={index}>
                 <Skeleton variant="rectangular" height={180} sx={{ borderRadius: 1 }} />
               </Grid>
-
             ))}
           </Grid>
-
         ) : (
           <Fade in timeout={400}>
             <Box>
@@ -570,27 +522,20 @@ export function Friends() {
                   <Typography variant="body2" color="text.secondary">
                     暂无友链
                   </Typography>
-
                 </Paper>
-
               ) : (
                 <Grid container spacing={{ xs: 2, md: 3 }}>
                   {friends.map((friend) => (
                     <Grid item xs={12} sm={6} md={4} key={friend.id}>
                       <FriendCard friend={friend} config={friendsConfig} />
                     </Grid>
-
                   ))}
                 </Grid>
-
               )}
             </Box>
-
           </Fade>
-
         )}
       </Container>
-
 
       {friendsConfig?.applyEnabled && (
         <Stack
@@ -612,7 +557,6 @@ export function Friends() {
             >
               我的申请
             </Button>
-
           )}
           <Fab
             color="primary"
@@ -626,9 +570,7 @@ export function Friends() {
           >
             <Add />
           </Fab>
-
         </Stack>
-
       )}
       {friendsConfig?.applyEnabled && (
         <ApplyFriendDialog
@@ -645,8 +587,6 @@ export function Friends() {
       )}
       <MyApplicationsDialog open={myAppsOpen} onClose={() => setMyAppsOpen(false)} />
     </Box>
-
     </Fade>
-
   );
 }

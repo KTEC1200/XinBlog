@@ -76,11 +76,11 @@ function isMobileScreen() {
 const LOCAL_MODEL_PATH = '/live2d-models/';
 
 async function resolveCdnPath(modelSource: 'local' | 'cdn', customCdn?: string): Promise<string> {
-  
+  // 自定义 CDN 优先；未配置时使用官方 CDN 作为默认/兜底来源
   const fallback = customCdn?.trim() || OFFICIAL_CDN;
-  
+  // 用户选择从官方/自定义 CDN 加载时直接返回
   if (modelSource === 'cdn') return fallback;
-  
+  // 本地模式：先检测本地模型是否存在，缺失再回退到 CDN
   try {
     const res = await fetch(`${LOCAL_MODEL_PATH}model_list.json`, {
       method: 'HEAD',
@@ -88,7 +88,7 @@ async function resolveCdnPath(modelSource: 'local' | 'cdn', customCdn?: string):
     });
     if (res.ok) return LOCAL_MODEL_PATH;
   } catch {
-    
+    // ignore
   }
   return fallback;
 }
@@ -256,7 +256,7 @@ export function Live2DWidget() {
           }
         }, INIT_CHECK_INTERVAL);
       } catch {
-        
+        // 静态资源加载失败时静默失败，不影响页面主体功能
       }
     };
 

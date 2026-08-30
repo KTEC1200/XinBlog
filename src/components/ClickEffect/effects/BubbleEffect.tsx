@@ -8,16 +8,16 @@ interface Bubble {
   y: number;
   r: number;
   color: string;
-  
+  /** 出生时间戳（ms），用于时间驱动的动画 */
   born: number;
-  
+  /** 总寿命（ms），所有设备上动画时长一致 */
   lifetime: number;
-  
+  /** 上升速度（px/ms） */
   vy: number;
-  
+  /** 水平漂移速度（px/ms） */
   vx: number;
   wobble: number;
-  
+  /** 摆动角速度（rad/ms） */
   wobbleSpeed: number;
 }
 
@@ -71,7 +71,7 @@ export function BubbleEffect({ config, themeColor }: { config: ClickEffectConfig
     };
 
     const animate = (now: number) => {
-      
+      // 时间驱动：用真实时间差计算，避免高刷新率/低帧率下动画快慢不一
       const dt = Math.min(now - last, 50);
       last = now;
       ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
@@ -83,25 +83,25 @@ export function BubbleEffect({ config, themeColor }: { config: ClickEffectConfig
         b.x += (Math.sin(b.wobble) * 0.05 + b.vx) * dt;
         b.wobble += b.wobbleSpeed * dt;
 
-        
+        // 缓出曲线：尾部平滑趋近 0，气泡完全透明后才移除，避免"突然显示/消失"
         const fade = 1 - Math.pow(1 - progress, 3);
         const alpha = Math.max(0, 0.8 * (1 - fade));
 
         ctx.save();
-        
+        // 气泡描边
         ctx.globalAlpha = alpha;
         ctx.strokeStyle = b.color;
         ctx.lineWidth = 1.5;
         ctx.beginPath();
         ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
         ctx.stroke();
-        
+        // 内层半透明填充，让气泡更柔和、淡出更自然
         ctx.globalAlpha = alpha * 0.12;
         ctx.fillStyle = b.color;
         ctx.beginPath();
         ctx.arc(b.x, b.y, b.r * 0.85, 0, Math.PI * 2);
         ctx.fill();
-        
+        // 高光点
         ctx.globalAlpha = alpha;
         ctx.beginPath();
         ctx.arc(b.x - b.r * 0.3, b.y - b.r * 0.3, b.r * 0.2, 0, Math.PI * 2);

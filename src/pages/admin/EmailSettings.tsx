@@ -59,7 +59,7 @@ export function EmailSettings() {
     setSaving(true);
     const ok = await updateEmailSettings(settings);
     if (ok) {
-      
+      // 保存成功后重新拉取，确保本地表单与云端一致
       try {
         const data = await fetchEmailSettings();
         if (data) {
@@ -67,7 +67,7 @@ export function EmailSettings() {
           setInitialSettings(data);
         }
       } catch {
-        
+        // 刷新失败不影响保存成功的提示
       }
       enqueueSnackbar('邮箱配置已保存', { variant: 'success' });
     } else {
@@ -94,29 +94,22 @@ export function EmailSettings() {
       <Typography variant="h6" sx={{ fontWeight: 700, mb: 1, overflowWrap: 'break-word' }}>
         邮箱配置
       </Typography>
-
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3, overflowWrap: 'break-word' }}>
         用于发送登录验证码等系统邮件。Cloudflare Workers 环境优先推荐 Resend API，SMTP 出站通常受限。
       </Typography>
 
-
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
         <FormControl fullWidth>
           <InputLabel>发送方式</InputLabel>
-
           <Select
             value={settings.provider}
             label="发送方式"
             onChange={(e) => setSettings((s) => ({ ...s, provider: e.target.value as 'resend' | 'smtp' }))}
           >
             <MenuItem value="resend">Resend API</MenuItem>
-
             <MenuItem value="smtp">SMTP</MenuItem>
-
           </Select>
-
         </FormControl>
-
 
         <TextField
           label="发件人邮箱"
@@ -176,30 +169,21 @@ export function EmailSettings() {
             />
             <FormControl fullWidth>
               <InputLabel>加密方式</InputLabel>
-
               <Select
                 value={settings.smtpSecure ? 'tls' : 'none'}
                 label="加密方式"
                 onChange={(e) => setSettings((s) => ({ ...s, smtpSecure: e.target.value === 'tls' }))}
               >
                 <MenuItem value="tls">TLS / SSL</MenuItem>
-
                 <MenuItem value="none">无</MenuItem>
-
               </Select>
-
             </FormControl>
-
           </>
-
         )}
       </Box>
 
-
       <FloatingSaveButton show={isDirty} saving={saving} onClick={handleSave} label="保存配置" />
     </Paper>
-
     </Fade>
-
   );
 }

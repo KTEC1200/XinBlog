@@ -1,4 +1,4 @@
-
+// 图片体积计算与压缩工具（原分散在 Profile/Posts/Media/Friends/Appearance 中，统一抽取至此）。
 
 export function getBase64Size(base64: string): number {
   const head = base64.indexOf(',');

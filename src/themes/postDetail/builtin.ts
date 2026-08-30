@@ -1,6 +1,10 @@
 import type { ThemePackage } from '@/types';
 
-
+/**
+ * 内置文章详情主题包。
+ * 默认主题保持现有居中容器布局；
+ * 玻璃画报主题复刻 XinghuisamaBlogs 主站风格：毛玻璃卡片 + 侧边栏 + 推荐文章 + 目录。
+ */
 export const BUILTIN_POST_DETAIL_THEMES: ThemePackage[] = [
   {
     id: 'post-detail-glass',

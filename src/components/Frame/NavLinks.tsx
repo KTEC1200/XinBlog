@@ -94,7 +94,6 @@ function DesktopNavLink({ item, active, navTheme }: DesktopNavLinkProps) {
       >
         {item.title}
       </ButtonBase>
-
     );
   }
 
@@ -102,7 +101,6 @@ function DesktopNavLink({ item, active, navTheme }: DesktopNavLinkProps) {
     <ButtonBase component={Link} to={item.url} sx={baseSx}>
       {item.title}
     </ButtonBase>
-
   );
 }
 
@@ -150,9 +148,7 @@ function MobileNavMenu({ items, navTheme }: MobileNavMenuProps) {
         >
           <MenuOpen />
         </IconButton>
-
       </Tooltip>
-
       <Menu
         id="nav-menu"
         anchorEl={anchorEl}
@@ -216,7 +212,6 @@ function MobileNavMenu({ items, navTheme }: MobileNavMenuProps) {
               >
                 {item.title}
               </MenuItem>
-
             );
           }
 
@@ -230,13 +225,10 @@ function MobileNavMenu({ items, navTheme }: MobileNavMenuProps) {
             >
               {item.title}
             </MenuItem>
-
           );
         })}
       </Menu>
-
     </>
-
   );
 }
 
@@ -255,7 +247,7 @@ export function NavLinks({ items, forceMobile, navTheme }: NavLinksProps) {
   const fallbackItems = config.friends?.enabled
     ? defaultNavItems
     : defaultNavItems.filter((item) => item.url !== '/friends');
-  
+  // 留言墙功能关闭时不显示对应导航入口（自定义与默认导航都过滤）
   const displayItems = (items.length > 0 ? items : fallbackItems).filter(
     (item) => (messageWallEnabled || item.url !== '/message-wall') && (chatEnabled || item.url !== '/chat')
   );
@@ -342,7 +334,6 @@ function DesktopNavLinks({ visibleItems, moreItems, navTheme }: DesktopNavLinksP
           >
             更多
           </ButtonBase>
-
           <Menu
             id="nav-more-menu"
             anchorEl={anchorEl}
@@ -406,7 +397,6 @@ function DesktopNavLinks({ visibleItems, moreItems, navTheme }: DesktopNavLinksP
                   >
                     {item.title}
                   </MenuItem>
-
                 );
               }
 
@@ -420,15 +410,11 @@ function DesktopNavLinks({ visibleItems, moreItems, navTheme }: DesktopNavLinksP
                 >
                   {item.title}
                 </MenuItem>
-
               );
             })}
           </Menu>
-
         </>
-
       )}
     </Box>
-
   );
 }

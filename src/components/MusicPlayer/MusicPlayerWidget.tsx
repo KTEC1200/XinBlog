@@ -22,11 +22,11 @@ import type { MusicPlayerApi } from './useMusicPlayer';
 interface MusicPlayerWidgetProps {
   player: MusicPlayerApi;
   position: 'left' | 'right';
-  
+  /** 预览场景下默认展开 */
   defaultExpanded?: boolean;
-  
+  /** 禁用滚动拦截（预览场景下避免干扰管理后台页面滚动） */
   disableScrollIntercept?: boolean;
-  
+  /** 是否显示歌词 */
   showLyric?: boolean;
 }
 
@@ -36,14 +36,19 @@ const MODE_ICONS: Record<string, React.ReactNode> = {
   random: <Shuffle fontSize="small" />,
 };
 
-
+/** 主卡片宽度 */
 const PANEL_WIDTH = 300;
-
+/** 收起时可见的切换条宽度 */
 const TAB_WIDTH = 20;
-
+/** 歌单展开后的最大高度 */
 const PLAYLIST_MAX_HEIGHT = 320;
 
-
+/**
+ * 侧边悬浮形态的音乐播放器（参照 xf-MusicPlayer 开源播放器结构）：
+ * - 收起时仅露出切换条（贴屏幕左/右边缘），展开时整块面板水平滑出
+ * - 主卡片：圆形旋转封面 + 歌曲信息 + 控制按钮 + 底部音量/进度条/歌单入口
+ * - 歌单：从主卡片下方滑出展开，可独立滚动
+ */
 export function MusicPlayerWidget({ player, position, defaultExpanded = false, disableScrollIntercept = false, showLyric = true }: MusicPlayerWidgetProps) {
   const [expanded, setExpanded] = useState(defaultExpanded);
   const [showPlaylist, setShowPlaylist] = useState(false);
@@ -74,7 +79,7 @@ export function MusicPlayerWidget({ player, position, defaultExpanded = false, d
   const isLeft = position === 'left';
   const progressPercent = duration > 0 ? Math.min(1, Math.max(0, currentTime / duration)) : 0;
 
-  
+  // 滚动拦截：预览场景下禁用，避免干扰管理后台页面滚动
   useEffect(() => {
     if (disableScrollIntercept) return;
     const panel = panelRef.current;
@@ -100,7 +105,7 @@ export function MusicPlayerWidget({ player, position, defaultExpanded = false, d
     return () => panel.removeEventListener('wheel', onWheel);
   }, [expanded, showPlaylist, disableScrollIntercept]);
 
-  
+  // 收起位移：只保留切换条可见
   const collapsedTranslate = isLeft
     ? `translateX(calc(-100% + ${TAB_WIDTH}px))`
     : `translateX(calc(100% - ${TAB_WIDTH}px))`;
@@ -124,7 +129,7 @@ export function MusicPlayerWidget({ player, position, defaultExpanded = false, d
           }),
       }}
     >
-      {}
+      {/* 切换条 + 主卡片（同行） */}
       <Box
         sx={{
           display: 'flex',
@@ -132,7 +137,7 @@ export function MusicPlayerWidget({ player, position, defaultExpanded = false, d
           alignItems: 'stretch',
         }}
       >
-        {}
+        {/* 切换条（收起时贴屏幕边缘，点击展开/收起） */}
         <Tooltip title={expanded ? '收起播放器' : '展开播放器'} placement={isLeft ? 'right' : 'left'}>
           <Box
             onClick={() => {
@@ -160,7 +165,7 @@ export function MusicPlayerWidget({ player, position, defaultExpanded = false, d
               },
             }}
           >
-            {}
+            {/* 收起=向外箭头，展开=向内箭头；播放中显示喇叭更明显 */}
             <IconButton size="small" sx={{ p: 0, color: 'primary.contrastText' }}>
               {isPlaying ? (
                 <VolumeUp fontSize="small" />
@@ -176,13 +181,10 @@ export function MusicPlayerWidget({ player, position, defaultExpanded = false, d
                 <ChevronLeft fontSize="small" />
               )}
             </IconButton>
-
           </Box>
-
         </Tooltip>
 
-
-        {}
+        {/* 主卡片 */}
         <Box
           sx={{
             width: PANEL_WIDTH,
@@ -201,9 +203,9 @@ export function MusicPlayerWidget({ player, position, defaultExpanded = false, d
                 : `0 8px 40px ${alpha(t.palette.common.black, 0.4)}`,
           }}
         >
-          {}
+          {/* 顶部：封面 + 歌曲信息 + 控制 */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, p: 1.25, pb: 0.75 }}>
-            {}
+            {/* 圆形旋转封面 */}
             <Box
               sx={{
                 width: 68,
@@ -235,32 +237,25 @@ export function MusicPlayerWidget({ player, position, defaultExpanded = false, d
               )}
             </Box>
 
-
-            {}
+            {/* 歌曲信息 + 控制按钮 */}
             <Box sx={{ flex: 1, minWidth: 0 }}>
               <Typography variant="body2" noWrap sx={{ fontWeight: 700 }}>
                 {loading ? '加载中...' : currentSong?.name || '未播放'}
               </Typography>
-
               <Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block', mt: 0.25 }}>
                 {currentSong?.artist || '暂无歌曲'}
               </Typography>
-
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, mt: 0.5 }}>
                 <Tooltip title="播放模式">
                   <IconButton size="small" onClick={togglePlayMode}>
                     {MODE_ICONS[playMode]}
                   </IconButton>
-
                 </Tooltip>
-
                 <Tooltip title="上一首">
                   <IconButton size="small" onClick={prev}>
                     <SkipPrevious fontSize="small" />
                   </IconButton>
-
                 </Tooltip>
-
                 <IconButton
                   onClick={togglePlay}
                   size="small"
@@ -274,14 +269,11 @@ export function MusicPlayerWidget({ player, position, defaultExpanded = false, d
                 >
                   {isPlaying ? <Pause fontSize="small" /> : <PlayArrow fontSize="small" />}
                 </IconButton>
-
                 <Tooltip title="下一首">
                   <IconButton size="small" onClick={next}>
                     <SkipNext fontSize="small" />
                   </IconButton>
-
                 </Tooltip>
-
                 <Tooltip title={isMuted || volume === 0 ? '取消静音' : '静音'}>
                   <IconButton size="small" onClick={toggleMute}>
                     {isMuted || volume === 0 ? (
@@ -292,17 +284,12 @@ export function MusicPlayerWidget({ player, position, defaultExpanded = false, d
                       <VolumeUp fontSize="small" />
                     )}
                   </IconButton>
-
                 </Tooltip>
-
               </Box>
-
             </Box>
-
           </Box>
 
-
-          {}
+          {/* 底部：当前时间 + 播放进度条 + 歌单 */}
           <Box
             sx={{
               display: 'flex',
@@ -318,7 +305,6 @@ export function MusicPlayerWidget({ player, position, defaultExpanded = false, d
             >
               {formatTime(currentTime)}
             </Typography>
-
             <Slider
               size="small"
               min={0}
@@ -333,15 +319,12 @@ export function MusicPlayerWidget({ player, position, defaultExpanded = false, d
               <IconButton size="small" onClick={() => setShowPlaylist((s) => !s)} sx={{ p: 0.5 }}>
                 <QueueMusic fontSize="small" />
               </IconButton>
-
             </Tooltip>
-
           </Box>
-
 
           {showLyric && (
           <>
-          {}
+          {/* 歌词（最多 3 行） */}
           <Box
             sx={{
               px: 1.25,
@@ -379,7 +362,6 @@ export function MusicPlayerWidget({ player, position, defaultExpanded = false, d
                   >
                     {line.text}
                   </Typography>
-
                 );
               })
             ) : (
@@ -390,19 +372,14 @@ export function MusicPlayerWidget({ player, position, defaultExpanded = false, d
               >
                 暂无歌词
               </Typography>
-
             )}
           </Box>
-
           </>
-
         )}
         </Box>
-
       </Box>
 
-
-      {}
+      {/* 播放列表（从主卡片下方滑出） */}
       <Box
         sx={{
           width: PANEL_WIDTH,
@@ -414,7 +391,7 @@ export function MusicPlayerWidget({ player, position, defaultExpanded = false, d
               easing: t.transitions.easing.easeInOut,
               duration: 500,
             }),
-          
+          // 播放列表只做切换条侧的底部圆角（顶部接主卡片，贴屏幕边端保持直角）
           ...(isLeft
             ? { borderBottomRightRadius: 1 }
             : { borderBottomLeftRadius: 1 }),
@@ -429,7 +406,6 @@ export function MusicPlayerWidget({ player, position, defaultExpanded = false, d
             <Typography variant="body2" color="text.secondary" sx={{ p: 1.5, textAlign: 'center' }}>
               暂无歌曲
             </Typography>
-
           ) : (
             playlist.map((song, index) => {
               const active = index === player.currentIndex;
@@ -448,7 +424,7 @@ export function MusicPlayerWidget({ player, position, defaultExpanded = false, d
                     '&:hover': { bgcolor: (t) => alpha(t.palette.primary.main, 0.06) },
                   }}
                 >
-                  {}
+                  {/* 圆形小封面 */}
                   <Box
                     sx={{
                       width: 36,
@@ -475,8 +451,7 @@ export function MusicPlayerWidget({ player, position, defaultExpanded = false, d
                       <MusicNote sx={{ fontSize: 16, color: 'text.secondary' }} />
                     )}
                   </Box>
-
-                  {}
+                  {/* 歌名 + 作者/时长 */}
                   <Box sx={{ flex: 1, minWidth: 0 }}>
                     <Typography
                       variant="body2"
@@ -485,12 +460,10 @@ export function MusicPlayerWidget({ player, position, defaultExpanded = false, d
                     >
                       {song.name}
                     </Typography>
-
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1 }}>
                       <Typography variant="caption" color="text.secondary" noWrap>
                         {song.artist}
                       </Typography>
-
                       <Typography
                         variant="caption"
                         color="text.secondary"
@@ -498,21 +471,14 @@ export function MusicPlayerWidget({ player, position, defaultExpanded = false, d
                       >
                         {formatTime(song.duration)}
                       </Typography>
-
                     </Box>
-
                   </Box>
-
                 </Box>
-
               );
             })
           )}
         </Box>
-
       </Box>
-
     </Box>
-
   );
 }

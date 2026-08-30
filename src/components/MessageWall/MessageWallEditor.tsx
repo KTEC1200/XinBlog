@@ -84,7 +84,7 @@ export default function MessageWallEditor({
   const nearLimit = content.length > MAX_LENGTH * 0.9;
   const overLimit = content.length > MAX_LENGTH;
   const isVisitor = !isAuthenticated && allowAnonymous;
-  
+  // 访客但未开放匿名留言：明确提示，而不是静默禁用输入框
   const anonymousDisabled = !isAuthenticated && !allowAnonymous;
 
   return (
@@ -109,7 +109,6 @@ export default function MessageWallEditor({
       >
         新增留言
       </DialogTitle>
-
       <DialogContent sx={{ pt: 2.5 }}>
         {anonymousDisabled && (
           <Alert
@@ -121,9 +120,7 @@ export default function MessageWallEditor({
             }}
           >
             <Typography variant="body2">留言墙暂未开放匿名留言，请登录后再来留言</Typography>
-
           </Alert>
-
         )}
         {isVisitor && (
           <TextField
@@ -174,9 +171,7 @@ export default function MessageWallEditor({
           >
             {content.length}/{MAX_LENGTH}
           </Typography>
-
         </Box>
-
         <Box
           sx={{
             display: 'flex',
@@ -197,11 +192,8 @@ export default function MessageWallEditor({
                 ? '需要登录后才能留言'
                 : '登录用户可以在留言管理中删除自己的留言'}
           </Typography>
-
         </Box>
-
       </DialogContent>
-
       <DialogActions sx={{ px: 3, pb: 2.5 }}>
         <Button
           onClick={onClose}
@@ -214,7 +206,6 @@ export default function MessageWallEditor({
         >
           取消
         </Button>
-
         <Button
           variant="contained"
           endIcon={<SendIcon sx={{ fontSize: 18 }} />}
@@ -231,10 +222,7 @@ export default function MessageWallEditor({
         >
           {loading ? '发布中' : '发布'}
         </Button>
-
       </DialogActions>
-
     </Dialog>
-
   );
 }

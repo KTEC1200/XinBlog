@@ -46,7 +46,11 @@ export function searchPosts(posts: Post[], query: string): SearchResult[] {
     .sort((a, b) => b.score - a.score);
 }
 
-
+/**
+ * 将文本中的关键词高亮为 React 节点数组。
+ * 不依赖正则回溯，支持多个关键词（按空格分隔）。
+ * @param highlightColor 高亮背景色，建议传入 theme.palette.primary.main 的 alpha 值
+ */
 export function highlightText(text: string, query: string, highlightColor?: string): ReactNode[] {
   const q = normalize(query);
   if (!q) return [text];
@@ -73,7 +77,6 @@ export function highlightText(text: string, query: string, highlightColor?: stri
         >
           {part}
         </mark>
-
       );
     }
     return part;

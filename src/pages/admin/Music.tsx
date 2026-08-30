@@ -27,9 +27,7 @@ export function AdminMusic() {
           <Typography variant="h4" sx={{ fontWeight: 800, overflowWrap: 'break-word' }}>
             音乐播放器
           </Typography>
-
         </Box>
-
 
         {isMobileAdmin ? (
           <FormControl size="small" sx={{ mb: 3, minWidth: 140, maxWidth: '100%' }}>
@@ -52,12 +50,9 @@ export function AdminMusic() {
                 <MenuItem key={t.value} value={t.value}>
                   {t.label}
                 </MenuItem>
-
               ))}
             </Select>
-
           </FormControl>
-
         ) : (
           <Box
             onWheel={(e) => {
@@ -126,13 +121,10 @@ export function AdminMusic() {
                   >
                     {t.label}
                   </Button>
-
                 );
               })}
             </Box>
-
           </Box>
-
         )}
 
         <Fade in timeout={300} key={editor.tab}>
@@ -140,9 +132,7 @@ export function AdminMusic() {
             {editor.tab === 'basic' && <MusicBasicPanel editor={editor} />}
             {editor.tab === 'preview' && <MusicPreviewPanel editor={editor} />}
           </Box>
-
         </Fade>
-
 
         <FloatingSaveButton
           show={editor.isDirty}
@@ -151,8 +141,6 @@ export function AdminMusic() {
           label="保存设置"
         />
       </Box>
-
     </Fade>
-
   );
 }

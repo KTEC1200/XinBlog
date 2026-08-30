@@ -74,6 +74,5 @@ export function OceanEffect({ params }: { params: OceanEffectParams }) {
         }}
       />
     </Box>
-
   );
 }

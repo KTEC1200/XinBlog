@@ -11,7 +11,7 @@ interface GlassParams extends Record<string, unknown> {
   otherSharpCorner: BubbleCorners;
 }
 
-
+/** 玻璃拟态：半透明磨砂 + 轻微内发光，通透质感 */
 export const glassBubbleRenderer: ChatBubbleRenderer<GlassParams> = {
   id: 'glass',
   name: '玻璃',
@@ -45,7 +45,7 @@ export const glassBubbleRenderer: ChatBubbleRenderer<GlassParams> = {
     const other = bubbleRadius(params.otherSharpCorner, radius);
     const mineBg = resolveThemeColor(params.mineTint, 'rgba(255,255,255,0.22)');
 
-    
+    // 通用磨砂边框：需要外层有 bkg，这里用 regular blur
     const frosted = {
       backgroundColor: mineBg,
       backdropFilter: 'blur(6px)',
@@ -61,7 +61,7 @@ export const glassBubbleRenderer: ChatBubbleRenderer<GlassParams> = {
         borderRadius: `${mine['top-left']}px ${mine['top-right']}px ${mine['bottom-right']}px ${mine['bottom-left']}px`,
       },
       other: {
-        
+        // 对方：浅白半透明，视觉更轻
         ...frosted,
         color: resolveThemeColor(params.otherText, '#2f3542'),
         borderRadius: `${other['top-left']}px ${other['top-right']}px ${other['bottom-right']}px ${other['bottom-left']}px`,

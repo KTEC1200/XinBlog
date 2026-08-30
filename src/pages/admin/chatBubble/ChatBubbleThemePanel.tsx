@@ -73,7 +73,7 @@ export function ChatBubbleThemePanel() {
     return () => {
       mounted = false;
     };
-    
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleSelectTheme = (id: string) => {
@@ -151,14 +151,14 @@ export function ChatBubbleThemePanel() {
     return editingTheme?.config.schema || getRendererSchema(editingTheme?.config.variant || '');
   }, [editingTheme]);
 
-  
+  // 预览用的左右气泡样式，实时跟随编辑参数
   const previewOutput = useMemo(() => {
     if (!editingTheme) return null;
     const renderer = getChatBubbleRenderer(editingTheme.config.variant);
     if (!renderer) return null;
     const params = { ...renderer.defaultParams, ...(editingTheme.config.params || {}) };
     return renderer.render(params, {
-      
+      // 主题色取自项目真实主题色（MUI primary），保证预览与前台一致
       themeColor: muiTheme.palette.primary.main,
       borderRadius: muiTheme.shape.borderRadius ?? 16,
     });
@@ -181,7 +181,6 @@ export function ChatBubbleThemePanel() {
       <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
         所有聊天气泡主题
       </Typography>
-
       <Grid container spacing={2}>
         <Grid item xs={12} sm={6} md={4} sx={{ display: 'flex' }}>
           <Paper
@@ -203,11 +202,9 @@ export function ChatBubbleThemePanel() {
             <Typography variant="subtitle2" fontWeight={700} noWrap sx={{ flexGrow: 1 }}>
               默认主题
             </Typography>
-
             <Typography variant="caption" color="text.secondary" sx={{ wordBreak: 'break-word' }}>
               使用默认气泡配色
             </Typography>
-
             <Box sx={{ mt: 1.5 }}>
               <Button
                 variant={pendingThemeId === '' ? 'outlined' : 'contained'}
@@ -219,13 +216,9 @@ export function ChatBubbleThemePanel() {
               >
                 {pendingThemeId === '' ? '已选中' : '恢复默认'}
               </Button>
-
             </Box>
-
           </Paper>
-
         </Grid>
-
         {BUILTIN_CHAT_BUBBLE_THEMES.map((theme) => (
           <Grid item xs={12} sm={6} md={4} key={theme.id} sx={{ display: 'flex' }}>
             <ChatBubbleThemeCard
@@ -236,12 +229,9 @@ export function ChatBubbleThemePanel() {
               onReset={handleResetToDefault}
             />
           </Grid>
-
         ))}
       </Grid>
-
     </Paper>
-
   );
 
   const renderEditor = () => {
@@ -268,19 +258,14 @@ export function ChatBubbleThemePanel() {
                   <Box component="span" sx={{ ml: 1, px: 1, py: 0.25, borderRadius: 1, bgcolor: (t) => alpha(t.palette.primary.main, 0.1), color: 'primary.main', typography: 'caption', fontWeight: 600, verticalAlign: 'middle' }}>
                     正在使用
                   </Box>
-
                 )}
               </Typography>
-
               <Button variant="outlined" size="small" startIcon={<Refresh />} onClick={handleResetParams} sx={{ borderRadius: 1, flexShrink: 0 }}>
                 恢复默认
               </Button>
-
             </Box>
-
             <ChatBubbleParamEditor schema={activeSchema} config={editingTheme.config} onChange={handleUpdateConfig} />
           </Paper>
-
 
           <Paper
             elevation={0}
@@ -296,7 +281,6 @@ export function ChatBubbleThemePanel() {
             <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
               实时预览
             </Typography>
-
             <Box
               sx={{
                 p: 2,
@@ -313,24 +297,16 @@ export function ChatBubbleThemePanel() {
               <Box sx={{ alignSelf: 'flex-start', maxWidth: '72%', px: 1.5, py: 0.9, ...(previewOutput?.other || {}) }}>
                 收到一条消息，这是对方的气泡效果。
               </Box>
-
               <Box sx={{ alignSelf: 'flex-end', maxWidth: '72%', px: 1.5, py: 0.9, ...(previewOutput?.mine || {}) }}>
                 这是你自己发送的消息气泡。
               </Box>
-
               <Typography variant="caption" color="text.secondary">
                 主色：<Box component="span" sx={{ color: themeColor, fontWeight: 600 }}>{themeColor}</Box>
-
               </Typography>
-
             </Box>
-
           </Paper>
-
         </Box>
-
       </Fade>
-
     );
   };
 
@@ -338,9 +314,7 @@ export function ChatBubbleThemePanel() {
     return (
       <Box sx={{ textAlign: 'center', py: 6, color: 'text.secondary' }}>
         <Typography>加载聊天气泡主题配置中...</Typography>
-
       </Box>
-
     );
   }
 
@@ -350,6 +324,5 @@ export function ChatBubbleThemePanel() {
       {renderEditor()}
       <FloatingSaveButton show={isDirty} saving={saving} onClick={handleSave} label="保存聊天气泡主题" />
     </Stack>
-
   );
 }

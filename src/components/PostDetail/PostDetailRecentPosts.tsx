@@ -57,7 +57,6 @@ export function PostDetailRecentPosts({
         {title}
       </Typography>
 
-
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         {recentPosts.map((post) => (
           <Box
@@ -88,7 +87,6 @@ export function PostDetailRecentPosts({
             >
               {post.title}
             </Typography>
-
             <Typography
               variant="caption"
               sx={{
@@ -102,13 +100,9 @@ export function PostDetailRecentPosts({
             >
               {dayjs(post.createdAt).format('YYYY-MM-DD')}
             </Typography>
-
           </Box>
-
         ))}
       </Box>
-
     </Box>
-
   );
 }

@@ -11,8 +11,8 @@ function getScrollContainer(): HTMLElement | null {
   return document.querySelector('main') as HTMLElement | null;
 }
 
-
-
+// 计算标题相对滚动容器的内容偏移，避免依赖 offsetParent 链
+// （第二套玻璃主题外层有 position:relative 容器，offsetTop 会相对它计算而失准）
 function getHeadingTop(id: string): number | null {
   const container = getScrollContainer();
   const el = document.getElementById(id);
@@ -60,7 +60,7 @@ export function PostDetailTOC({ headings }: PostDetailTOCProps) {
     const elRect = el.getBoundingClientRect();
     const top = container.scrollTop + (elRect.top - containerRect.top);
     const target = Math.max(0, top - 24);
-    
+    // 优先交给 lerp 平滑滚动，避免与原生 smooth scroll 冲突导致锚点失效
     if (!smoothScrollTo(target)) {
       container.scrollTo({ top: target, behavior: 'smooth' });
     }
@@ -104,7 +104,6 @@ export function PostDetailTOC({ headings }: PostDetailTOCProps) {
       >
         TABLE OF CONTENTS
       </Typography>
-
 
       <Box sx={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 1 }}>
         <Box
@@ -173,14 +172,10 @@ export function PostDetailTOC({ headings }: PostDetailTOCProps) {
               >
                 {cleanHeadingText(h.text)}
               </Typography>
-
             </Box>
-
           );
         })}
       </Box>
-
     </Box>
-
   );
 }

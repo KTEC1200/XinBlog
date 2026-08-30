@@ -1,6 +1,6 @@
-
-
-
+/* eslint-disable react-refresh/only-export-components */
+// 路由配置文件：需要导出 router 对象以及内部使用的 SuspensePage/RequireAuth 组件，
+// 按 fast refresh 规则拆分文件收益有限，因此关闭该规则。
 import { Suspense, lazy, useEffect, useState } from 'react';
 import { createBrowserRouter, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { MainLayout } from '@/components/Frame/MainLayout';
@@ -46,7 +46,6 @@ const AgentChat = lazy(() => import('@/pages/AgentChat').then((m) => ({ default:
 
 function SuspensePage({ children }: { children: React.ReactNode }) {
   return <Suspense fallback={<PageLoading />}>{children}</Suspense>;
-
 }
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -63,7 +62,7 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
     let cancelled = false;
 
     const verify = async () => {
-      
+      // 未登录直接跳转登录页
       if (!isAuthenticated || !token || !user) {
         if (!cancelled) {
           setForbidden(false);
@@ -73,7 +72,7 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      
+      // 已登录但无后台权限（既非管理员也非站主）：显示无权访问
       if (!isContentAdmin(user.role)) {
         if (!cancelled) {
           setForbidden(true);
@@ -83,7 +82,7 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      
+      // token 距离过期还有 60 秒以上，直接放行
       try {
         const payload = JSON.parse(atob(token.split('.')[1]));
         const now = Math.floor(Date.now() / 1000);
@@ -104,7 +103,7 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      
+      // token 已过期或即将过期，尝试静默刷新
       const ok = await refresh();
       if (!cancelled) {
         setForbidden(false);
@@ -120,16 +119,15 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
     };
   }, [isAuthenticated, token, user, refresh]);
 
-  
+  // 校验过程中显示加载动画，避免白屏
   if (checking) return <PageLoading />;
 
-  
+  // 已登录但无权限：渲染友好提示页，不跳转
   if (forbidden) {
     return (
       <SuspensePage>
         <AdminForbidden />
       </SuspensePage>
-
     );
   }
 
@@ -138,10 +136,9 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
   }
 
   return <>{children}</>;
-
 }
 
-
+// 站主专属页面守卫：非 super_admin 一律显示无权访问
 function RequireSuper({ children }: { children: React.ReactNode }) {
   const user = useAuthStore((state) => state.user);
   if (!user || !isSuperAdmin(user.role)) {
@@ -149,11 +146,9 @@ function RequireSuper({ children }: { children: React.ReactNode }) {
       <SuspensePage>
         <AdminForbidden />
       </SuspensePage>
-
     );
   }
   return <>{children}</>;
-
 }
 
 export const router = createBrowserRouter([
@@ -163,51 +158,35 @@ export const router = createBrowserRouter([
       <MainLayout>
         <Outlet />
       </MainLayout>
-
     ),
     errorElement: <RouteErrorBoundary />,
     children: [
       { index: true, element: <SuspensePage><Home /></SuspensePage> },
-
       { path: 'post/:slug', element: <SuspensePage><PostDetail /></SuspensePage> },
-
       { path: 'tag/:slug', element: <SuspensePage><TagPage /></SuspensePage> },
-
       { path: 'about', element: <SuspensePage><About /></SuspensePage> },
-
       { path: 'friends', element: <SuspensePage><Friends /></SuspensePage> },
-
       { path: 'profile', element: <SuspensePage><Profile /></SuspensePage> },
-
       { path: 'music', element: <SuspensePage><MusicPage /></SuspensePage> },
-
       { path: 'message-wall', element: <SuspensePage><MessageWall /></SuspensePage> },
-
       { path: 'chat', element: <SuspensePage><Chat /></SuspensePage> },
-
       { path: 'chat/:roomKey', element: <SuspensePage><ChatRoom /></SuspensePage> },
-
       { path: 'agent', element: <RequireAuth><SuspensePage><Agent /></SuspensePage></RequireAuth> },
       { path: 'agent/:dialogId', element: <RequireAuth><SuspensePage><AgentChat /></SuspensePage></RequireAuth> },
       { path: 'agreement', element: <SuspensePage><Terms /></SuspensePage> },
-
       { path: 'privacy', element: <SuspensePage><Terms /></SuspensePage> },
-
       { path: '404', element: <SuspensePage><NotFound /></SuspensePage> },
-
       { path: '*', element: <Navigate to="/404" replace /> },
     ],
   },
   {
     path: '/admin/login',
     element: <SuspensePage><AdminLogin /></SuspensePage>,
-
     errorElement: <RouteErrorBoundary />,
   },
   {
     path: '/forgot-password',
     element: <SuspensePage><ForgotPassword /></SuspensePage>,
-
     errorElement: <RouteErrorBoundary />,
   },
   {
@@ -216,29 +195,21 @@ export const router = createBrowserRouter([
       <RequireAuth>
         <AdminLayout />
       </RequireAuth>
-
     ),
     errorElement: <RouteErrorBoundary />,
     children: [
       { index: true, element: <SuspensePage><AdminDashboard /></SuspensePage> },
-
       { path: 'posts', element: <SuspensePage><AdminPosts /></SuspensePage> },
-
       { path: 'tags', element: <SuspensePage><AdminTags /></SuspensePage> },
-
       { path: 'media', element: <SuspensePage><AdminMedia /></SuspensePage> },
-
       { path: 'appearance', element: <SuspensePage><RequireSuper><AdminAppearance /></RequireSuper></SuspensePage> },
       { path: 'live2d', element: <SuspensePage><RequireSuper><AdminLive2d /></RequireSuper></SuspensePage> },
       { path: 'music', element: <SuspensePage><RequireSuper><AdminMusic /></RequireSuper></SuspensePage> },
       { path: 'advanced', element: <SuspensePage><RequireSuper><AdminAdvancedSettings /></RequireSuper></SuspensePage> },
       { path: 'comments', element: <SuspensePage><AdminComments /></SuspensePage> },
-
       { path: 'message-wall', element: <SuspensePage><AdminMessageWall /></SuspensePage> },
-
       { path: 'chat', element: <SuspensePage><RequireSuper><AdminChat /></RequireSuper></SuspensePage> },
       { path: 'friends', element: <SuspensePage><AdminFriends /></SuspensePage> },
-
       { path: 'ai', element: <SuspensePage><RequireSuper><AdminAi /></RequireSuper></SuspensePage> },
       { path: 'themes', element: <SuspensePage><RequireSuper><AdminThemeSettings /></RequireSuper></SuspensePage> },
       { path: 'terms', element: <SuspensePage><RequireSuper><TermsEditor /></RequireSuper></SuspensePage> },

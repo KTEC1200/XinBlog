@@ -42,7 +42,7 @@ export default function CommentEditor({ slug, onSuccess, parentId, placeholder, 
         });
         const notifyErrors = res.data?.notifyErrors;
         if (notifyErrors && notifyErrors.length) {
-          
+          // 仅展示真正的失败项（不以“成功/无通知”开头），供排查邮件推送
           const failures = notifyErrors.filter(
             (e) => e && !e.startsWith('通知') && !e.startsWith('无通知邮件')
           );
@@ -125,7 +125,6 @@ export default function CommentEditor({ slug, onSuccess, parentId, placeholder, 
         >
           {content.length}/{MAX_LENGTH}
         </Typography>
-
         <Button
           variant="contained"
           size="small"
@@ -142,12 +141,8 @@ export default function CommentEditor({ slug, onSuccess, parentId, placeholder, 
         >
           {loading ? '发布中' : '发布'}
         </Button>
-
       </Box>
-
     </Paper>
-
     </Fade>
-
   );
 }

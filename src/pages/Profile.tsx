@@ -51,7 +51,7 @@ export function Profile() {
   const [avatarLoading, setAvatarLoading] = useState(false);
   const userExists = !!user;
 
-  
+  // 修改登录密码（始终开启）
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -172,15 +172,11 @@ export function Profile() {
           <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>
             请先登录
           </Typography>
-
           <Typography variant="body2" color="text.secondary">
             登录后即可查看和编辑个人资料
           </Typography>
-
         </Paper>
-
       </Container>
-
     );
   }
 
@@ -191,7 +187,7 @@ export function Profile() {
   return (
     <Fade in timeout={400}>
       <Container maxWidth="lg" sx={{ py: { xs: 4, md: 6 } }}>
-        {}
+        {/* Header Card */}
       <Paper
         elevation={0}
         sx={{
@@ -218,7 +214,6 @@ export function Profile() {
         >
           <AutoAwesome sx={{ fontSize: { xs: 28, sm: 40 } }} />
         </Box>
-
         <Box
           sx={{
             position: 'absolute',
@@ -229,7 +224,6 @@ export function Profile() {
         >
           <AutoAwesome sx={{ fontSize: { xs: 20, sm: 28 } }} />
         </Box>
-
 
         <Box sx={{ position: 'relative', display: 'inline-block', mb: 2 }}>
           {avatarLoading && !profile.avatar && (
@@ -261,7 +255,6 @@ export function Profile() {
           >
             {user?.username.charAt(0).toUpperCase()}
           </Avatar>
-
           <Button
             component="label"
             sx={{
@@ -281,19 +274,15 @@ export function Profile() {
             <CameraAlt sx={{ fontSize: { xs: 20, sm: 18 } }} />
             <input type="file" accept="image/*" style={{ position: 'absolute', width: 1, height: 1, padding: 0, margin: -1, overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap', border: 0 }} onChange={handleAvatarChange} />
           </Button>
-
         </Box>
-
 
         <Typography variant="h4" sx={{ fontWeight: 800, mb: 0.5, fontSize: { xs: '1.5rem', sm: '2rem', md: '2.125rem' }, overflowWrap: 'break-word' }}>
           {profile.nickname || user?.username}
         </Typography>
-
         {profile.bio && (
           <Typography variant="body1" color="text.secondary" sx={{ mb: 2, fontSize: { xs: '0.875rem', sm: '1rem' }, overflowWrap: 'break-word' }}>
             {profile.bio}
           </Typography>
-
         )}
         <Chip
           label={roleLabels[user?.role || 'guest']}
@@ -309,8 +298,7 @@ export function Profile() {
         />
       </Paper>
 
-
-      {}
+      {/* Form Card */}
       <Paper
         elevation={0}
         sx={{
@@ -326,7 +314,6 @@ export function Profile() {
           <Alert severity={message.type} sx={{ mb: 3, borderRadius: (theme) => Math.max(8, theme.shape.borderRadius - 4) }}>
             {message.text}
           </Alert>
-
         )}
 
         <Box sx={{ display: 'grid', gap: 3 }}>
@@ -380,15 +367,11 @@ export function Profile() {
             >
               {saving ? '保存中...' : '保存资料'}
             </Button>
-
           </Box>
-
         </Box>
-
       </Paper>
 
-
-      {}
+      {/* 修改密码 Card（始终开启） */}
       <Paper
         elevation={0}
         sx={{
@@ -406,19 +389,15 @@ export function Profile() {
           <Typography variant="h6" sx={{ fontWeight: 700 }}>
             修改密码
           </Typography>
-
         </Box>
-
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
           定期修改密码可以更好地保护你的账号安全
         </Typography>
-
 
         {passwordError && (
           <Alert severity="error" sx={{ mb: 3, borderRadius: (theme) => Math.max(8, theme.shape.borderRadius - 4) }}>
             {passwordError}
           </Alert>
-
         )}
 
         <Box sx={{ display: 'grid', gap: 3 }}>
@@ -435,9 +414,7 @@ export function Profile() {
                   <IconButton onClick={() => setShowCurrentPassword((v) => !v)} edge="end" aria-label="切换当前密码可见性">
                     {showCurrentPassword ? <VisibilityOff /> : <Visibility />}
                   </IconButton>
-
                 </InputAdornment>
-
               ),
             }}
           />
@@ -455,9 +432,7 @@ export function Profile() {
                   <IconButton onClick={() => setShowNewPassword((v) => !v)} edge="end" aria-label="切换新密码可见性">
                     {showNewPassword ? <VisibilityOff /> : <Visibility />}
                   </IconButton>
-
                 </InputAdornment>
-
               ),
             }}
           />
@@ -474,9 +449,7 @@ export function Profile() {
                   <IconButton onClick={() => setShowConfirmPassword((v) => !v)} edge="end" aria-label="切换确认密码可见性">
                     {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
                   </IconButton>
-
                 </InputAdornment>
-
               ),
             }}
           />
@@ -499,16 +472,10 @@ export function Profile() {
             >
               {changingPassword ? '正在修改...' : '修改密码'}
             </Button>
-
           </Box>
-
         </Box>
-
       </Paper>
-
       </Container>
-
     </Fade>
-
   );
 }

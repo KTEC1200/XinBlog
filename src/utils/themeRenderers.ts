@@ -64,7 +64,7 @@ function isEmptyColor(v?: string): boolean {
 }
 
 function resolveColor(value: string | undefined, fallback: string): string {
-  
+  // 色值为空或全 0 时，视为“使用默认（外观设置）颜色”
   return isEmptyColor(value) ? fallback : (value as string);
 }
 
@@ -137,7 +137,7 @@ export function buildPostCardOutput(
   };
   let output: PostCardRenderOutput;
   if (renderer) {
-    
+    // 用 renderer 默认参数兜底，避免历史数据（如 variant='default'）缺少 params 时出现 undefined 值
     const params = { ...renderer.defaultParams, ...(theme.params || {}), ...theme };
     output = renderer.render(params, context);
     if (theme.styles) {
@@ -208,7 +208,7 @@ export const overlayCardRenderer: PostCardRenderer<{
         : params.textPosition === 'bottom-right'
           ? 'right'
           : 'left';
-    
+    // 无封面时的背景兜底：默认填充站点主色（实心纯色），关闭后回退为淡色
     const hasCover = !!post.cover;
     const fillSolidBg = params.fillSolidBg !== false;
     const rootBg = hasCover
@@ -479,7 +479,7 @@ export const bookCardRenderer: PostCardRenderer<{
         height: { xs: 300, sm: 340, md: 380 },
         minWidth: 0,
         position: 'relative',
-        
+        // 不能裁剪：翻出的书页会超出卡片边界，改成可见让立体翻页“撑出”卡片
         overflow: 'visible',
         borderRadius: `${borderRadius}px`,
         backgroundColor: 'background.paper',
@@ -487,7 +487,7 @@ export const bookCardRenderer: PostCardRenderer<{
           theme.palette.mode === 'light'
             ? '0 10px 28px rgba(0,0,0,0.14)'
             : '0 10px 28px rgba(0,0,0,0.45)',
-        
+        // 悬停时把整卡提升一层，避免翻出的页面被相邻卡片遮挡
         '&:hover': { zIndex: 2 },
       },
       book: {
@@ -497,15 +497,15 @@ export const bookCardRenderer: PostCardRenderer<{
           height: '100%',
           perspective: '2000px',
           perspectiveOrigin: '50% 50%',
-          
+          // 让翻动的页面在真正的 3D 空间里旋转，形成书本开合的纵深
           transformStyle: 'preserve-3d',
-          
+          // 竖排：文字前页沿左缘像翻书一样打开
           '&:hover .bc-cover': {
             transform: 'rotateY(-80deg)',
             boxShadow: '-12px 6px 28px rgba(0,0,0,0.35)',
           },
         },
-        
+        // 垫底的图片层：始终位于最底层，前页翻开后可见
         base: {
           position: 'absolute',
           inset: 0,
@@ -525,7 +525,7 @@ export const bookCardRenderer: PostCardRenderer<{
           px: 1.5,
           color: params.textColor,
         },
-        
+        // 前页：展示文章文字介绍，悬停时翻开让出图片
         cover: {
           position: 'absolute',
           inset: 0,
@@ -597,9 +597,9 @@ export const newsletterCardRenderer: PostCardRenderer<{
   ],
   render: (params, { themeColor }) => {
     const borderColor = resolveColor(params.borderColor, themeColor || '#111111');
-    
+    // 圆角不继承项目设置，独立指定（默认 0）
     const radius = params.cardRadius ?? 0;
-    
+    // 硬投影位移随边框放大，营造粗矿报刊漫画效果
     const offset = Math.max(6, params.borderWidth * 2);
     return {
       layout: 'clean',
@@ -616,7 +616,7 @@ export const newsletterCardRenderer: PostCardRenderer<{
         boxShadow: `${offset}px ${offset}px 0 ${borderColor}`,
         backgroundColor: 'background.paper',
         transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-        
+        // 悬停整卡向左上位移并加深硬投影，同时让标题下划线滑入
         '&:hover': {
           transform: 'translate(-5px, -5px)',
           boxShadow: `${offset + 5}px ${offset + 5}px 0 ${borderColor}`,
@@ -656,7 +656,7 @@ export const newsletterCardRenderer: PostCardRenderer<{
         fontSize: { xs: '1.25rem', sm: '1.35rem' },
         color: 'text.primary',
         overflowWrap: 'break-word',
-        
+        // 下划线在卡片外，悬停时由 root 驱动滑入
         '&::after': {
           content: '""',
           position: 'absolute',
@@ -873,8 +873,8 @@ const renderers: PostCardRenderer[] = [
 
 export function getPostCardRenderer(variant?: string): PostCardRenderer | undefined {
   if (!variant) return undefined;
-  
-  
+  // 向后兼容：老数据里 variant='default' 的「默认主题」，统一映射为「简洁卡片」（clean-card）。
+  // 这样默认卡片走白底+封面的简洁样式，与「边框画报」（overlay/叠加画报）区分开。
   if (variant === 'default') variant = 'clean-card';
   return renderers.find((r) => r.id === variant || r.aliases?.includes(variant));
 }

@@ -118,7 +118,7 @@ export interface SceneThemeConfig {
   schema?: ThemeParamSchema[];
 }
 
-
+/** 聊天气泡主题配置：variant 指定内置主题，params 承载可选参数（schema 驱动后台表单） */
 export interface ChatBubbleThemeConfig {
   variant: string;
   params?: Record<string, unknown>;
@@ -179,59 +179,59 @@ export type MusicPlayMode = 'list' | 'single' | 'random';
 
 export interface MusicPlayerConfig {
   enabled: boolean;
-  
+  /** 音乐 API 地址，用于拉取网易云歌单/音频/歌词 */
   apiUrl: string;
-  
+  /** 网易云歌单 ID */
   playlistId: string;
-  
+  /** 默认音量 0-1 */
   volume: number;
-  
+  /** 播放模式：列表循环 / 单曲循环 / 随机 */
   playMode: MusicPlayMode;
-  
+  /** 是否自动播放（未开启时也会加载并显示歌曲，等待用户手动播放） */
   autoplay: boolean;
-  
+  /** 是否显示歌词 */
   showLyric: boolean;
-  
+  /** 是否记忆播放（记住上次歌曲、进度、音量与模式） */
   memory: boolean;
-  
+  /** 侧边悬浮小工具位置：左侧或右侧 */
   position: 'left' | 'right';
-  
+  /** 进入管理后台后继续播放 */
   showInAdmin: boolean;
-  
+  /** 启用独立音乐播放页面（在首页同级添加 /music 路由） */
   showPage: boolean;
-  
+  /** 是否通过 Cloudflare Worker 中转代理图片（解决 PWA 显示外部 CDN URL 的问题） */
   imageProxy: boolean;
 }
 
-
+/** 通用间距值：分别控制移动端(窄屏)与桌面端(宽屏)，单位 px */
 export interface SpacingValue {
   mobile: number;
   desktop: number;
 }
 
-
+/** 全局间距配置。对应“外观设置 → 间距”面板，所有值为 px */
 export interface SpacingConfig {
-  
+  /** 主内容区：左右内边距（所有页面的内容与屏幕左右边缘的距离） */
   mainPaddingX: SpacingValue;
-  
+  /** 导航栏：左右内边距 */
   navPaddingX: SpacingValue;
-  
+  /** 导航栏：右侧控件（搜索/主题/头像）之间的间距 */
   navGap: SpacingValue;
-  
+  /** 页脚：上下内边距 */
   footerPaddingY: SpacingValue;
-  
+  /** 页脚：底部链接（用户协议/隐私政策）间距 */
   footerLinkGap: SpacingValue;
-  
+  /** 文章正文：标题（h1~h6）上方的间距 */
   articleHeadingGap: SpacingValue;
-  
+  /** 文章正文：段落之间的间距 */
   articleParagraphGap: SpacingValue;
-  
+  /** 帖子列表：卡片之间的间距（网格/横向/杂志布局通用） */
   postListGap: SpacingValue;
-  
+  /** 主页英雄区：上下内边距 */
   heroPaddingY: SpacingValue;
-  
+  /** 主页英雄区：与下方内容的间距 */
   heroBottomGap: SpacingValue;
-  
+  /** 帖子卡片：内容区内边距 */
   cardPaddingY: SpacingValue;
 }
 
@@ -262,11 +262,11 @@ export interface SiteConfig {
   lazyLoadMedia?: boolean;
   enableLatex?: boolean;
   disableSmoothScroll?: boolean;
-  
+  /** AI 智能体（AI 助手）功能是否开启：站点 AI 功能开启且启用了 Agent 时为 true */
   agentEnabled?: boolean;
-  
+  /** 文章正文图片显示模式 */
   imageDisplayMode?: 'fixed' | 'natural';
-  
+  /** 后台概览页是否显示统计折线面板（默认开启） */
   enableDashboardStats?: boolean;
   backgroundImage?: string;
   backgroundOpacity?: number;
@@ -302,9 +302,9 @@ export interface FriendsConfig {
   cardColor: string;
   avatarShape: 'circle' | 'rounded';
   showDescription: boolean;
-  
+  /** 是否开放友链申请 */
   applyEnabled?: boolean;
-  
+  /** 是否需审核后展示；false=申请即展示 */
   applyNeedsAudit?: boolean;
 }
 

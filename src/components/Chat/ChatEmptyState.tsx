@@ -3,7 +3,10 @@ import { useTheme } from '@mui/material/styles';
 import { Link } from 'react-router-dom';
 import ForumOutlinedIcon from '@mui/icons-material/ForumOutlined';
 
-
+/**
+ * 公共聊天房关闭时的空态提示。
+ * 不发起 WebSocket 连接、不渲染报错，仅展示友好提示。
+ */
 interface ChatEmptyStateProps {
   title?: string;
   description?: string;
@@ -53,15 +56,12 @@ export default function ChatEmptyState({
         >
           <ForumOutlinedIcon sx={{ fontSize: 36 }} />
         </Box>
-
         <Typography variant="h6" sx={{ fontWeight: 700, mb: 0.5 }}>
           {title}
         </Typography>
-
         <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 360 }}>
           {description}
         </Typography>
-
         {showBackHome && (
           <Button
             component={Link}
@@ -77,11 +77,8 @@ export default function ChatEmptyState({
           >
             返回首页
           </Button>
-
         )}
       </Box>
-
     </Fade>
-
   );
 }

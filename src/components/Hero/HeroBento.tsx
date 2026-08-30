@@ -106,9 +106,7 @@ function WidgetGlassCard({
             <Box component="span" sx={{ fontSize: 12, fontWeight: 700, color: 'text.primary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {title}
             </Box>
-
           </Box>
-
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
             {hideOnMobile && (
               <Box
@@ -127,29 +125,21 @@ function WidgetGlassCard({
                 <Box component="span" sx={{ fontSize: 10, fontWeight: 700 }}>
                   移动端隐藏
                 </Box>
-
               </Box>
-
             )}
             <IconButton size="small" onClick={(e) => { e.stopPropagation(); onEdit?.(); }} sx={{ width: 22, height: 22 }}>
               <Edit sx={{ fontSize: 12 }} />
             </IconButton>
-
             <IconButton size="small" color="error" onClick={(e) => { e.stopPropagation(); onDelete?.(); }} sx={{ width: 22, height: 22 }}>
               <DeleteOutline sx={{ fontSize: 12 }} />
             </IconButton>
-
           </Box>
-
         </Box>
-
       )}
       <Box sx={{ width: '100%', height: '100%', pt: editable ? '28px' : 0, boxSizing: 'border-box' }}>
         {children}
       </Box>
-
     </Box>
-
   );
 }
 
@@ -254,9 +244,7 @@ export function HeroBento({ hero, editable = false, onChange, onEdit, onDelete }
           >
             未知组件: {config.type}
           </Box>
-
         </WidgetGlassCard>
-
       );
     }
     return (
@@ -272,7 +260,6 @@ export function HeroBento({ hero, editable = false, onChange, onEdit, onDelete }
       >
         {def.render(config)}
       </WidgetGlassCard>
-
     );
   };
 
@@ -328,7 +315,6 @@ export function HeroBento({ hero, editable = false, onChange, onEdit, onDelete }
             >
               暂无组件，请在后台添加积木组件
             </Box>
-
           ) : isMobile ? (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: '12px', alignItems: 'center' }}>
               {visibleWidgets
@@ -348,11 +334,9 @@ export function HeroBento({ hero, editable = false, onChange, onEdit, onDelete }
                     >
                       {renderWidget(config)}
                     </Box>
-
                   );
                 })}
             </Box>
-
           ) : (
             <Box
               sx={{
@@ -398,17 +382,12 @@ export function HeroBento({ hero, editable = false, onChange, onEdit, onDelete }
                 >
                   {renderWidget(config)}
                 </Box>
-
               );
             })}
           </Box>
-
         )}
       </Box>
-
       </Box>
-
     </HeroEditContext.Provider>
-
   );
 }

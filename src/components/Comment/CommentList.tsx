@@ -56,15 +56,11 @@ export default function CommentList({
           <Typography variant="body1" sx={{ fontWeight: 600, mb: 0.5 }}>
             还没有评论
           </Typography>
-
           <Typography variant="body2" color="text.secondary">
             来说点什么，开启这段对话吧
           </Typography>
-
         </Paper>
-
       </Fade>
-
     );
   }
 
@@ -72,9 +68,9 @@ export default function CommentList({
     <Box>
       {grouped.map((parent) => (
         <Box key={parent.id}>
-          {}
+          {/* 父评论 */}
           <CommentItem comment={parent} slug={slug} onDeleted={onDeleted} onReplied={onReplied} />
-          {}
+          {/* 子评论（回复） */}
           {parent.replies.length > 0 && (
             <Box
               sx={{
@@ -88,10 +84,8 @@ export default function CommentList({
                 <CommentItem key={reply.id} comment={reply} slug={slug} onDeleted={onDeleted} onReplied={onReplied} />
               ))}
             </Box>
-
           )}
         </Box>
-
       ))}
       {hasMore && (
         <Box sx={{ textAlign: 'center', mt: 2 }}>
@@ -110,11 +104,8 @@ export default function CommentList({
           >
             {loadingMore ? '加载中...' : '加载更多'}
           </Button>
-
         </Box>
-
       )}
     </Box>
-
   );
 }

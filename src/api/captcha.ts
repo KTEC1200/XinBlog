@@ -1,5 +1,5 @@
-
-
+// 人机验证相关接口
+// 均为公开接口，用原生 fetch 调用，避免 apiGet 缓存导致后台刚保存的配置不能即时生效
 
 export type CaptchaMode = 'none' | 'turnstile' | 'math' | 'geetest' | 'hcaptcha';
 
@@ -18,7 +18,7 @@ export interface MathCaptcha {
   token: string;
 }
 
-
+// 前端完成验证后传给发码接口的负载
 export interface CaptchaPayload {
   mode: CaptchaMode;
   turnstileToken?: string;

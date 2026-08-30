@@ -1,7 +1,7 @@
 import { apiPost, apiDelete } from './client';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
-const MAX_MEDIA_CHUNK_SIZE = 80 * 1024; 
+const MAX_MEDIA_CHUNK_SIZE = 80 * 1024; // 80KB base64 per chunk, matching backend limit
 
 export interface UploadMediaResult {
   id: number;
@@ -74,7 +74,7 @@ export async function uploadMedia(name: string, base64: string, options?: Upload
   if (!pureBase64) throw new Error('图片数据为空');
   if (!mimeType.startsWith('image/')) throw new Error('仅支持图片文件');
 
-  
+  // 压缩后统一输出 JPEG，文件名同步为 .jpg 避免下载时格式混淆
   const finalName = mimeType === 'image/jpeg' ? name.replace(/\.[^.]+$/, '.jpg') : name;
 
   if (pureBase64.length <= MAX_MEDIA_CHUNK_SIZE) {

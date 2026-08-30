@@ -41,7 +41,7 @@ function FlipCard({ message }: { message: Message }) {
           transform: flipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
         }}
       >
-        {}
+        {/* 卡片背面（未翻牌） */}
         <Box
           sx={{
             position: 'absolute',
@@ -61,15 +61,12 @@ function FlipCard({ message }: { message: Message }) {
           <Typography variant="h4" sx={{ opacity: 0.4, userSelect: 'none' }}>
             ?
           </Typography>
-
           <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center' }}>
             点击翻开
           </Typography>
-
         </Box>
 
-
-        {}
+        {/* 卡片正面（翻牌后） */}
         <Box
           sx={{
             position: 'absolute',
@@ -90,7 +87,6 @@ function FlipCard({ message }: { message: Message }) {
               <Typography variant="caption" sx={{ fontWeight: 700, color: 'primary.main' }}>
                 {message.username || '用户'}
               </Typography>
-
             ) : (
               <>
                 <Chip
@@ -109,13 +105,10 @@ function FlipCard({ message }: { message: Message }) {
                   <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary' }}>
                     {message.nickname}
                   </Typography>
-
                 )}
               </>
-
             )}
           </Box>
-
           <Typography
             variant="body2"
             sx={{
@@ -129,17 +122,12 @@ function FlipCard({ message }: { message: Message }) {
           >
             {message.content}
           </Typography>
-
           <Typography variant="caption" color="text.disabled" sx={{ mt: 1, fontSize: '0.65rem' }}>
             {new Date(message.createdAt).toLocaleDateString('zh-CN')}
           </Typography>
-
         </Box>
-
       </Box>
-
     </Box>
-
   );
 }
 
@@ -147,17 +135,17 @@ export default function FlipCardStyle() {
   const [pool, setPool] = useState<Message[]>([]);
   const [cards, setCards] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
-  
+  // 批次号：换一批或首次加载完成时自增，用于触发整批卡片的入场动画
   const [batch, setBatch] = useState(0);
 
-  
+  // 后台分批把全部留言加载进池子：第一页加载完即可翻牌，剩余页在后台持续补充
   useEffect(() => {
     let cancelled = false;
     (async () => {
       let page = 1;
       let total = 0;
       const all: Message[] = [];
-      
+      // 第一页
       const first = await getMessages(1, PAGE_SIZE);
       if (cancelled) return;
       const firstList = first.code === 0 && first.data ? first.data.list : [];
@@ -166,8 +154,8 @@ export default function FlipCardStyle() {
       setPool([...all]);
       setCards(shuffleArray(all).slice(0, PICK_COUNT));
       setLoading(false);
-      setBatch((b) => b + 1); 
-      
+      setBatch((b) => b + 1); // 首次加载完成：入场动画只播一次
+      // 后续页继续补充：只更新池子，不重新抽牌、不重播动画（否则切 Tab 时会出现二次弹入）
       page = 2;
       while (all.length < total) {
         const res = await getMessages(page, PAGE_SIZE);
@@ -184,7 +172,7 @@ export default function FlipCardStyle() {
     };
   }, []);
 
-  
+  // 换一批：从当前池子随机抽（池子未加载完时也从已加载部分抽，后台继续补充）
   const pickCards = useCallback(() => {
     setCards(shuffleArray(pool).slice(0, PICK_COUNT));
     setBatch((b) => b + 1);
@@ -215,9 +203,7 @@ export default function FlipCardStyle() {
           <RefreshIcon sx={{ fontSize: 16 }} />
           换一批
         </Box>
-
       </Box>
-
       <Box
         key={batch}
         sx={{
@@ -245,7 +231,6 @@ export default function FlipCardStyle() {
           <Typography variant="body2" color="text.secondary" sx={{ py: 4 }}>
             暂无留言
           </Typography>
-
         ) : (
           shuffled.map((msg, i) => (
             <Box
@@ -257,12 +242,9 @@ export default function FlipCardStyle() {
             >
               <FlipCard message={msg} />
             </Box>
-
           ))
         )}
       </Box>
-
     </Box>
-
   );
 }

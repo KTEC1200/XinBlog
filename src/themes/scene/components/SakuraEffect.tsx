@@ -92,6 +92,5 @@ export function SakuraEffect({ params }: { params: SakuraEffectParams }) {
         />
       ))}
     </Box>
-
   );
 }

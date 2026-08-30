@@ -77,12 +77,12 @@ export default function MessageWallManager({ open, onClose, onChanged }: Message
       const res = await deleteMessage(deleteTarget.id);
       if (res.code === 0) {
         enqueueSnackbar('删除成功', { variant: 'success' });
-        
+        // 先从本地列表移除，保证列表实时同步
         setMessages((prev) => prev.filter((m) => m.id !== deleteTarget.id));
         onChanged();
         load();
       } else if (res.code === 404) {
-        
+        // 该留言在服务端已不存在（可能已被删除），同步从本地列表移除，避免再次提示
         setMessages((prev) => prev.filter((m) => m.id !== deleteTarget.id));
         enqueueSnackbar('该留言已不存在，已从列表移除', { variant: 'warning' });
       } else {
@@ -134,9 +134,7 @@ export default function MessageWallManager({ open, onClose, onChanged }: Message
         >
           {messages.length}
         </Box>
-
       </DialogTitle>
-
       <DialogContent sx={{ pt: 2, minHeight: 200, maxHeight: 480 }}>
         {loading ? (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, py: 1 }}>
@@ -144,7 +142,6 @@ export default function MessageWallManager({ open, onClose, onChanged }: Message
               <Skeleton key={i} variant="rectangular" height={64} sx={{ borderRadius: 1 }} />
             ))}
           </Box>
-
         ) : messages.length === 0 ? (
           <Box
             sx={{
@@ -160,9 +157,7 @@ export default function MessageWallManager({ open, onClose, onChanged }: Message
             <Typography variant="body2" color="text.secondary">
               你还没有发布过留言
             </Typography>
-
           </Box>
-
         ) : (
           <Box sx={{ display: 'flex', flexDirection: 'column' }}>
             {messages.map((msg, idx) => {
@@ -190,9 +185,7 @@ export default function MessageWallManager({ open, onClose, onChanged }: Message
                         <Typography variant="caption" color="text.disabled">
                           {formatTime(msg.createdAt)}
                         </Typography>
-
                       </Box>
-
                       <Typography
                         variant="body2"
                         sx={{
@@ -203,9 +196,7 @@ export default function MessageWallManager({ open, onClose, onChanged }: Message
                       >
                         {msg.nickname || msg.content}
                       </Typography>
-
                     </Box>
-
                     <IconButton
                       size="small"
                       onClick={() => setDeleteTarget(msg)}
@@ -218,18 +209,13 @@ export default function MessageWallManager({ open, onClose, onChanged }: Message
                     >
                       <DeleteOutlineIcon sx={{ fontSize: 18 }} />
                     </IconButton>
-
                   </Box>
-
                 </Box>
-
               );
             })}
           </Box>
-
         )}
       </DialogContent>
-
       <DialogActions sx={{ px: 3, pb: 2 }}>
         <Button
           onClick={onClose}
@@ -241,9 +227,7 @@ export default function MessageWallManager({ open, onClose, onChanged }: Message
         >
           关闭
         </Button>
-
       </DialogActions>
-
 
       <ConfirmDialog
         open={!!deleteTarget}
@@ -256,6 +240,5 @@ export default function MessageWallManager({ open, onClose, onChanged }: Message
         onConfirm={handleDelete}
       />
     </Dialog>
-
   );
 }

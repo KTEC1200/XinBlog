@@ -1,7 +1,7 @@
 import type { MusicPlayMode, MusicPlayerConfig } from '@/types';
 import { useSiteStore } from '@/stores/siteStore';
 
-
+/** 音乐播放器默认配置（siteStore 与播放器组件共用） */
 export const DEFAULT_MUSIC_CONFIG: MusicPlayerConfig = {
   enabled: false,
   apiUrl: 'https://api.xfyun.club',
@@ -17,7 +17,7 @@ export const DEFAULT_MUSIC_CONFIG: MusicPlayerConfig = {
   imageProxy: false,
 };
 
-
+/** 歌曲数据结构（对应 pz-music-player 中歌单映射结果） */
 export interface Song {
   id: number;
   name: string;
@@ -42,7 +42,7 @@ export interface MusicMemory {
 
 const STORAGE_KEY = 'xinblog-music-player';
 
-
+/** 预设热门歌单（用户可直接选用） */
 export const PRESET_PLAYLISTS: { id: string; name: string; desc: string }[] = [
   { id: '3778678', name: '精选热歌', desc: '网易云音乐官方热门歌单' },
   { id: '17990594711', name: '纯音乐｜专注放松', desc: '清新氛围纯音乐精选' },
@@ -66,13 +66,19 @@ export const PRESET_PLAYLISTS: { id: string; name: string; desc: string }[] = [
   { id: '17987417003', name: '歌手2026', desc: '三代歌者巅峰对决' },
 ];
 
-
+/**
+ * 从混合文本中提取 URL（防呆：用户可能把分享文字一起粘贴过来）
+ * 例如 "分享歌单: 歌单一 `https://163cn.tv/bdbtceIQ`  (@网易云音乐)" → "https://163cn.tv/bdbtceIQ"
+ */
 export function extractUrlFromText(text: string): string | null {
   const match = text.match(/https?:\/\/[^\s<>"'{}\[\]]+/);
   return match ? match[0].replace(/[`'"’‘“”]+$/, '') : null;
 }
 
-
+/**
+ * 尝试解析短链接（163cn.tv），调用后端 Worker API 获取真实 URL 和歌单 ID
+ * 服务端请求不受 CORS 限制，可正常跟随重定向
+ */
 export async function resolveShortUrl(url: string): Promise<string | null> {
   try {
     const apiBase = (import.meta as any).env?.VITE_API_BASE_URL || '';
@@ -87,36 +93,49 @@ export async function resolveShortUrl(url: string): Promise<string | null> {
   }
 }
 
-
+/**
+ * 校验是否为纯数字歌单 ID
+ */
 export function isValidPlaylistId(id: string): boolean {
   return /^\d{5,}$/.test(id.trim());
 }
 
-
+/**
+ * 智能解析网易云歌单 ID（纯同步解析，不含网络请求）：
+ * 支持格式：
+ * - 纯数字：3778678
+ * - 标准 URL：https://music.163.com/playlist?id=3778678
+ * - hash URL：https://music.163.com/#/playlist?id=3778678
+ * - 带复杂参数：https://music.163.com/#/playlist?app_version=9.5.50&id=17491693004&userid=14200709582
+ * - 路径式：https://music.163.com/playlist/3778678/
+ * - 分享短链接：https://163cn.tv/bdbtceIQ（返回原链接，由异步 resolve 处理）
+ * - 混合文本：自动提取 URL 再解析
+ * 返回解析后的 ID，无法解析时返回原字符串
+ */
 export function parsePlaylistId(input: string): string {
   const trimmed = input.trim();
   if (!trimmed) return trimmed;
 
-  
+  // 1. 防呆：如果是混合文本，先提取 URL
   const url = extractUrlFromText(trimmed);
   const target = url || trimmed;
 
-  
+  // 2. 尝试匹配 ?id=xxx 或 &id=xxx 参数（支持复杂参数 URL）
   const idParamMatch = target.match(/[?&]id=(\d+)/);
   if (idParamMatch) return idParamMatch[1];
 
-  
+  // 3. 尝试匹配 playlist/数字 路径
   const pathMatch = target.match(/\/playlist\/(\d+)/);
   if (pathMatch) return pathMatch[1];
 
-  
+  // 4. 尝试匹配 share/playlist/数字 路径
   const shareMatch = target.match(/\/share\/playlist\/(\d+)/);
   if (shareMatch) return shareMatch[1];
 
-  
+  // 5. 尝试匹配 163cn.tv 短链接（返回原链接，留给异步 resolve 处理）
   if (/163cn\.tv/i.test(target)) return target;
 
-  
+  // 6. 尝试匹配纯数字（至少 5 位，避免误匹配短数字）
   const pureNumberMatch = target.match(/^(\d{5,})$/);
   if (pureNumberMatch) return pureNumberMatch[1];
 
@@ -130,7 +149,7 @@ export function formatTime(seconds: number): string {
   return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }
 
-
+/** 解析 LRC 歌词文本为时间轴数组 */
 export function parseLyric(lyricText: string): LyricLine[] {
   if (!lyricText) return [];
   const lines = lyricText.split('\n');
@@ -169,18 +188,21 @@ export function saveMusicMemory(memory: MusicMemory) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(memory));
   } catch {
-    
+    // ignore
   }
 }
 
-
+/**
+ * 将外部图片 URL 转为代理 URL（通过 Cloudflare Worker 代理，避免跨域/PWA URL 显示问题）
+ * 是否代理取决于配置中的 imageProxy 开关（默认关闭）
+ */
 export function getProxyImageUrl(url: string): string {
   if (!url) return '';
-  
+  // 相对路径或本站资源无需代理
   if (url.startsWith('/') || url.startsWith('./') || url.startsWith(window.location.origin)) return url;
-  
+  // 读取配置：是否开启图片代理（默认关闭）
   const imageProxy = useSiteStore.getState().config.music?.imageProxy ?? false;
   if (!imageProxy) return url;
-  
+  // 走 Worker 代理
   return `/api/v1/proxy-image?url=${encodeURIComponent(url)}`;
 }

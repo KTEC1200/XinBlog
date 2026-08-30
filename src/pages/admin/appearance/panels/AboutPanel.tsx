@@ -35,8 +35,6 @@ export function AboutPanel({ editor }: { editor: AppearanceEditor }) {
           placeholder="热爱生活、喜欢设计、追求技术"
         />
       </Stack>
-
     </Paper>
-
   );
 }

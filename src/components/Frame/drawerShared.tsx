@@ -3,7 +3,7 @@ import type { ButtonBaseProps } from '@mui/material';
 import { darken, lighten } from '@mui/material';
 import type { ReactNode } from 'react';
 
-
+// 前台 SideBar 与后台 AdminSideBar 共享的抽屉相关常量与组件，避免复制粘贴。
 export const DRAWER_TRANSITION_MS = 225;
 
 export const DrawerHeaderContainer = styled('div')(({ theme }) => ({
@@ -19,7 +19,7 @@ export interface NavItem {
   title: string;
   path: string;
   icon: ReactNode;
-  
+  /** 仅超级管理员可见的菜单项 */
   superOnly?: boolean;
 }
 

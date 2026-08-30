@@ -67,16 +67,16 @@ function builtinThemeById(id: string): ThemePackage | undefined {
   return BUILTIN_THEMES.find((t) => t.id === id);
 }
 
-
+// 根据当前生效的卡片 variant，反查出对应内置主题的 id（'' 表示默认主题）
 function resolveActiveBuiltinId(variant: string): string {
   if (variant === 'default') return '';
   const t = BUILTIN_THEMES.find((b) => (b.components?.postCard?.variant || '') === variant);
   return t?.id || '';
 }
 
-
-
-
+// 用已保存的卡片配置（site.config.cardTheme）覆盖内置主题包的默认参数，
+// 使设置面板在重新进入页面时显示真实的已保存参数，而不是回退到出厂默认值。
+// 仅当传入 saved 时才覆盖；选中"非当前已保存"主题时用 undefined 保持出厂默认。
 function buildEditingThemeFromSaved(id: string, saved?: PostCardThemeConfig): ThemePackage | null {
   const pkg = builtinThemeById(id);
   if (!pkg) return null;
@@ -92,7 +92,7 @@ function buildEditingThemeFromSaved(id: string, saved?: PostCardThemeConfig): Th
   };
 }
 
-
+// 主题卡片缩略预览：直接画一段 SVG 小卡片，引用当前外观主色（边框画报显示描边）
 const ThemePreviewThumb = ({ bordered }: { bordered?: boolean }) => {
   const theme = useTheme();
   const accent = theme.palette.primary.main;
@@ -115,7 +115,6 @@ const ThemePreviewThumb = ({ bordered }: { bordered?: boolean }) => {
       <rect x="9" y="36" width="48" height="4" rx="2" fill={line} />
       <rect x="9" y="46" width="32" height="4" rx="2" fill={line2} />
     </svg>
-
   );
 };
 
@@ -137,8 +136,8 @@ export function AdminThemeSettings() {
   const tabContainerRef = useRef<HTMLDivElement>(null);
   const tabStripRef = useRef<HTMLDivElement>(null);
   const themeRowRef = useRef<HTMLDivElement>(null);
-  
-  
+  // 主题列表改为横向滚动：鼠标悬停时接管垂直滚轮，把它映射成左右滚动，
+  // 并通过 requestAnimationFrame 插值（lerp）实现平滑滚动，避免逐帧赋值导致的抖动。
   const wheelTargetRef = useRef(0);
   const rafRef = useRef(0);
   const scrollRowTo = (target: number) => {
@@ -146,7 +145,7 @@ export function AdminThemeSettings() {
     if (!el) return;
     const maxLeft = el.scrollWidth - el.clientWidth;
     wheelTargetRef.current = Math.max(0, Math.min(maxLeft, target));
-    if (rafRef.current) return; 
+    if (rafRef.current) return; // 已有动画在跑，仅更新目标值
     const step = () => {
       const row = themeRowRef.current;
       if (!row) {
@@ -159,33 +158,33 @@ export function AdminThemeSettings() {
         rafRef.current = 0;
         return;
       }
-      row.scrollLeft += diff * 0.18; 
+      row.scrollLeft += diff * 0.18; // 插值因子：越大越跟手，越小越平滑
       rafRef.current = requestAnimationFrame(step);
     };
     rafRef.current = requestAnimationFrame(step);
   };
-  
-  
-  
+  // 注意：不能用 React 的 onWheel（被动监听），那样 preventDefault 无效，页面仍会跟着滚动。
+  // 也不能只用 useEffect 一次性绑定——主题行是加载后才渲染的，得用回调 ref，
+  // 只要 DOM 节点一挂载就绑定原生非被动监听，真正接管滚轮（主题行横滚，页面不动）。
   const setThemeRowRef = useCallback((node: HTMLDivElement | null) => {
     themeRowRef.current = node;
     if (!node) return undefined;
     const onWheel = (e: WheelEvent) => {
-      if (node.scrollWidth <= node.clientWidth + 1) return; 
+      if (node.scrollWidth <= node.clientWidth + 1) return; // 无可横滚内容时不接管
       e.preventDefault();
       scrollRowTo(node.scrollLeft + e.deltaX + e.deltaY);
     };
     node.addEventListener('wheel', onWheel, { passive: false });
     return () => node.removeEventListener('wheel', onWheel);
   }, []);
-  
+  // 卸载时取消动画帧
   useEffect(
     () => () => {
       cancelAnimationFrame(rafRef.current);
     },
     []
   );
-  
+  // tabs 横向滚动同样用回调 ref 绑定原生非被动监听，防止页面跟着滚动
   const setTabStripRef = useCallback((node: HTMLDivElement | null) => {
     tabStripRef.current = node;
     if (!node) return undefined;
@@ -247,8 +246,8 @@ export function AdminThemeSettings() {
       setPendingResetToDefault(false);
       setEditingThemeId(activeId);
       if (activeId) {
-        
-        
+        // 关键：合并已保存的 site.config.cardTheme（用户自定义参数），
+        // 否则重新进入页面时面板会回退到出厂默认，与云端/主页不一致。
         const pkg = buildEditingThemeFromSaved(activeId, site.config.cardTheme);
         if (pkg) {
           setEditingTheme(pkg);
@@ -264,7 +263,7 @@ export function AdminThemeSettings() {
     return () => {
       mounted = false;
     };
-    
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -282,8 +281,8 @@ export function AdminThemeSettings() {
 
   const handleSelectEditTheme = (id: string) => {
     setEditingThemeId(id);
-    
-    
+    // 仅当选中的正是"当前已保存激活"的主题时，才回填已保存参数；
+    // 选中其它未保存的主题则保持出厂默认（此时云端没有它的参数）。
     const savedVariant = site.config.cardTheme?.variant || 'default';
     const savedId = resolveActiveBuiltinId(savedVariant);
     const useSaved = id === savedId ? site.config.cardTheme : undefined;
@@ -311,7 +310,7 @@ export function AdminThemeSettings() {
     return editingCardTheme.schema || activeRenderer?.schema || [];
   }, [editingCardTheme.schema, activeRenderer]);
 
-  
+  // 主题列表完全来自本地内置主题，不再读取云端 themes 表（取消对云端主题表的依赖）
   const displayThemes = useMemo<DisplayTheme[]>(() => {
     const variant = site.config.cardTheme?.variant || 'default';
     return BUILTIN_THEMES.map((t) => ({
@@ -382,21 +381,21 @@ export function AdminThemeSettings() {
         ? { ...defaultCardTheme }
         : (editingTheme?.components?.postCard ?? site.config.cardTheme ?? defaultCardTheme);
 
-      
-      
+      // 1) 实时写本地缓存 + 内存（乐观更新）：立即生效、不被 CDN/云端旧数据回源覆盖，
+      //    保证"本地缓存实时更新"。参考评论/外观等页面"云端更新、顺带本地更新"的逻辑。
       const optimistic = normalizeSiteConfig({ ...site.config, cardTheme: nextCardTheme });
       site.setConfig({ cardTheme: optimistic.cardTheme ?? defaultCardTheme });
       setCachedSiteConfig(optimistic);
 
-      
-      
+      // 2) 再持久化到云端（与其他设置共用 site.saveConfig → /api/v1/admin/settings），
+      //    云端与本地保持一致。
       const ok = await site.saveConfig({ cardTheme: nextCardTheme });
       if (!ok) throw new Error('主题设置保存失败');
 
-      
-      
-      
-      
+      // 3) 同步维护后端 active_theme：GET /api/v1/site 依据它决定是否返回已保存的 cardTheme，
+      //    否则刷新页面后 cardTheme 会被强制回退成默认（之前“刷新全部还原”的根因）。
+      //    前端内置主题直接把 postCard 传给 apply 接口，不依赖已被清除的 themes 表。
+      //    对齐评论管理“云端更新、顺带本地更新”的逻辑。
       const variant = nextCardTheme.variant || 'default';
       if (pendingResetToDefault || variant === 'default') {
         const clearRes = await apiPost<null>('/api/v1/admin/themes/clear-active', {});
@@ -409,13 +408,13 @@ export function AdminThemeSettings() {
         if (applyRes.code !== 0) throw new Error(applyRes.msg || '应用主题失败');
       }
 
-      
+      // 4) 同步后台 UI 状态
       const newActiveId = resolveActiveBuiltinId(variant);
       setActiveThemeId(newActiveId);
       setPendingActiveThemeId(newActiveId);
       setPendingResetToDefault(false);
-      
-      
+      // 关键：保存成功后把"原始快照"对齐到当前编辑内容，
+      // 否则 isDirty 一直为 true，悬浮保存按钮不会隐藏。
       setOriginalEditingTheme(editingTheme ? JSON.parse(JSON.stringify(editingTheme)) : null);
       enqueueSnackbar('主题设置已保存', { variant: 'success' });
     } catch (err) {
@@ -431,9 +430,7 @@ export function AdminThemeSettings() {
       return (
         <Box sx={{ textAlign: 'center', py: 6, color: 'text.secondary' }}>
           <Typography>暂无文章可供预览</Typography>
-
         </Box>
-
       );
     }
     return (
@@ -442,7 +439,6 @@ export function AdminThemeSettings() {
         {previewLayout === 'magazine' && <PostListMagazine posts={previewPosts.slice(0, 3)} theme={editingCardTheme} />}
         {previewLayout === 'grid' && <PostListGrid posts={previewPosts} theme={editingCardTheme} />}
       </Box>
-
     );
   };
 
@@ -462,13 +458,11 @@ export function AdminThemeSettings() {
         <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
           所有主题
         </Typography>
-
         {displayThemes.length === 0 ? (
           <Box>
             <Typography color="text.secondary" sx={{ mb: 2 }}>
               暂无可用主题。
             </Typography>
-
             <Button
               variant="outlined"
               size="small"
@@ -478,9 +472,7 @@ export function AdminThemeSettings() {
             >
               恢复默认主题
             </Button>
-
           </Box>
-
         ) : (
           <Box
             ref={setThemeRowRef}
@@ -489,7 +481,7 @@ export function AdminThemeSettings() {
               flexWrap: 'nowrap',
               overflowX: 'auto',
               overflowY: 'hidden',
-              scrollBehavior: 'auto', 
+              scrollBehavior: 'auto', // 关闭全局 smooth，交由上方 rAF lerp 平滑
               gap: 2,
               pb: 1,
               pt: 0.5,
@@ -531,20 +523,15 @@ export function AdminThemeSettings() {
                   >
                     <ThemePreviewThumb />
                   </Box>
-
                   <Box sx={{ flex: 1, minWidth: 0 }}>
                     <Typography variant="subtitle2" fontWeight={700} noWrap>
                       默认主题
                     </Typography>
-
                     <Typography variant="caption" color="text.secondary" sx={{ wordBreak: 'break-word', whiteSpace: 'normal' }}>
                       恢复为系统内置默认卡片样式
                     </Typography>
-
                   </Box>
-
                 </Box>
-
                 <Box sx={{ mt: 1.5 }}>
                   <Button
                     variant={pendingActiveThemeId === '' ? 'outlined' : 'contained'}
@@ -559,13 +546,9 @@ export function AdminThemeSettings() {
                   >
                     {pendingActiveThemeId === '' ? '已选中' : '恢复默认'}
                   </Button>
-
                 </Box>
-
               </Paper>
-
             </Box>
-
             {displayThemes.map((t) => (
               <Box key={t.id} sx={{ flex: '0 0 auto', width: { xs: '72%', sm: 290, md: 330 }, display: 'flex' }}>
                 <Paper
@@ -599,12 +582,10 @@ export function AdminThemeSettings() {
                     >
                       <ThemePreviewThumb bordered={builtinThemeById(t.id)?.components?.postCard?.variant === 'border-image'} />
                     </Box>
-
                     <Box sx={{ flex: 1, minWidth: 0 }}>
                       <Typography variant="subtitle2" fontWeight={700} noWrap>
                         {t.name}
                       </Typography>
-
                       <Typography
                         variant="caption"
                         color="text.secondary"
@@ -612,11 +593,8 @@ export function AdminThemeSettings() {
                       >
                         {t.description || t.author || '主题包'}
                       </Typography>
-
                     </Box>
-
                   </Box>
-
                   <Box sx={{ mt: 1.5, display: 'flex', gap: 1 }}>
                     <Button
                       variant={pendingActiveThemeId === t.id ? 'outlined' : 'contained'}
@@ -631,7 +609,6 @@ export function AdminThemeSettings() {
                     >
                       {pendingActiveThemeId === t.id ? '已选中' : '应用'}
                     </Button>
-
                     {pendingActiveThemeId === t.id && (
                       <Button
                         variant="outlined"
@@ -645,20 +622,14 @@ export function AdminThemeSettings() {
                       >
                         恢复默认
                       </Button>
-
                     )}
                   </Box>
-
                 </Paper>
-
               </Box>
-
             ))}
           </Box>
-
         )}
       </Paper>
-
 
       {editingTheme && isEditingThemeActive && (
         <Fade in timeout={400} key={editingThemeId || 'none'}>
@@ -680,10 +651,8 @@ export function AdminThemeSettings() {
                     <Box component="span" sx={{ ml: 1, px: 1, py: 0.25, borderRadius: 1, bgcolor: (t) => alpha(t.palette.primary.main, 0.1), color: 'primary.main', typography: 'caption', fontWeight: 600, verticalAlign: 'middle' }}>
                       正在使用
                     </Box>
-
                   )}
                 </Typography>
-
                 <Button
                   variant="outlined"
                   size="small"
@@ -693,13 +662,10 @@ export function AdminThemeSettings() {
                 >
                   恢复默认
                 </Button>
-
               </Box>
-
               <Stack spacing={3}>
                 {activeSchema.length === 0 ? (
                   <Typography color="text.secondary">该主题无可调参数。</Typography>
-
                 ) : (
                   activeSchema.map((item) => {
                     const value = editingCardTheme[item.key as keyof PostCardThemeConfig];
@@ -710,7 +676,6 @@ export function AdminThemeSettings() {
                           <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
                             {item.label} {numeric}px
                           </Typography>
-
                           <Slider
                             value={numeric}
                             onChange={(_, v) => updateEditingCardTheme({ [item.key]: v as number } as Partial<PostCardThemeConfig>)}
@@ -720,7 +685,6 @@ export function AdminThemeSettings() {
                             valueLabelDisplay="auto"
                           />
                         </Box>
-
                       );
                     }
                     if (item.type === 'boolean') {
@@ -743,7 +707,6 @@ export function AdminThemeSettings() {
                           <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
                             {item.label}
                           </Typography>
-
                           <ToggleButtonGroup
                             value={String(value ?? '')}
                             exclusive
@@ -773,12 +736,9 @@ export function AdminThemeSettings() {
                               <ToggleButton key={opt.value} value={opt.value}>
                                 {opt.label}
                               </ToggleButton>
-
                             ))}
                           </ToggleButtonGroup>
-
                         </Box>
-
                       );
                     }
                     if (item.type === 'color') {
@@ -787,7 +747,6 @@ export function AdminThemeSettings() {
                           <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
                             {item.label}
                           </Typography>
-
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
                             <ColorPicker
                               value={String(value || '#000000')}
@@ -801,20 +760,15 @@ export function AdminThemeSettings() {
                             >
                               使用主题色
                             </Button>
-
                           </Box>
-
                         </Box>
-
                       );
                     }
                     return null;
                   })
                 )}
               </Stack>
-
             </Paper>
-
 
             <Paper
               elevation={0}
@@ -831,7 +785,6 @@ export function AdminThemeSettings() {
                 <Typography variant="h6" sx={{ fontWeight: 700 }}>
                   实时预览
                 </Typography>
-
                 <ToggleButtonGroup
                   value={previewLayout}
                   exclusive
@@ -863,21 +816,14 @@ export function AdminThemeSettings() {
                       <Box component="span" sx={{ ml: 0.75 }}>
                         {layout.name}
                       </Box>
-
                     </ToggleButton>
-
                   ))}
                 </ToggleButtonGroup>
-
               </Box>
-
               {renderCardPreview()}
             </Paper>
-
           </Box>
-
         </Fade>
-
       )}
 
       <FloatingSaveButton
@@ -887,7 +833,6 @@ export function AdminThemeSettings() {
         label="保存主题"
       />
     </Stack>
-
   );
 
   const renderPostDetailPanel = () => <PostDetailThemePanel />;
@@ -910,15 +855,11 @@ export function AdminThemeSettings() {
             <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5 }}>
               主题设置
             </Typography>
-
             <Typography variant="body2" color="text.secondary">
               管理站点主题，自定义文章卡片、场景特效、英雄区布局与顶部导航等视觉风格。
             </Typography>
-
           </Box>
-
         </Box>
-
 
         <Box ref={tabContainerRef} sx={{ mt: 3, mb: 3 }}>
           {isMobileAdmin || tabsCompact ? (
@@ -942,12 +883,9 @@ export function AdminThemeSettings() {
                   <MenuItem key={item.value} value={item.value}>
                     {item.label}
                   </MenuItem>
-
                 ))}
               </Select>
-
             </FormControl>
-
           ) : (
             <Box
               ref={setTabStripRef}
@@ -1010,16 +948,12 @@ export function AdminThemeSettings() {
                     >
                       {item.label}
                     </Button>
-
                   );
                 })}
               </Box>
-
             </Box>
-
           )}
         </Box>
-
 
         <Fade in timeout={300} key={tab}>
           <Box>
@@ -1030,12 +964,8 @@ export function AdminThemeSettings() {
             {tab === 'hero' && renderHeroPanel()}
             {tab === 'nav' && renderNavPanel()}
           </Box>
-
         </Fade>
-
       </Box>
-
     </Fade>
-
   );
 }

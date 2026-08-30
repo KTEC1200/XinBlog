@@ -12,7 +12,10 @@ interface GinkgoParams extends Record<string, unknown> {
   otherSharpCorner: BubbleCorners;
 }
 
-
+/**
+ * 渐变描边：透明底 + 双色渐变描边，仅用一圈彩色轮廓勾勒气泡，
+ * 无填充，轻透优雅（区别于「极简」的单色实线）。
+ */
 export const gingkoBubbleRenderer: ChatBubbleRenderer<GinkgoParams> = {
   id: 'gingko',
   name: '描边',

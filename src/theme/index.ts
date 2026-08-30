@@ -162,12 +162,12 @@ export const createAppTheme = (mode: 'light' | 'dark', config?: Partial<CustomTh
 
 export function useAppTheme() {
   const { mode } = useThemeStore();
-  
+  // 只订阅会影响主题生成的关键字段，避免无关状态变化导致整树重渲染
   const presetId = useThemeConfigStore((state) => state.presetId);
   const useCustomColors = useThemeConfigStore((state) => state.useCustomColors);
   const customColors = useThemeConfigStore((state) => state.customColors);
   const borderRadius = useThemeConfigStore((state) => state.borderRadius);
-  
+  // 记忆化：仅在相关字段变化时才重建 MUI theme 对象，避免每次渲染产生新引用导致子树重渲染
   return useMemo(
     () => createAppTheme(mode, { presetId, useCustomColors, customColors, borderRadius }),
     [mode, presetId, useCustomColors, customColors, borderRadius]

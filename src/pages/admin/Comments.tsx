@@ -56,7 +56,7 @@ export function AdminComments() {
   const isMobileAdmin = useMediaQuery(theme.breakpoints.down('lg'));
   const { user } = useAuthStore();
   const isSuper = isSuperAdmin(user?.role);
-  
+  // 管理员仅做审核：隐藏互动基础设置与邮箱提醒标签
   const visibleTabs = isSuper ? TAB_LIST : TAB_LIST.filter((t) => t.value !== 'settings' && t.value !== 'notify');
   const [tab, setTab] = useState<CommentTab>(isSuper ? 'settings' : 'audit');
   const [settings, setSettings] = useState<InteractionSettings>({
@@ -82,7 +82,7 @@ export function AdminComments() {
     id: null,
   });
 
-  
+  // 评论邮件通知设置
   const [notifySettings, setNotifySettings] = useState<CommentNotifySettings>({
     enabled: false,
     notifyEmail: '',
@@ -123,7 +123,7 @@ export function AdminComments() {
     });
   }, [enqueueSnackbar]);
 
-  
+  // 加载评论邮件通知设置
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
@@ -340,12 +340,9 @@ export function AdminComments() {
             <Divider sx={{ my: 1 }} />
             <FloatingSaveButton show={settingsDirty} saving={saving} onClick={handleSaveSettings} label="保存" />
           </Box>
-
         </Fade>
-
       )}
     </Paper>
-
   );
 
   const renderNotifySettings = () => (
@@ -365,11 +362,9 @@ export function AdminComments() {
             <Typography variant="h6" sx={{ fontWeight: 700, overflowWrap: 'break-word' }}>
               邮箱提醒设置
             </Typography>
-
             <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.6 }}>
               当有用户发表评论时，可通过邮件通知站长。被回复的用户也会收到邮件通知。需先在用户管理 → 邮箱配置中设置好发件邮箱。
             </Typography>
-
 
             <FormControlLabel
               control={
@@ -387,7 +382,6 @@ export function AdminComments() {
                   <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600, overflowWrap: 'break-word' }}>
                     通知接收邮箱（站长）
                   </Typography>
-
                   <Box
                     component="input"
                     placeholder="your@email.com"
@@ -402,8 +396,8 @@ export function AdminComments() {
                       borderColor: 'divider',
                       bgcolor: 'background.paper',
                       color: 'text.primary',
-                      
-                      
+                      // 明确跟随主题：深浅色模式下文字都清晰可见（原生 input 默认黑字，
+                      // 深色模式背景变深后需显式指定前景色，否则看不清/发黑）
                       colorScheme: 'inherit',
                       fontSize: '0.9rem',
                       outline: 'none',
@@ -412,13 +406,11 @@ export function AdminComments() {
                   />
                 </Box>
 
-
                 <Divider />
 
                 <Typography variant="subtitle2" sx={{ fontWeight: 600, overflowWrap: 'break-word' }}>
                   通知场景
                 </Typography>
-
 
                 <FormControlLabel
                   control={
@@ -454,13 +446,11 @@ export function AdminComments() {
                   每日发送限额
                 </Typography>
 
-
                 <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, alignItems: { sm: 'center' } }}>
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                     <Typography variant="caption" color="text.secondary">
                       每日总上限（Resend 免费版 100 封）
                     </Typography>
-
                     <Box
                       component="input"
                       type="number"
@@ -481,12 +471,10 @@ export function AdminComments() {
                       }}
                     />
                   </Box>
-
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                     <Typography variant="caption" color="text.secondary">
                       预留注册验证码
                     </Typography>
-
                     <Box
                       component="input"
                       type="number"
@@ -507,27 +495,19 @@ export function AdminComments() {
                       }}
                     />
                   </Box>
-
                 </Box>
-
 
                 <Typography variant="caption" color="text.secondary">
                   通知邮件可用上限：{Math.max(0, notifySettings.dailyLimit - notifySettings.reserveForRegister)} 封/日
-
                 </Typography>
-
               </>
-
             )}
 
             <FloatingSaveButton show={notifyDirty} saving={notifySaving} onClick={handleSaveNotify} label="保存设置" />
           </Box>
-
         </Fade>
-
       )}
     </Paper>
-
   );
 
   const renderCommentCard = (comment: AdminComment) => (
@@ -558,13 +538,10 @@ export function AdminComments() {
           <Typography variant="subtitle2" sx={{ overflowWrap: 'break-word', fontWeight: 700 }}>
             {comment.username || '未知用户'}
           </Typography>
-
           <Typography variant="caption" color="text.secondary" sx={{ overflowWrap: 'break-word' }}>
             {formatTime(comment.createdAt)}
           </Typography>
-
         </Box>
-
         <Box sx={{ display: 'flex', gap: 1, flexShrink: 0 }}>
           {tab === 'audit' && (
             <Button
@@ -578,7 +555,6 @@ export function AdminComments() {
             >
               {processingIds.has(comment.id) ? '通过中' : '通过'}
             </Button>
-
           )}
           {isSuper && (
             <Button
@@ -592,24 +568,18 @@ export function AdminComments() {
             >
               {deletingIds.has(comment.id) ? '删除中' : '删除'}
             </Button>
-
           )}
         </Box>
-
       </Box>
-
       <Typography variant="body2" sx={{ mb: 1, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
         {comment.content}
       </Typography>
-
       {comment.postTitle && (
         <Typography variant="caption" color="text.secondary">
           文章：{comment.postTitle}
         </Typography>
-
       )}
     </Paper>
-
   );
 
   const renderCommentList = () => {
@@ -625,7 +595,6 @@ export function AdminComments() {
         >
           <Loading text="加载评论中..." />
         </Paper>
-
       );
     }
     if (comments.length === 0) {
@@ -643,11 +612,8 @@ export function AdminComments() {
             <Typography variant="body2" color="text.secondary">
               暂无评论
             </Typography>
-
           </Paper>
-
         </Fade>
-
       );
     }
     return (
@@ -685,7 +651,6 @@ export function AdminComments() {
                 <Typography variant="caption" color="text.secondary">
                   已选 {selectedIds.size} 项
                 </Typography>
-
                 <Box sx={{ flex: 1 }} />
                 <Button
                   size="small"
@@ -698,7 +663,6 @@ export function AdminComments() {
                 >
                   {batchLoading ? '处理中' : '同意选中'}
                 </Button>
-
                 <Button
                   size="small"
                   variant="outlined"
@@ -709,9 +673,7 @@ export function AdminComments() {
                 >
                   全部同意
                 </Button>
-
               </Box>
-
             )}
             {comments.map((comment, index) => (
               <Box key={comment.id}>
@@ -720,10 +682,8 @@ export function AdminComments() {
                   <Divider sx={{ my: 1 }} />
                 )}
               </Box>
-
             ))}
           </Box>
-
           <TablePagination
             component="div"
             count={total}
@@ -745,9 +705,7 @@ export function AdminComments() {
             }}
           />
         </Paper>
-
       </Fade>
-
     );
   };
 
@@ -757,7 +715,6 @@ export function AdminComments() {
       <Typography variant="h5" sx={{ mb: 2, fontWeight: 600 }}>
         评论管理
       </Typography>
-
 
       {isMobileAdmin ? (
         <FormControl size="small" sx={{ mb: 3, minWidth: 140, maxWidth: '100%' }}>
@@ -780,12 +737,9 @@ export function AdminComments() {
               <MenuItem key={item.value} value={item.value}>
                 {item.label}
               </MenuItem>
-
             ))}
           </Select>
-
         </FormControl>
-
       ) : (
         <Box
           onWheel={(e) => {
@@ -854,12 +808,9 @@ export function AdminComments() {
               >
                 {item.label}
               </Button>
-
             ))}
           </Box>
-
         </Box>
-
       )}
 
       <Fade in timeout={300} key={tab}>
@@ -869,9 +820,7 @@ export function AdminComments() {
           {tab === 'manage' && renderCommentList()}
           {tab === 'notify' && renderNotifySettings()}
         </Box>
-
       </Fade>
-
 
       <ConfirmDialog
         open={deleteDialog.open}
@@ -884,8 +833,6 @@ export function AdminComments() {
         onConfirm={handleConfirmDelete}
       />
     </Box>
-
     </Fade>
-
   );
 }

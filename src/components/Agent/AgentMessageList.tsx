@@ -30,13 +30,13 @@ import { useSiteStore } from '@/stores/siteStore';
 import { useAuthStore } from '@/stores/authStore';
 import type { AgentMessage, AgentStep, AgentConfirmAction } from '@/hooks/useAgentChat';
 
-
+// 步骤卡片的温和入场动画
 const stepIn = keyframes`
   from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
 `;
 
-
+/* 参数 / 返回结果的小型等宽预览块 */
 function CodePreview({ label, text }: { label: string; text: string }) {
   return (
     <Box
@@ -58,14 +58,12 @@ function CodePreview({ label, text }: { label: string; text: string }) {
       <Typography variant="caption" sx={{ display: 'block', color: 'text.disabled', fontSize: '0.65rem', mb: 0.2 }}>
         {label}
       </Typography>
-
       {text}
     </Box>
-
   );
 }
 
-
+/* 整条 AI 回复的段序列：思考 / 工具调用 / 写操作确认 / 普通回复 全部串在一个气泡里，用线点线连接 */
 function SegmentFlow({
   steps,
   busy,
@@ -83,7 +81,7 @@ function SegmentFlow({
 }) {
   const running = busy || steps.some((s) => s.kind === 'tool' && s.status === 'running');
   void running;
-  
+  // 写操作确认/结果作为一条 action 段串进流程流（内嵌消息，对话不截断）
   const allSteps: AgentStep[] = action
     ? [...steps, { kind: 'action', id: `act-${action.token}`, action }]
     : steps;
@@ -100,11 +98,10 @@ function SegmentFlow({
         />
       ))}
     </Box>
-
   );
 }
 
-
+/* 单条段：普通回复（白）/ 深度思考（灰，可折叠）/ 工具调用（主题色，可折叠）/ 写操作确认（横条），带左线点线 */
 function SegmentRow({
   step,
   isLast,
@@ -118,7 +115,7 @@ function SegmentRow({
   onConfirmAction?: (token: string, approved: boolean) => void | Promise<boolean>;
   onUndoAction?: (undoId: string, token?: string) => Promise<{ ok: boolean; msg?: string }>;
 }) {
-  
+  // 开启「自动折叠」时：新生成的思考/工具段默认收起（只显示标题，参数/返回默认不展开）
   const [open, setOpen] = useState(() => !autoCollapse);
   const running = step.status === 'running';
   const hasDetail = !!(step.params || step.output);
@@ -129,7 +126,7 @@ function SegmentRow({
 
   return (
     <Box sx={{ display: 'flex', alignItems: 'stretch', gap: 0.75, px: 1, py: 0.4 }}>
-      {}
+      {/* 左线点线 */}
       <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 14, flexShrink: 0, pt: 0.9 }}>
         <Box
           sx={{
@@ -147,13 +144,12 @@ function SegmentRow({
         )}
       </Box>
 
-
-      {}
+      {/* 内容 */}
       <Box sx={{ minWidth: 0, flex: 1, pb: 0.25 }}>
         {isAction && step.action ? (
           <ActionCardStep action={step.action} onConfirmAction={onConfirmAction} onUndoAction={onUndoAction} />
         ) : isContent ? (
-          
+          /* 普通回复：白色气泡 */
           <Box
             sx={{
               px: 1.5,
@@ -171,9 +167,8 @@ function SegmentRow({
               <CircularProgress size={14} sx={{ display: 'block' }} />
             )}
           </Box>
-
         ) : isThink ? (
-          
+          /* 深度思考：灰色、可折叠 */
           <Box
             sx={{
               border: (t) => `1px solid ${alpha(t.palette.divider, 0.3)}`,
@@ -206,7 +201,6 @@ function SegmentRow({
               <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.72rem' }}>
                 深度思考
               </Typography>
-
               <ExpandMoreIcon
                 sx={{
                   ml: 'auto',
@@ -217,7 +211,6 @@ function SegmentRow({
                 }}
               />
             </Box>
-
             <Collapse in={open} timeout={220}>
               <Box sx={{ px: 1.25, pb: 1 }}>
                 <Typography
@@ -232,15 +225,11 @@ function SegmentRow({
                 >
                   {step.text}
                 </Typography>
-
               </Box>
-
             </Collapse>
-
           </Box>
-
         ) : (
-          
+          /* 工具调用：主题色、可折叠 */
           <Box
             sx={{
               border: (t) => `1px solid ${alpha(t.palette.primary.main, 0.35)}`,
@@ -281,12 +270,10 @@ function SegmentRow({
               <Typography variant="caption" sx={{ fontWeight: 700, color: 'primary.main' }}>
                 {step.name}
               </Typography>
-
               {step.summary && (
                 <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                   · {step.summary}
                 </Typography>
-
               )}
               {hasDetail && !running && (
                 <ExpandMoreIcon
@@ -300,37 +287,31 @@ function SegmentRow({
                 />
               )}
             </Box>
-
             {hasDetail && (
               <Collapse in={open} timeout={200}>
                 <Box sx={{ px: 1.25, pb: 1, display: 'flex', flexDirection: 'column', gap: 0.25 }}>
                   {step.params && <CodePreview label="参数" text={step.params} />}
                   {step.output && <CodePreview label="返回" text={step.output} />}
                 </Box>
-
               </Collapse>
-
             )}
           </Box>
-
         )}
       </Box>
-
     </Box>
-
   );
 }
 
 interface AgentMessageListProps {
   messages: AgentMessage[];
   loading?: boolean;
-  
+  /** 开启时：新生成的深度思考默认折叠、工具参数/返回默认不展开 */
   autoCollapse?: boolean;
-  
+  /** AI 智能体头像（后台设置，留空用默认机器人图标） */
   agentAvatar?: string;
-  
+  /** 确认/取消写操作（AI 挂起等待，同一流继续） */
   onConfirmAction?: (token: string, approved: boolean) => void | Promise<boolean>;
-  
+  /** 回滚已执行的写操作 */
   onUndoAction?: (undoId: string, token?: string) => Promise<{ ok: boolean; msg?: string }>;
 }
 
@@ -338,7 +319,7 @@ function formatTime(ts: number): string {
   return new Date(ts).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
 }
 
-
+// 写操作确认/结果段：横条卡片，串在流程流里。操作前=确认/取消，执行后=结果+回滚，整条可点击展开细节
 function ActionCardStep({
   action,
   onConfirmAction,
@@ -402,7 +383,7 @@ function ActionCardStep({
         animation: `${stepIn} 0.3s ease`,
       }}
     >
-      {}
+      {/* 标题行 */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6, px: 1.25, py: 0.6 }}>
         {doing ? (
           <CircularProgress size={14} thickness={5} sx={{ color: 'warning.main', flexShrink: 0 }} />
@@ -425,7 +406,6 @@ function ActionCardStep({
         >
           {title}
         </Typography>
-
         {!doing && !disabled && (
           <ExpandMoreIcon
             sx={{
@@ -439,8 +419,7 @@ function ActionCardStep({
         )}
       </Box>
 
-
-      {}
+      {/* 文字行：操作说明 / 执行结果 / 失败原因（一条一条排下来） */}
       <Box sx={{ px: 1.25, py: 0.25 }}>
         <Typography
           variant="body2"
@@ -452,11 +431,9 @@ function ActionCardStep({
         >
           {isDone && action.message ? action.message : isFailed && action.message ? action.message : `我准备执行：${action.target}`}
         </Typography>
-
       </Box>
 
-
-      {}
+      {/* 按钮行：右下角（取消/确认 或 回滚），点击按钮不触发展开/收起 */}
       <Box
         onClick={(e) => e.stopPropagation()}
         sx={{ px: 1.25, pb: 1, pt: 0.25, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}
@@ -473,7 +450,6 @@ function ActionCardStep({
             >
               取消
             </Button>
-
             <Button
               size="small"
               color="primary"
@@ -484,9 +460,7 @@ function ActionCardStep({
             >
               确认执行
             </Button>
-
           </>
-
         )}
         {isDone && action.undoId && (
           <Button
@@ -500,12 +474,10 @@ function ActionCardStep({
           >
             回滚
           </Button>
-
         )}
       </Box>
 
-
-      {}
+      {/* 展开区：等待时=操作参数；完成后=回滚预览 */}
       <Collapse in={open} timeout={200}>
         <Box
           sx={{
@@ -527,29 +499,22 @@ function ActionCardStep({
                   <Typography variant="caption" sx={{ color: 'text.secondary', lineHeight: 1.5 }}>
                     {action.undoPreview}
                   </Typography>
-
                 </Box>
-
               )}
               <Typography variant="caption" sx={{ color: 'text.disabled' }}>
                 操作后 24 小时内可回滚
               </Typography>
-
             </>
-
           )}
           {disabled && isRolledBack && (
             <Typography variant="caption" sx={{ color: 'text.disabled' }}>
               该操作已回滚，无法再次回滚
             </Typography>
-
           )}
         </Box>
-
       </Collapse>
 
-
-      {}
+      {/* 回滚确认弹窗：防止手快误点 */}
       <ConfirmDialog
         open={undoConfirmOpen}
         title="确认回滚操作"
@@ -560,14 +525,11 @@ function ActionCardStep({
               <Box component="span" sx={{ display: 'block', mt: 0.5, color: 'text.secondary' }}>
                 {action.undoPreview}
               </Box>
-
             )}
             <Box component="span" sx={{ display: 'block', mt: 0.5, color: 'text.disabled' }}>
               回滚后该操作将恢复到操作前状态，且仅可执行一次。
             </Box>
-
           </>
-
         }
         confirmText="确认回滚"
         confirmColor="primary"
@@ -584,7 +546,6 @@ function ActionCardStep({
         }}
       />
     </Box>
-
   );
 }
 
@@ -592,10 +553,10 @@ export default function AgentMessageList({ messages, loading, autoCollapse, agen
   const theme = useTheme();
   const scrollRef = useRef<HTMLDivElement>(null);
   const radius = theme.shape.borderRadius;
-  
+  // 当前登录用户（导航栏头像同源），用于展示用户消息的头像
   const authUser = useAuthStore((s) => s.user);
 
-  
+  // 复用站点聊天气泡主题
   const site = useSiteStore();
   const bubbleTheme = site.config.chatBubbleTheme || { variant: 'default' };
   const bubbleRenderer = getChatBubbleRenderer(bubbleTheme.variant);
@@ -608,10 +569,10 @@ export default function AgentMessageList({ messages, loading, autoCollapse, agen
     });
   }, [bubbleRenderer, bubbleTheme.params, theme.palette.primary.main, theme.shape.borderRadius]);
 
-  
+  // 是否贴底：贴底时新内容自动跟随到底部；用户上翻后自动暂停，回到底部附近后恢复
   const [stickToBottom, setStickToBottom] = useState(true);
 
-  
+  // 滚动监听：距底 < 120px 视为贴底
   const handleScroll = () => {
     const el = scrollRef.current;
     if (!el) return;
@@ -619,15 +580,15 @@ export default function AgentMessageList({ messages, loading, autoCollapse, agen
     setStickToBottom(distance < 120);
   };
 
-  
-  
-  
+  // 内容/流式变化时：仅当用户仍贴底才自动滚到底部。
+  // 修复：之前每次 messages/loading 变化都无条件 scrollTop=scrollHeight，
+  // 导致 AI 回答流式期间把用户死死钉在底部、根本无法上翻看历史。
   useEffect(() => {
     const el = scrollRef.current;
     if (el && stickToBottom) el.scrollTop = el.scrollHeight;
   }, [messages, loading, stickToBottom]);
 
-  
+  // 用户上翻离开底部后，点击按钮快速回到最新位置
   const jumpToBottom = () => {
     const el = scrollRef.current;
     if (!el) return;
@@ -672,9 +633,7 @@ export default function AgentMessageList({ messages, loading, autoCollapse, agen
           <Typography variant="body2" color="text.secondary">
             向 AI 助手提问，开始对话吧
           </Typography>
-
         </Box>
-
       )}
 
       {messages.map((msg) => {
@@ -689,7 +648,7 @@ export default function AgentMessageList({ messages, loading, autoCollapse, agen
               alignItems: 'flex-start',
             }}
           >
-            {}
+            {/* 头像：用户=当前登录用户（与导航栏同源）；AI=后台设置的智能体头像，留空用机器人图标 */}
             {isUser ? (
               <Avatar
                 src={authUser?.avatar || undefined}
@@ -705,7 +664,6 @@ export default function AgentMessageList({ messages, loading, autoCollapse, agen
               >
                 {authUser?.username ? authUser.username.charAt(0).toUpperCase() : <PersonIcon sx={{ fontSize: 20 }} />}
               </Avatar>
-
             ) : (
               <Avatar
                 src={agentAvatar || undefined}
@@ -719,10 +677,9 @@ export default function AgentMessageList({ messages, loading, autoCollapse, agen
               >
                 <SmartToyIcon sx={{ fontSize: 20 }} />
               </Avatar>
-
             )}
 
-            {}
+            {/* 气泡 + 时间 */}
             <Box sx={{ maxWidth: '75%', display: 'flex', flexDirection: 'column', gap: 0.5 }}>
               <Box
                 sx={{
@@ -730,11 +687,11 @@ export default function AgentMessageList({ messages, loading, autoCollapse, agen
                   wordBreak: 'break-word',
                   fontSize: '0.95rem',
                   lineHeight: 1.6,
-                  
+                  // 应用气泡主题样式（自己 = user，对方 = assistant）
                   ...(bubbleRenderer
                     ? (isUser ? bubbleStyles?.mine : bubbleStyles?.other) ?? {}
                     : {}),
-                  
+                  // 默认气泡配色（无主题时）
                   ...(!bubbleRenderer && {
                     bgcolor: isUser
                       ? (t) => alpha(t.palette.primary.main, 0.12)
@@ -747,7 +704,7 @@ export default function AgentMessageList({ messages, loading, autoCollapse, agen
                 }}
               >
                 {!isUser && (msg.steps?.length || msg.action) ? (
-                  
+                  /* AI 整条回复：思考/工具/写操作确认/普通回复 全部串在一个气泡里 */
                   <SegmentFlow
                     steps={msg.steps || []}
                     busy={!!loading}
@@ -760,15 +717,12 @@ export default function AgentMessageList({ messages, loading, autoCollapse, agen
                   <Box sx={{ px: 1.5, py: 1 }}>
                     <AgentMessageContent content={msg.content} />
                   </Box>
-
                 ) : (
                   <Box sx={{ p: 1.5 }}>
                     <CircularProgress size={16} sx={{ display: 'block' }} />
                   </Box>
-
                 )}
               </Box>
-
               <Typography
                 variant="caption"
                 sx={{
@@ -787,20 +741,15 @@ export default function AgentMessageList({ messages, loading, autoCollapse, agen
                   <Box component="span" sx={{ color: 'text.disabled' }}>
                     · 调用 {msg.rounds ?? 0} 轮 · {msg.usage?.total ?? 0} tokens
                   </Box>
-
                 )}
               </Typography>
-
             </Box>
-
           </Box>
-
         );
       })}
       </Box>
 
-
-      {}
+      {/* 用户上翻离开底部后，提供快速回到最新的按钮（仅箭头，Fade 显隐动画） */}
       <Fade in={!stickToBottom && messages.length > 0}>
         <IconButton
           size="small"
@@ -821,10 +770,7 @@ export default function AgentMessageList({ messages, loading, autoCollapse, agen
         >
           <ArrowDownwardIcon sx={{ fontSize: 20 }} />
         </IconButton>
-
       </Fade>
-
     </Box>
-
   );
 }

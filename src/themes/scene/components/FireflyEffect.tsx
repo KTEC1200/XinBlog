@@ -107,9 +107,7 @@ export function FireflyEffect({ params }: { params: FireflyEffectParams }) {
             }}
           />
         </Box>
-
       ))}
     </Box>
-
   );
 }

@@ -78,6 +78,7 @@ CREATE TABLE IF NOT EXISTS ai_custom_models (
 
 CREATE INDEX IF NOT EXISTS idx_ai_custom_models_enabled ON ai_custom_models(enabled);
 
+-- AI Agent 对话已改为纯前端本地保存（localStorage），不再需要云端会话表。
 CREATE TABLE IF NOT EXISTS ai_api_keys (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL,
@@ -108,6 +109,7 @@ CREATE INDEX IF NOT EXISTS idx_message_wall_user ON message_wall(user_id);
 INSERT OR IGNORE INTO settings (key, value, updated_at) VALUES
 ('message_wall', '{"enabled":false,"allowAnonymous":true,"auditEnabled":false,"defaultStyle":"danmaku"}', datetime('now'));
 
+-- AI 写操作回滚日志（worker 内 ensureUndoLogTable 幂等兜底，IF NOT EXISTS 不重复创建）
 CREATE TABLE IF NOT EXISTS ai_undo_log (
   id TEXT PRIMARY KEY,
   skill TEXT NOT NULL,

@@ -128,21 +128,16 @@ export function ImageLightbox({ open, src, alt, onClose }: ImageLightboxProps) {
             <IconButton onClick={handleZoomOut} sx={{ color: 'common.white', bgcolor: 'rgba(255,255,255,0.1)' }}>
               <ZoomOut />
             </IconButton>
-
             <IconButton onClick={handleZoomIn} sx={{ color: 'common.white', bgcolor: 'rgba(255,255,255,0.1)' }}>
               <ZoomIn />
             </IconButton>
-
             <IconButton onClick={handleReset} sx={{ color: 'common.white', bgcolor: 'rgba(255,255,255,0.1)' }}>
               <RotateLeft />
             </IconButton>
-
             <IconButton onClick={onClose} sx={{ color: 'common.white', bgcolor: 'rgba(255,255,255,0.1)' }}>
               <Close />
             </IconButton>
-
           </Box>
-
 
           {alt && (
             <Typography
@@ -161,7 +156,6 @@ export function ImageLightbox({ open, src, alt, onClose }: ImageLightboxProps) {
             >
               {alt}
             </Typography>
-
           )}
 
           <Box
@@ -179,10 +173,7 @@ export function ImageLightbox({ open, src, alt, onClose }: ImageLightboxProps) {
             }}
           />
         </Box>
-
       </Fade>
-
     </Modal>
-
   );
 }

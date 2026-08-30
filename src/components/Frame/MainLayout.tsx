@@ -47,7 +47,7 @@ export function MainLayout({ children }: MainLayoutProps) {
     ? (sidebarCollapsed ? miniDrawerWidth : drawerWidth)
     : mobileDrawerWidth;
 
-  
+  // 背景层（透明主题时可为 null）
   const backgroundLayer = hasBackground ? (
     <Box
       sx={{
@@ -65,10 +65,10 @@ export function MainLayout({ children }: MainLayoutProps) {
     />
   ) : null;
 
-  
-  
-  
-  
+  // 聊天房间页 / Agent 页沉浸式：保留侧边栏（返回用），隐藏顶栏/页脚；页面本身不滚动，
+  // 滚动交由消息列表内部处理。内容紧贴侧边栏，无间距。
+  //// 注意：仅对 `/chat/:roomKey` 房间路由和 `/agent/:dialogId` 对话路由生效，`/chat`「/agent」列表页保持正常布局。
+  // 实现方式：单一布局树，通过 isImmersive 条件渲染顶栏/页脚/内边距/滚动，SideBar 始终只挂载一次，
   const isImmersive = location.pathname.startsWith('/chat/') || location.pathname.startsWith('/agent/');
 
   return (
@@ -135,18 +135,12 @@ export function MainLayout({ children }: MainLayoutProps) {
               >
                 {children}
               </Box>
-
             </Fade>
-
           </Box>
-
           {!isImmersive && <Footer />}
         </Box>
-
       </Box>
-
       {!isImmersive && <Live2DWidget />}
     </Box>
-
   );
 }

@@ -33,14 +33,14 @@ export default function TimeTunnelStyle() {
     if (list.length < PAGE_SIZE || p * PAGE_SIZE >= t) setAllLoaded(true);
   }, []);
 
-  
+  // 初始加载第一页
   useEffect(() => {
     setAllLoaded(false);
     setLoading(true);
     loadPage(1, false).finally(() => setLoading(false));
   }, [loadPage]);
 
-  
+  // 鼠标滚轮 → 水平平滑滚动（lerp 缓动；preventDefault + stopPropagation 拦截页面联动）
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
@@ -72,7 +72,7 @@ export default function TimeTunnelStyle() {
     };
 
     const handleWheel = (e: WheelEvent) => {
-      
+      // 阻止默认滚动 + 阻止冒泡，避免外层平滑滚动容器（useSmoothScroll）联动滚动页面
       e.preventDefault();
       e.stopPropagation();
       state.target += e.deltaY || e.deltaX;
@@ -80,7 +80,7 @@ export default function TimeTunnelStyle() {
       startRender();
     };
 
-    
+    // 移动端：触摸滑动 → 横向拖动时间轴（水平手势时接管，避免与页面竖向滚动冲突）
     let touchStartX = 0;
     let touchStartY = 0;
     let touchAnchor = state.target;
@@ -98,7 +98,7 @@ export default function TimeTunnelStyle() {
       const t = e.touches[0];
       const dx = t.clientX - touchStartX;
       const dy = t.clientY - touchStartY;
-      
+      // 用一次滑动中累计的水平位移与垂直位移判断手势方向，打到一定阈值再接管
       if (!draggingX) {
         if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) {
           draggingX = true;
@@ -133,7 +133,7 @@ export default function TimeTunnelStyle() {
     };
   }, []);
 
-  
+  // 滚动接近尾部 → 加载下一页追加
   const handleScroll = () => {
     const el = scrollRef.current;
     if (!el) return;
@@ -145,7 +145,7 @@ export default function TimeTunnelStyle() {
     }
   };
 
-  
+  // 按天分组
   const groups = useMemo(() => {
     const map = new Map<string, Message[]>();
     messages.forEach((m) => {
@@ -166,7 +166,7 @@ export default function TimeTunnelStyle() {
         overflow: 'hidden',
       }}
     >
-      {}
+      {/* 时间轴指示器 */}
       <Box
         sx={{
           position: 'absolute',
@@ -216,9 +216,7 @@ export default function TimeTunnelStyle() {
             <Typography variant="body2" color="text.secondary">
               加载中...
             </Typography>
-
           </Box>
-
         ) : groups.length === 0 ? (
           <Box
             sx={{
@@ -232,9 +230,7 @@ export default function TimeTunnelStyle() {
             <Typography variant="body2" color="text.secondary">
               暂无留言
             </Typography>
-
           </Box>
-
         ) : (
           groups.map(([date, msgs], i) => (
             <Box
@@ -242,12 +238,12 @@ export default function TimeTunnelStyle() {
               sx={{
                 flexShrink: 0,
                 width: 240,
-                
+                // 按列错峰淡入上浮；新加载的列沿用同一动画
                 animation: 'msgwall-tunnel-in 0.5s cubic-bezier(0.4, 0, 0.2, 1) both',
                 animationDelay: `${Math.min(i, 8) * 70}ms`,
               }}
             >
-              {}
+              {/* 时间轴节点 */}
               <Box
                 sx={{
                   position: 'relative',
@@ -278,7 +274,6 @@ export default function TimeTunnelStyle() {
                 >
                   {date}
                 </Typography>
-
                 <Typography
                   variant="caption"
                   color="text.disabled"
@@ -286,11 +281,9 @@ export default function TimeTunnelStyle() {
                 >
                   {msgs.length} 条留言
                 </Typography>
-
               </Box>
 
-
-              {}
+              {/* 当天留言卡片 */}
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                 {msgs.map((msg) => (
                   <Box
@@ -312,7 +305,6 @@ export default function TimeTunnelStyle() {
                         <Typography variant="caption" sx={{ fontWeight: 700, color: 'primary.main' }}>
                           {msg.username || '用户'}
                         </Typography>
-
                       ) : (
                         <>
                           <Chip
@@ -331,10 +323,8 @@ export default function TimeTunnelStyle() {
                             <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary' }}>
                               {msg.nickname}
                             </Typography>
-
                           )}
                         </>
-
                       )}
                       <Typography
                         variant="caption"
@@ -343,9 +333,7 @@ export default function TimeTunnelStyle() {
                       >
                         {formatTime(msg.createdAt)}
                       </Typography>
-
                     </Box>
-
                     <Typography
                       variant="body2"
                       sx={{
@@ -361,18 +349,14 @@ export default function TimeTunnelStyle() {
                     >
                       {msg.content}
                     </Typography>
-
                   </Box>
-
                 ))}
               </Box>
-
             </Box>
-
           ))
         )}
 
-        {}
+        {/* 尾部加载动画 */}
         {!loading && groups.length > 0 && (
           <Box
             sx={{
@@ -390,18 +374,14 @@ export default function TimeTunnelStyle() {
               <Typography variant="caption" color="text.disabled">
                 已到尽头
               </Typography>
-
             ) : (
               <Typography variant="caption" color="text.disabled">
                 继续滚动...
               </Typography>
-
             )}
           </Box>
-
         )}
       </Box>
-
 
       <Box
         sx={{
@@ -414,10 +394,7 @@ export default function TimeTunnelStyle() {
         <Typography variant="caption" color="text.disabled">
           滚动或滑动浏览时间轴
         </Typography>
-
       </Box>
-
     </Box>
-
   );
 }

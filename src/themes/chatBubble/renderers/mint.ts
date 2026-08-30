@@ -12,7 +12,7 @@ interface MintParams extends Record<string, unknown> {
   otherSharpCorner: BubbleCorners;
 }
 
-
+/** 薄荷：清爽低饱和薄荷绿/奶油，马卡龙般柔和 */
 export const mintBubbleRenderer: ChatBubbleRenderer<MintParams> = {
   id: 'mint',
   name: '薄荷',

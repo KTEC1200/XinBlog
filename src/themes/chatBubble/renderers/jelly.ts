@@ -14,7 +14,7 @@ interface JellyParams extends Record<string, unknown> {
   otherSharpCorner: BubbleCorners;
 }
 
-
+/** 果冻渐变：顶部高光到底部深色的甜点渐变，QQ 弹弹性 */
 export const jellyBubbleRenderer: ChatBubbleRenderer<JellyParams> = {
   id: 'jelly',
   name: '果冻',

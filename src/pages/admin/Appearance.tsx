@@ -22,11 +22,9 @@ export function AdminAppearance() {
         <Typography variant="h5" sx={{ fontWeight: 700, mb: 1 }}>
           外观设置
         </Typography>
-
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
           自定义站点配色、首页英雄区、关于页面、鼠标、点击特效、文章布局、导航栏和基础信息。
         </Typography>
-
 
         {isMobileAdmin ? (
           <FormControl size="small" sx={{ mb: 3, minWidth: 140, maxWidth: '100%' }}>
@@ -49,12 +47,9 @@ export function AdminAppearance() {
                 <MenuItem key={item.value} value={item.value}>
                   {item.label}
                 </MenuItem>
-
               ))}
             </Select>
-
           </FormControl>
-
         ) : (
           <Box
             onWheel={(e) => {
@@ -124,12 +119,9 @@ export function AdminAppearance() {
                 >
                   {item.label}
                 </ButtonBase>
-
               ))}
             </Box>
-
           </Box>
-
         )}
 
         {tab === 'basic' && <BasicPanel editor={editor} />}
@@ -145,8 +137,6 @@ export function AdminAppearance() {
 
         <FloatingSaveButton show={isDirty} saving={saving} onClick={applyAll} label="保存外观设置" />
       </Box>
-
     </Fade>
-
   );
 }

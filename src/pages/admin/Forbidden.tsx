@@ -54,15 +54,12 @@ export function AdminForbidden() {
         >
           <Lock sx={{ fontSize: 36 }} />
         </Box>
-
         <Typography variant="h4" component="h1" sx={{ fontWeight: 800, mb: 1 }}>
           无权访问
         </Typography>
-
         <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
           当前账号没有管理后台访问权限。如需管理站点，请使用超级管理员账号登录。
         </Typography>
-
 
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
           <Button
@@ -80,7 +77,6 @@ export function AdminForbidden() {
           >
             返回博客首页
           </Button>
-
           {isAuthenticated && (
             <Button
               variant="outlined"
@@ -91,15 +87,10 @@ export function AdminForbidden() {
             >
               切换管理员账号
             </Button>
-
           )}
         </Box>
-
       </Paper>
-
     </Box>
-
     </Fade>
-
   );
 }

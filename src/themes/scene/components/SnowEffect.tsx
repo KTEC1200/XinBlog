@@ -91,6 +91,5 @@ export function SnowEffect({ params }: { params: SnowEffectParams }) {
         />
       ))}
     </Box>
-
   );
 }

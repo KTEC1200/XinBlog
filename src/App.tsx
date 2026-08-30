@@ -66,7 +66,7 @@ function App() {
     if (state.borderRadius > 16) {
       useThemeConfigStore.setState({ borderRadius: 16 });
     }
-    
+    // 从后端加载站点/主题/布局配置（先加载站点配置，再同步主题和布局）
     const init = async () => {
       await useSiteStore.getState().loadConfig();
       await useThemeConfigStore.getState().loadConfig();
@@ -87,7 +87,7 @@ function App() {
     };
   }, []);
 
-  
+  // token 自动续期：在 access token 过期前 5 分钟自动刷新，避免用户被弹回登录页
   useEffect(() => {
     let timer: number | undefined;
 
@@ -101,7 +101,7 @@ function App() {
         if (!payload.exp) return;
 
         const expiresAt = payload.exp * 1000;
-        const refreshAt = expiresAt - 5 * 60 * 1000; 
+        const refreshAt = expiresAt - 5 * 60 * 1000; // 过期前 5 分钟
         const delay = refreshAt - Date.now();
 
         if (delay <= 0) {
@@ -110,7 +110,7 @@ function App() {
           timer = window.setTimeout(() => refresh(), delay);
         }
       } catch {
-        
+        // token 格式异常，忽略定时刷新
       }
     };
 
@@ -141,12 +141,10 @@ function App() {
           <RouterProvider router={router} />
           <GlobalMusicPlayer />
         </MusicPlayerProvider>
-
       ) : (
         <Loading fullScreen text="正在加载站点配置..." />
       )}
     </ThemeProvider>
-
   );
 }
 

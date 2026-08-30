@@ -43,7 +43,7 @@ export function ClockWidget({ config }: { config: HeroWidgetConfig }) {
   const showDate = props.showDate !== false;
   const [now, setNow] = useState(new Date());
 
-  
+  // 根据尺寸决定展示密度
   const { w, h } = config;
   const isTiny = w === 1 && h === 1;
   const isTall = w === 1 && h >= 2;
@@ -79,14 +79,11 @@ export function ClockWidget({ config }: { config: HeroWidgetConfig }) {
       >
         {formatTime(now, format, displaySeconds)}
       </Typography>
-
       {displayDate && (
         <Typography variant={isCompact ? 'caption' : 'body2'} color="text.secondary" noWrap>
           {isCompact ? formatShortDate(now) : formatDate(now)}
         </Typography>
-
       )}
     </Box>
-
   );
 }

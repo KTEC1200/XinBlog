@@ -128,7 +128,7 @@ function spawnBubble(
       el.style.transform = `translate(calc(-50% + ${(Math.random() - 0.5) * 60}px), -160%)`;
       el.style.opacity = '0';
     });
-    
+    // 略大于 transition 时长，确保完全淡出后再移除，避免最后一帧"闪一下"消失
     setTimeout(() => el.remove(), 1450);
   }
 }

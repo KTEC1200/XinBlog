@@ -12,7 +12,7 @@ interface CandyParams extends Record<string, unknown> {
   otherSharpCorner: BubbleCorners;
 }
 
-
+/** 糖果：高饱和糖果色实底 + 白字，明快活力 */
 export const candyBubbleRenderer: ChatBubbleRenderer<CandyParams> = {
   id: 'candy',
   name: '糖果',

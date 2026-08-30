@@ -11,7 +11,7 @@ import type { DashboardCounts, DashboardTrends, DashboardResponse } from '@/api/
 
 const DAY_RANGES = [7, 30, 90] as const;
 
-
+// 数据序列配置（key 对应后端 trends 字段）
 const SERIES = [
   { key: 'posts', label: '文章', color: 'primary' },
   { key: 'comments', label: '评论', color: 'secondary' },
@@ -24,7 +24,7 @@ export function AdminDashboard() {
   const theme = useTheme();
   const navigate = useNavigate();
   const site = useSiteStore();
-  
+  // 高级设置里的开关：默认开启。依赖新渲染的 site config，故此处读取当前值即可
   const showStats = site.config.enableDashboardStats ?? true;
   const dashboardCache = peekCache<DashboardResponse>('/api/v1/admin/dashboard');
   const [days, setDays] = useState<number>(30);
@@ -49,8 +49,8 @@ export function AdminDashboard() {
     return () => {
       mounted = false;
     };
-    
-    
+    // 切换时间段时仅刷新数据，重新渲染时 dashboardCache 会重建，故忽略其依赖
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [days]);
 
   if (loading) {
@@ -64,7 +64,7 @@ export function AdminDashboard() {
     { title: '用户总数', value: counts.users, icon: <People />, color: 'warning.main', path: '/admin/users' },
   ];
 
-  
+  // 组装折线数据
   const dates = trends?.dates || [];
   const chartData = dates.map((date, i) => {
     const row: Record<string, string | number> = { date: date.slice(5) };
@@ -87,7 +87,6 @@ export function AdminDashboard() {
         <Typography variant="h5" sx={{ fontWeight: 700, mb: 3 }}>
           站点概览
         </Typography>
-
 
         <Grid container spacing={3}>
           {stats.map((stat) => (
@@ -142,27 +141,19 @@ export function AdminDashboard() {
                   >
                     {stat.icon}
                   </Box>
-
                   <Box sx={{ minWidth: 0 }}>
                     <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: 'break-word' }}>
                       {stat.title}
                     </Typography>
-
                     <Typography variant="h5" sx={{ fontWeight: 700, overflowWrap: 'break-word' }}>
                       {stat.value}
                     </Typography>
-
                   </Box>
-
                 </Paper>
-
               </ButtonBase>
-
             </Grid>
-
           ))}
         </Grid>
-
 
         {showStats && (
         <Paper
@@ -177,23 +168,19 @@ export function AdminDashboard() {
                 : `0 4px 20px ${alpha(theme.palette.common.black, 0.25)}`,
           }}
         >
-          {}
+          {/* 栏头：总阅读量 + 时间段切换 */}
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap', mb: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
               <Typography variant="h6" sx={{ fontWeight: 700 }}>
                 内容趋势
               </Typography>
-
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, px: 1.5, py: 0.5, borderRadius: 1, bgcolor: alpha(theme.palette.primary.main, 0.12), color: 'primary.main' }}>
                 <Visibility fontSize="small" />
                 <Typography variant="body2" sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}>
                   总阅读量 {counts.views.toLocaleString()} 次
                 </Typography>
-
               </Box>
-
             </Box>
-
             <ToggleButtonGroup
               size="small"
               exclusive
@@ -205,14 +192,11 @@ export function AdminDashboard() {
                 <ToggleButton key={d} value={d} sx={{ px: { xs: 1.5, sm: 2 }, fontWeight: 600, borderRadius: 'inherit' }}>
                   {d} 天
                 </ToggleButton>
-
               ))}
             </ToggleButtonGroup>
-
           </Box>
 
-
-          {}
+          {/* 序列开关 */}
           <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 1.5 }}>
             {SERIES.map((s) => {
               const color = theme.palette[s.color].main;
@@ -235,7 +219,6 @@ export function AdminDashboard() {
               );
             })}
           </Box>
-
 
           <Fade in timeout={400}>
             <Box sx={{ width: '100%', height: 320 }}>
@@ -266,15 +249,10 @@ export function AdminDashboard() {
                     />
                   ))}
                 </LineChart>
-
               </ResponsiveContainer>
-
             </Box>
-
           </Fade>
-
         </Paper>
-
         )}
 
         <Paper
@@ -292,7 +270,6 @@ export function AdminDashboard() {
           <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
             快捷入口
           </Typography>
-
           <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', minWidth: 0 }}>
             {[
               { label: '前往文章管理', to: '/admin/posts', color: 'primary' },
@@ -334,12 +311,8 @@ export function AdminDashboard() {
               );
             })}
           </Box>
-
         </Paper>
-
       </Box>
-
     </Fade>
-
   );
 }

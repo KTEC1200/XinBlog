@@ -29,7 +29,6 @@ export function AdminSettings() {
         用户管理
       </Typography>
 
-
       {isMobileAdmin ? (
         <FormControl size="small" sx={{ mb: 3, minWidth: 140, maxWidth: '100%' }}>
           <Select
@@ -51,12 +50,9 @@ export function AdminSettings() {
               <MenuItem key={t.id} value={t.id}>
                 {t.label}
               </MenuItem>
-
             ))}
           </Select>
-
         </FormControl>
-
       ) : (
         <Box
           onWheel={(e) => {
@@ -125,13 +121,10 @@ export function AdminSettings() {
                 >
                   {t.label}
                 </Button>
-
               );
             })}
           </Box>
-
         </Box>
-
       )}
 
       <Fade in timeout={300} key={tab}>
@@ -142,12 +135,8 @@ export function AdminSettings() {
           {tab === 'email-template' && <AdminEmailTemplates />}
           {tab === 'verification' && <VerificationSettings />}
         </Box>
-
       </Fade>
-
     </Box>
-
     </Fade>
-
   );
 }

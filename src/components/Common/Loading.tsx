@@ -21,11 +21,8 @@ export function Loading({ text = '加载中...', fullScreen = false }: LoadingPr
       >
         <CircularProgress size={48} thickness={4} sx={{ color: 'primary.main' }} />
         <Typography color="text.secondary">{text}</Typography>
-
       </Box>
-
     </Fade>
-
   );
 }
 

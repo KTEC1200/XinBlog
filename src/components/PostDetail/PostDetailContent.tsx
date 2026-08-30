@@ -122,6 +122,5 @@ export function PostDetailContent({ content, onHeadingsExtracted }: PostDetailCo
     >
       <PostContent content={content} onHeadingsExtracted={onHeadingsExtracted} />
     </Box>
-
   );
 }

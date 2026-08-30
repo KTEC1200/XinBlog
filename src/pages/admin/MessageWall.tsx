@@ -65,7 +65,7 @@ export function AdminMessageWall() {
   const isMobileAdmin = useMediaQuery(theme.breakpoints.down('lg'));
   const { user } = useAuthStore();
   const isSuper = isSuperAdmin(user?.role);
-  
+  // 管理员仅做审核：隐藏留言墙基础设置标签
   const visibleTabs = isSuper ? TAB_LIST : TAB_LIST.filter((t) => t.value !== 'settings');
   const [tab, setTab] = useState<Tab>(isSuper ? 'settings' : 'audit');
 
@@ -318,7 +318,6 @@ export function AdminMessageWall() {
               <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600, color: 'text.secondary' }}>
                 默认展示样式
               </Typography>
-
               <ToggleButtonGroup
                 value={settings.defaultStyle}
                 exclusive
@@ -354,22 +353,17 @@ export function AdminMessageWall() {
                     {opt.icon}
                     {opt.label}
                   </ToggleButton>
-
                 ))}
               </ToggleButtonGroup>
-
             </Box>
-
             <Divider sx={{ my: 1 }} />
             <Box>
               <Typography variant="subtitle2" sx={{ mb: 0.5, fontWeight: 600, color: 'text.secondary' }}>
                 弹幕展示参数
               </Typography>
-
               <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
                 用于控制弹幕流式展示的密度与重复频率，单位为秒。
               </Typography>
-
               <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' }, gap: 2 }}>
                 <TextField
                   label="同一条重复冷却间隔（秒）"
@@ -416,18 +410,13 @@ export function AdminMessageWall() {
                   onChange={(e) => setSettings((s) => ({ ...s, danmakuIntervalMax: Number(e.target.value) }))}
                 />
               </Box>
-
             </Box>
-
             <Divider sx={{ my: 1 }} />
             <FloatingSaveButton show={settingsDirty} saving={saving} onClick={handleSaveSettings} label="保存" />
           </Box>
-
         </Fade>
-
       )}
     </Paper>
-
   );
 
   const renderMessageCard = (msg: Message) => (
@@ -459,25 +448,20 @@ export function AdminMessageWall() {
           <Avatar sx={{ width: 40, height: 40, flexShrink: 0, bgcolor: (t) => alpha(t.palette.text.secondary, 0.12), color: 'text.secondary', fontSize: 14 }}>
             访
           </Avatar>
-
         )}
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Typography variant="subtitle2" sx={{ overflowWrap: 'break-word', fontWeight: 700 }}>
             {msg.userId ? (msg.username || '用户') : (msg.nickname || '匿名访客')}
           </Typography>
-
           <Typography variant="caption" color="text.secondary" sx={{ overflowWrap: 'break-word' }}>
             {formatTime(msg.createdAt)}
             {msg.userId && msg.nickname && (
               <Box component="span" sx={{ ml: 1, opacity: 0.6 }}>
                 (昵称: {msg.nickname})
               </Box>
-
             )}
           </Typography>
-
         </Box>
-
         <Box sx={{ display: 'flex', gap: 1, flexShrink: 0 }}>
           {tab === 'audit' && (
             <Button
@@ -491,7 +475,6 @@ export function AdminMessageWall() {
             >
               {processingIds.has(msg.id) ? '通过中' : '通过'}
             </Button>
-
           )}
           <Button
             size="small"
@@ -504,23 +487,17 @@ export function AdminMessageWall() {
           >
             {deletingIds.has(msg.id) ? '删除中' : '删除'}
           </Button>
-
         </Box>
-
       </Box>
-
       <Typography variant="body2" sx={{ mb: 1, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
         {msg.content}
       </Typography>
-
       {!msg.userId && msg.nickname && (
         <Typography variant="caption" color="text.secondary">
           匿名用户：{msg.nickname}
         </Typography>
-
       )}
     </Paper>
-
   );
 
   const renderMessageList = () => {
@@ -536,7 +513,6 @@ export function AdminMessageWall() {
         >
           <Loading text="加载留言中..." />
         </Paper>
-
       );
     }
     if (messages.length === 0) {
@@ -554,11 +530,8 @@ export function AdminMessageWall() {
             <Typography variant="body2" color="text.secondary">
               暂无留言
             </Typography>
-
           </Paper>
-
         </Fade>
-
       );
     }
     return (
@@ -596,7 +569,6 @@ export function AdminMessageWall() {
                 <Typography variant="caption" color="text.secondary">
                   已选 {selectedIds.size} 项
                 </Typography>
-
                 <Box sx={{ flex: 1 }} />
                 <Button
                   size="small"
@@ -609,7 +581,6 @@ export function AdminMessageWall() {
                 >
                   {batchLoading ? '处理中' : '同意选中'}
                 </Button>
-
                 <Button
                   size="small"
                   variant="outlined"
@@ -620,9 +591,7 @@ export function AdminMessageWall() {
                 >
                   全部同意
                 </Button>
-
               </Box>
-
             )}
             {messages.map((msg, index) => (
               <Box key={msg.id}>
@@ -631,10 +600,8 @@ export function AdminMessageWall() {
                   <Divider sx={{ my: 1 }} />
                 )}
               </Box>
-
             ))}
           </Box>
-
           <TablePagination
             component="div"
             count={total}
@@ -656,9 +623,7 @@ export function AdminMessageWall() {
             }}
           />
         </Paper>
-
       </Fade>
-
     );
   };
 
@@ -668,7 +633,6 @@ export function AdminMessageWall() {
       <Typography variant="h5" sx={{ mb: 2, fontWeight: 600 }}>
         留言墙管理
       </Typography>
-
 
       {isMobileAdmin ? (
         <FormControl size="small" sx={{ mb: 3, minWidth: 140, maxWidth: '100%' }}>
@@ -691,12 +655,9 @@ export function AdminMessageWall() {
               <MenuItem key={item.value} value={item.value}>
                 {item.label}
               </MenuItem>
-
             ))}
           </Select>
-
         </FormControl>
-
       ) : (
         <Box
           onWheel={(e) => {
@@ -765,12 +726,9 @@ export function AdminMessageWall() {
               >
                 {item.label}
               </Button>
-
             ))}
           </Box>
-
         </Box>
-
       )}
 
       <Fade in timeout={300} key={tab}>
@@ -779,9 +737,7 @@ export function AdminMessageWall() {
           {tab === 'audit' && renderMessageList()}
           {tab === 'manage' && renderMessageList()}
         </Box>
-
       </Fade>
-
 
       <ConfirmDialog
         open={deleteDialog.open}
@@ -794,8 +750,6 @@ export function AdminMessageWall() {
         onConfirm={handleConfirmDelete}
       />
     </Box>
-
     </Fade>
-
   );
 }

@@ -60,7 +60,7 @@ function formatTime(ts: number): string {
   return d.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' });
 }
 
-
+// 重命名对话框（复用项目 MUI 弹窗风格，与 ConfirmDialog 一致的圆角）
 function RenameDialog({
   open,
   title,
@@ -92,7 +92,6 @@ function RenameDialog({
       PaperProps={{ sx: { borderRadius: { xs: 2, sm: '12px' } } }}
     >
       <DialogTitle sx={{ fontWeight: 700 }}>重命名对话</DialogTitle>
-
       <DialogContent>
         <TextField
           autoFocus
@@ -110,7 +109,6 @@ function RenameDialog({
           }}
         />
       </DialogContent>
-
       <DialogActions sx={{ px: 3, pb: 2 }}>
         <Box
           sx={{
@@ -124,7 +122,6 @@ function RenameDialog({
           <Button onClick={onClose} color="inherit" fullWidth={isMobile} sx={{ textTransform: 'none', borderRadius: 2 }}>
             取消
           </Button>
-
           <Button
             onClick={() => trimmed && onConfirm(trimmed)}
             variant="contained"
@@ -134,22 +131,23 @@ function RenameDialog({
           >
             保存
           </Button>
-
         </Box>
-
       </DialogActions>
-
     </Dialog>
-
   );
 }
 
-
+/**
+ * 对话列表（AI 助手 /agent 列表页）。
+ * - 单击项目进入该对话。
+ * - 删除/重命名不再放可见按钮：以「右键（桌面）」或「长按（触屏）」唤出上下文菜单，拦截右键默认菜单。
+ * - 删除需经 ConfirmDialog（项目弹窗组件）二次确认。
+ */
 export function AgentConversationList({ dialogs, onSelect, onCreate, onDelete, onRename }: AgentConversationListProps) {
   const [menu, setMenu] = useState<MenuState | null>(null);
   const [renameTarget, setRenameTarget] = useState<AgentDialog | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<AgentDialog | null>(null);
-  
+  // 删除等待与失败态：确认后转圈等待云端返回，成功才移除；失败保留并提示
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState(false);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -181,7 +179,7 @@ export function AgentConversationList({ dialogs, onSelect, onCreate, onDelete, o
     setMenu({ mouseX: e.clientX - 2, mouseY: e.clientY - 6, id: d.id });
   };
 
-  
+  // 触屏长按唤出菜单；e.pointerType 为 mouse 时交给右键处理，避免长按鼠标误触
   const handlePointerDown = (e: React.PointerEvent, d: AgentDialog) => {
     if (e.pointerType === 'mouse') return;
     suppressClickRef.current = false;
@@ -219,17 +217,15 @@ export function AgentConversationList({ dialogs, onSelect, onCreate, onDelete, o
 
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      {}
+      {/* 头部 */}
       <Box sx={{ p: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
           <SmartToyIcon color="primary" sx={{ fontSize: 20, flexShrink: 0 }} />
           <Typography variant="subtitle1" sx={{ fontWeight: 700, minWidth: 0 }} noWrap>
             我的对话
           </Typography>
-
           <Chip size="small" color="primary" label={dialogs.length} variant="outlined" sx={{ flexShrink: 0 }} />
         </Box>
-
         <IconButton
           size="small"
           color="primary"
@@ -243,21 +239,17 @@ export function AgentConversationList({ dialogs, onSelect, onCreate, onDelete, o
         >
           <AddIcon sx={{ fontSize: 22 }} />
         </IconButton>
-
       </Box>
-
       <Divider />
 
-      {}
+      {/* 列表 */}
       {dialogs.length === 0 ? (
         <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1, py: 6 }}>
           <SmartToyIcon sx={{ fontSize: 44, opacity: 0.25 }} />
           <Typography variant="body2" color="text.secondary">
             还没有对话，点击右上角新建一个吧
           </Typography>
-
         </Box>
-
       ) : (
         <Box sx={{ flex: 1, overflow: 'auto', p: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
           {dialogs.map((d) => {
@@ -288,7 +280,7 @@ export function AgentConversationList({ dialogs, onSelect, onCreate, onDelete, o
                   },
                 }}
               >
-                {}
+                {/* 会话图标：明显突出 */}
                 <Box
                   sx={{
                     width: 46,
@@ -305,7 +297,6 @@ export function AgentConversationList({ dialogs, onSelect, onCreate, onDelete, o
                 >
                   <SmartToyIcon sx={{ fontSize: 26 }} />
                 </Box>
-
 
                 <ListItemText
                   sx={{ minWidth: 0, flex: 1 }}
@@ -328,8 +319,7 @@ export function AgentConversationList({ dialogs, onSelect, onCreate, onDelete, o
                   <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.7rem' }}>
                     {formatTime(d.updatedAt)}
                   </Typography>
-
-                  {}
+                  {/* 消息数徽标 */}
                   <Box
                     sx={{
                       minWidth: 20,
@@ -346,20 +336,15 @@ export function AgentConversationList({ dialogs, onSelect, onCreate, onDelete, o
                     <Typography variant="caption" sx={{ fontSize: '0.7rem', fontWeight: 700, lineHeight: 1 }}>
                       {d.messages.length}
                     </Typography>
-
                   </Box>
-
                 </Box>
-
               </ListItemButton>
-
             );
           })}
         </Box>
-
       )}
 
-      {}
+      {/* 右键/长按上下文菜单 */}
       <Menu
         open={menu !== null}
         onClose={closeMenu}
@@ -371,22 +356,17 @@ export function AgentConversationList({ dialogs, onSelect, onCreate, onDelete, o
           <ListItemIcon>
             <DriveFileRenameOutlineIcon sx={{ fontSize: 20 }} />
           </ListItemIcon>
-
           重命名
         </MenuItem>
-
         <MenuItem onClick={startDelete} sx={{ py: 0.75, color: 'error.main' }}>
           <ListItemIcon>
             <DeleteOutlineIcon sx={{ fontSize: 20, color: 'error.main' }} />
           </ListItemIcon>
-
           删除
         </MenuItem>
-
       </Menu>
 
-
-      {}
+      {/* 重命名 */}
       <RenameDialog
         open={renameTarget !== null}
         title={renameTarget?.title ?? ''}
@@ -397,7 +377,7 @@ export function AgentConversationList({ dialogs, onSelect, onCreate, onDelete, o
         }}
       />
 
-      {}
+      {/* 删除确认：loading 期间转圈等待云端删除，成功才移除列表；失败留在原地提示 */}
       <ConfirmDialog
         open={deleteTarget !== null}
         title="删除对话"
@@ -408,10 +388,8 @@ export function AgentConversationList({ dialogs, onSelect, onCreate, onDelete, o
               <Typography component="span" color="error" sx={{ display: 'block', mt: 1 }}>
                 删除失败，请稍后重试。
               </Typography>
-
             )}
           </>
-
         }
         confirmText="删除"
         confirmColor="error"
@@ -420,7 +398,6 @@ export function AgentConversationList({ dialogs, onSelect, onCreate, onDelete, o
         onConfirm={handleDeleteConfirm}
       />
     </Box>
-
   );
 }
 

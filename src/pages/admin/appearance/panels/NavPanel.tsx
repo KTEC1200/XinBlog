@@ -129,7 +129,6 @@ function NavEditDialog({
     >
       <form onSubmit={handleSubmit}>
         <DialogTitle sx={{ fontWeight: 700 }}>{item ? '编辑导航' : '新增导航'}</DialogTitle>
-
         <DialogContent>
           <Stack spacing={3} sx={{ mt: 0.5 }}>
             <TextField
@@ -155,10 +154,8 @@ function NavEditDialog({
               <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
                 文字颜色（留空使用默认主题色）
               </Typography>
-
               <ColorPicker value={form.color || ''} onChange={(v) => setForm((f) => ({ ...f, color: v }))} />
             </Box>
-
             <FormControlLabel
               control={
                 <Switch
@@ -169,24 +166,17 @@ function NavEditDialog({
               label="在新标签页打开"
             />
           </Stack>
-
         </DialogContent>
-
         <DialogActions sx={{ px: 3, pb: 2, justifyContent: 'flex-end' }}>
           <Button onClick={onClose} color="inherit">
             取消
           </Button>
-
           <Button type="submit" variant="contained" startIcon={<Save />}>
             保存
           </Button>
-
         </DialogActions>
-
       </form>
-
     </Dialog>
-
   );
 }
 
@@ -300,16 +290,13 @@ export function NavPanel({ editor }: { editor: AppearanceEditor }) {
           <Typography variant="h6" sx={{ fontWeight: 700, mb: 1, overflowWrap: 'break-word' }}>
             导航栏样式
           </Typography>
-
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
             切换导航栏主题风格，当前支持默认样式与液态玻璃风格。
           </Typography>
 
-
           <Stack spacing={3}>
             <FormControl fullWidth>
               <InputLabel id="nav-variant-label">导航栏风格</InputLabel>
-
               <Select
                 labelId="nav-variant-label"
                 value={navVariant}
@@ -317,13 +304,9 @@ export function NavPanel({ editor }: { editor: AppearanceEditor }) {
                 onChange={(e) => setNavVariant(e.target.value as NavThemeConfig['variant'])}
               >
                 <MenuItem value="default">默认</MenuItem>
-
                 <MenuItem value="glass">液态玻璃</MenuItem>
-
               </Select>
-
             </FormControl>
-
 
             {navVariant === 'glass' && (
               <>
@@ -331,7 +314,6 @@ export function NavPanel({ editor }: { editor: AppearanceEditor }) {
                   <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
                     玻璃不透明度
                   </Typography>
-
                   <Slider
                     value={navGlassOpacity}
                     onChange={(_, v) => setNavGlassOpacity(v as number)}
@@ -341,12 +323,10 @@ export function NavPanel({ editor }: { editor: AppearanceEditor }) {
                     valueLabelDisplay="auto"
                   />
                 </Box>
-
                 <Box>
                   <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
                     模糊半径（px）
                   </Typography>
-
                   <Slider
                     value={navBlur}
                     onChange={(_, v) => setNavBlur(v as number)}
@@ -356,12 +336,10 @@ export function NavPanel({ editor }: { editor: AppearanceEditor }) {
                     valueLabelDisplay="auto"
                   />
                 </Box>
-
                 <Box>
                   <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
                     边框不透明度
                   </Typography>
-
                   <Slider
                     value={navBorderOpacity}
                     onChange={(_, v) => setNavBorderOpacity(v as number)}
@@ -371,12 +349,10 @@ export function NavPanel({ editor }: { editor: AppearanceEditor }) {
                     valueLabelDisplay="auto"
                   />
                 </Box>
-
                 <Box>
                   <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
                     阴影不透明度
                   </Typography>
-
                   <Slider
                     value={navShadowOpacity}
                     onChange={(_, v) => setNavShadowOpacity(v as number)}
@@ -386,28 +362,22 @@ export function NavPanel({ editor }: { editor: AppearanceEditor }) {
                     valueLabelDisplay="auto"
                   />
                 </Box>
-
               </>
-
             )}
 
             <Box>
               <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
                 文字颜色（留空跟随主题）
               </Typography>
-
               <ColorPicker value={navTextColor} onChange={setNavTextColor} />
             </Box>
-
 
             <Box>
               <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
                 激活项颜色（留空跟随主题）
               </Typography>
-
               <ColorPicker value={navActiveColor} onChange={setNavActiveColor} />
             </Box>
-
 
             <FormControlLabel
               control={
@@ -419,9 +389,7 @@ export function NavPanel({ editor }: { editor: AppearanceEditor }) {
               label="向下滚动时隐藏导航栏"
             />
           </Stack>
-
         </Paper>
-
 
         <Paper
           elevation={0}
@@ -437,19 +405,15 @@ export function NavPanel({ editor }: { editor: AppearanceEditor }) {
           <Typography variant="h6" sx={{ fontWeight: 700, mb: 1, overflowWrap: 'break-word' }}>
             导航项
           </Typography>
-
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
             自定义顶部导航栏显示的链接，可设置名称、跳转地址、颜色及是否新标签页打开。
           </Typography>
-
 
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
             <Button variant="contained" startIcon={<Add />} onClick={handleAdd} sx={{ textTransform: 'none' }}>
               新增导航
             </Button>
-
           </Box>
-
 
           <Stack spacing={2}>
             {items.length === 0 && (
@@ -464,9 +428,7 @@ export function NavPanel({ editor }: { editor: AppearanceEditor }) {
                 }}
               >
                 <Typography>暂无自定义导航，点击上方按钮添加</Typography>
-
               </Box>
-
             )}
 
             {items.map((item, index) => (
@@ -492,18 +454,14 @@ export function NavPanel({ editor }: { editor: AppearanceEditor }) {
                       <Typography variant="subtitle2" fontWeight={700} sx={{ color: item.color || 'text.primary' }}>
                         {item.title}
                       </Typography>
-
                       {item.openInNewTab && (
                         <OpenInNew fontSize="small" sx={{ color: 'text.secondary', fontSize: 14 }} />
                       )}
                     </Box>
-
                     <Typography variant="caption" color="text.secondary" sx={{ overflowWrap: 'break-word' }}>
                       {item.url}
                     </Typography>
-
                   </Box>
-
 
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
                     <IconButton
@@ -514,7 +472,6 @@ export function NavPanel({ editor }: { editor: AppearanceEditor }) {
                     >
                       <ArrowUpward fontSize="small" />
                     </IconButton>
-
                     <IconButton
                       size="small"
                       onClick={() => handleMove(index, 1)}
@@ -523,33 +480,24 @@ export function NavPanel({ editor }: { editor: AppearanceEditor }) {
                     >
                       <ArrowDownward fontSize="small" />
                     </IconButton>
-
                     <IconButton size="small" onClick={() => handleEdit(item)} aria-label="编辑">
                       <Edit fontSize="small" />
                     </IconButton>
-
                     <IconButton size="small" onClick={() => handleDelete(item)} aria-label="删除" color="error">
                       <DeleteOutline fontSize="small" />
                     </IconButton>
-
                   </Box>
-
                 </CardContent>
-
               </Card>
-
             ))}
           </Stack>
-
 
           {isItemsDirty && (
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
               <Button variant="contained" startIcon={<Save />} onClick={handleApplyItems} sx={{ textTransform: 'none' }}>
                 应用导航项变更
               </Button>
-
             </Box>
-
           )}
 
           <NavEditDialog
@@ -572,10 +520,7 @@ export function NavPanel({ editor }: { editor: AppearanceEditor }) {
             onConfirm={confirmDelete}
           />
         </Paper>
-
       </Stack>
-
     </Fade>
-
   );
 }

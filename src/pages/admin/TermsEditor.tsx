@@ -81,11 +81,9 @@ export function TermsEditor() {
         <Typography variant="h5" sx={{ fontWeight: 700, mb: 1 }}>
           协议管理
         </Typography>
-
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
           编辑用户协议和隐私政策内容，支持 Markdown 格式。留空则使用默认内容。
         </Typography>
-
 
         {isMobileAdmin ? (
           <FormControl size="small" sx={{ mb: 3, minWidth: 140, maxWidth: '100%' }}>
@@ -108,12 +106,9 @@ export function TermsEditor() {
                 <MenuItem key={item.id} value={item.id}>
                   {item.label}
                 </MenuItem>
-
               ))}
             </Select>
-
           </FormControl>
-
         ) : (
           <Box
             onWheel={(e) => {
@@ -182,13 +177,10 @@ export function TermsEditor() {
                   >
                     {t.label}
                   </Button>
-
                 );
               })}
             </Box>
-
           </Box>
-
         )}
 
         <Paper
@@ -205,11 +197,9 @@ export function TermsEditor() {
           <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>
             {tab === 'agreement' ? '用户协议' : '隐私政策'}
           </Typography>
-
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
             使用 Markdown 格式编写内容。保存后前台页面将自动展示编辑后的内容。
           </Typography>
-
           <TextField
             value={currentContent}
             onChange={(e) => setCurrentContent(e.target.value)}
@@ -229,7 +219,6 @@ export function TermsEditor() {
           />
         </Paper>
 
-
         <FloatingSaveButton
           show={isDirty}
           saving={saving}
@@ -237,8 +226,6 @@ export function TermsEditor() {
           label="保存协议内容"
         />
       </Box>
-
     </Fade>
-
   );
 }

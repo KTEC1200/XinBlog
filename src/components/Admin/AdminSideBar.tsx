@@ -83,7 +83,7 @@ export function AdminSideBar({
   const [isAnimating, setIsAnimating] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
 
-  
+  // 管理员只显示内容/社区类菜单项
   const isSuper = isSuperAdmin(user?.role);
   const navItems = isSuper ? adminNavItems : adminNavItems.filter((item) => !item.superOnly);
 
@@ -106,7 +106,7 @@ export function AdminSideBar({
   };
 
   const drawerContent = (isCollapsed: boolean) => {
-    
+    // 收起状态：顶部展开按钮 + 图标导航
     if (isCollapsed) {
       return (
         <Box
@@ -121,7 +121,7 @@ export function AdminSideBar({
             px: 1,
           }}
         >
-          {}
+          {/* Expand button on top */}
           <IconButton
             onClick={handleToggle}
             aria-label="展开侧边栏"
@@ -140,8 +140,7 @@ export function AdminSideBar({
             <ChevronRight />
           </IconButton>
 
-
-          {}
+          {/* Mini Navigation */}
           <Stack
             sx={{
               flexGrow: 1,
@@ -182,9 +181,7 @@ export function AdminSideBar({
                   >
                     {item.icon}
                   </IconButton>
-
                 </Tooltip>
-
               );
             })}
 
@@ -212,13 +209,9 @@ export function AdminSideBar({
               >
                 <Home fontSize="small" />
               </IconButton>
-
             </Tooltip>
-
           </Stack>
-
         </Box>
-
       );
     }
 
@@ -232,12 +225,11 @@ export function AdminSideBar({
           overflow: 'hidden',
         }}
       >
-        {}
+        {/* Header */}
         <DrawerHeaderContainer>
           <Box sx={{ width: '100%', pl: 1.5, cursor: 'pointer', textDecoration: 'none' }} component={Link} to="/">
             <Logo />
           </Box>
-
           <Box>
             <IconButton
               onClick={() => {
@@ -250,13 +242,10 @@ export function AdminSideBar({
             >
               <ChevronLeft />
             </IconButton>
-
           </Box>
-
         </DrawerHeaderContainer>
 
-
-        {}
+        {/* Navigation - 独立滚动区域 */}
         <Stack
           sx={{
             flexGrow: 1,
@@ -294,17 +283,14 @@ export function AdminSideBar({
                 >
                   {item.icon}
                 </Box>
-
                 <Typography variant="body2" fontWeight={600} noWrap>
                   {item.title}
                 </Typography>
-
               </StyledNavButton>
-
             );
           })}
 
-          {}
+          {/* Back to home */}
           <StyledNavButton
             component={Link}
             to="/"
@@ -325,17 +311,13 @@ export function AdminSideBar({
             >
               <Home fontSize="small" />
             </Box>
-
             <Typography variant="body2" fontWeight={600} noWrap>
               返回首页
             </Typography>
-
           </StyledNavButton>
-
         </Stack>
 
-
-        {}
+        {/* Footer */}
         <Box
           sx={{
             px: 1.5,
@@ -365,17 +347,12 @@ export function AdminSideBar({
             >
               {isAuthenticated ? <Logout fontSize="small" /> : <Login fontSize="small" />}
             </Box>
-
             <Typography variant="body2" fontWeight={600} noWrap>
               {isAuthenticated && user ? user.username : '登录'}
             </Typography>
-
           </StyledNavButton>
-
         </Box>
-
       </Box>
-
     );
   };
 
@@ -383,7 +360,7 @@ export function AdminSideBar({
 
   return (
     <>
-      {}
+      {/* 移动端抽屉 */}
       <Drawer
         variant="temporary"
         open={mobileOpen}
@@ -403,8 +380,7 @@ export function AdminSideBar({
         {drawerContent(false)}
       </Drawer>
 
-
-      {}
+      {/* 桌面端侧边栏；移动端保留一个 1px 的占位侧边栏，保持布局结构一致 */}
       <Drawer
         variant="persistent"
         anchor="left"
@@ -413,7 +389,7 @@ export function AdminSideBar({
           display: 'block',
           width: { xs: `${adminMobileDrawerWidth}px`, md: currentWidth },
           flexShrink: 0,
-          
+          // 根元素（flex 子项）也要有过渡：宽度逐帧变化 → flex 逐帧重排 → 内容被平滑推挤
           transition: (theme) =>
             theme.transitions.create('width', {
               easing: theme.transitions.easing.sharp,
@@ -448,9 +424,7 @@ export function AdminSideBar({
             drawerContent(collapsed)
           )}
         </Box>
-
       </Drawer>
-
       <LogoutConfirmDialog
         open={logoutOpen}
         onClose={() => setLogoutOpen(false)}
@@ -460,7 +434,6 @@ export function AdminSideBar({
         }}
       />
     </>
-
   );
 }
 
@@ -500,16 +473,11 @@ export function AdminNavBar({ onMenuClick }: { onMenuClick: () => void }) {
           >
             <MenuIcon />
           </IconButton>
-
           <Box sx={{ flexShrink: 1, minWidth: 0, overflow: 'hidden' }}>
             <Logo />
           </Box>
-
         </Box>
-
       </Toolbar>
-
     </Box>
-
   );
 }

@@ -42,7 +42,7 @@ interface AuthState {
   updateUser: (user: Partial<AuthUser>) => void;
 }
 
-
+// 全局登录状态同步的 storage key
 const AUTH_SYNC_KEY = 'auth-state-sync';
 
 export const useAuthStore = create<AuthState>()(
@@ -94,7 +94,7 @@ export const useAuthStore = create<AuthState>()(
           ...(captcha || {}),
         });
         const debug = (res as { data?: { _debug?: Record<string, unknown> } }).data?._debug;
-        
+        // 统一反馈，不区分邮箱是否已注册，防止账号枚举
         if (res.code !== 0) {
           return { ok: false, msg: res.msg || (res.code >= 500 ? '服务器内部错误' : '发送失败'), debug };
         }
@@ -110,14 +110,14 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: () => {
-        
+        // 通知后端撤销 refresh token（可选，失败不影响本地登出）
         const token = get().refreshToken;
         if (token) {
           apiPost('/api/v1/auth/logout', { refreshToken: token }).catch(() => {});
         }
         set({ isAuthenticated: false, user: null, token: null, refreshToken: null });
         localStorage.removeItem(AUTH_SYNC_KEY);
-        
+        // 登出时清除本地主题/UI缓存，避免下一个未登录用户看到上一个用户的设置
         localStorage.removeItem('theme-config');
         localStorage.removeItem('ui-preferences');
       },
@@ -128,7 +128,7 @@ export const useAuthStore = create<AuthState>()(
         try {
           const payload = JSON.parse(atob(token.split('.')[1]));
           if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
-            
+            // token 过期但刷新逻辑交给 refresh；先不登出，避免页面抖动
             return false;
           }
           return true;
@@ -183,7 +183,7 @@ export const useAuthStore = create<AuthState>()(
   )
 );
 
-
+// 监听其他标签页的登录/登出，保持全局状态同步
 if (typeof window !== 'undefined') {
   window.addEventListener('storage', (event) => {
     if (event.key !== AUTH_SYNC_KEY) return;
@@ -203,7 +203,7 @@ if (typeof window !== 'undefined') {
         refreshToken: state.refreshToken,
       });
     } catch {
-      
+      // 忽略异常数据
     }
   });
 }

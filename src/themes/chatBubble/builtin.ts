@@ -1,6 +1,12 @@
 import type { ThemePackage } from '@/types';
 
-
+/**
+ * 内置聊天气泡主题包。
+ * 渲染器由 src/themes/chatBubble/renderers 提供。
+ *
+ * 每套主题的可调参数（schema）驱动后台「聊天气泡主题」面板表单，
+ * 渲染器把这些参数映射成聊天里左右气泡的实际配色。
+ */
 export const BUILTIN_CHAT_BUBBLE_THEMES: ThemePackage[] = [
   {
     id: 'chat-bubble-ios',

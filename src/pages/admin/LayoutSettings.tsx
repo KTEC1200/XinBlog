@@ -94,13 +94,11 @@ export function AdminLayoutSettings() {
       <Typography variant="h5" sx={{ fontWeight: 700, mb: 1 }}>
         文章布局
       </Typography>
-
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
         选择首页文章列表的展示风格，实时预览效果。
       </Typography>
 
-
-      {}
+      {/* 布局选择 */}
       <Paper
         elevation={0}
         sx={{
@@ -117,7 +115,6 @@ export function AdminLayoutSettings() {
         <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
           选择布局
         </Typography>
-
         {isMobileAdmin ? (
           <FormControl size="small" fullWidth>
             <Select
@@ -139,12 +136,9 @@ export function AdminLayoutSettings() {
                 <MenuItem key={layout.id} value={layout.id}>
                   {layout.name}
                 </MenuItem>
-
               ))}
             </Select>
-
           </FormControl>
-
         ) : (
           <ToggleButtonGroup
             value={selected}
@@ -190,23 +184,17 @@ export function AdminLayoutSettings() {
                   <Typography variant="subtitle1" fontWeight={700} sx={{ fontSize: { xs: '0.9rem', sm: '1rem' } }}>
                     {layout.name}
                   </Typography>
-
                   <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
                     {layout.desc}
                   </Typography>
-
                 </Box>
-
               </ToggleButton>
-
             ))}
           </ToggleButtonGroup>
-
         )}
       </Paper>
 
-
-      {}
+      {/* 预览 */}
       <Paper
         elevation={0}
         sx={{
@@ -224,7 +212,6 @@ export function AdminLayoutSettings() {
           <Typography variant="h6" sx={{ fontWeight: 700, overflowWrap: 'break-word' }}>
             实时预览
           </Typography>
-
           <Box
             sx={{
               px: 1.5,
@@ -238,17 +225,13 @@ export function AdminLayoutSettings() {
           >
             {layouts.find((l) => l.id === selected)?.name}
           </Box>
-
         </Box>
-
         <Box sx={{ pointerEvents: 'none', maxWidth: '100%', overflow: 'hidden' }}>
           {renderPreview()}
         </Box>
-
       </Paper>
 
-
-      {}
+      {/* 操作按钮 */}
       <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', minWidth: 0 }}>
         <Button
           variant="outlined"
@@ -258,13 +241,9 @@ export function AdminLayoutSettings() {
         >
           恢复默认
         </Button>
-
       </Box>
-
       <FloatingSaveButton show={isDirty} saving={saving} onClick={applyLayout} label="应用布局" />
     </Box>
-
     </Fade>
-
   );
 }

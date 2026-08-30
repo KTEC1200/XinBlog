@@ -38,7 +38,6 @@ export function Footer() {
             <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: 'break-word', maxWidth: '100%' }}>
               {config.footerText}
             </Typography>
-
           ) : null}
           <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: 'break-word', maxWidth: '100%' }}>
             © {new Date().getFullYear()} {APP_VERSION} Powered by{' '}
@@ -58,9 +57,7 @@ export function Footer() {
             >
               {SITE_NAME}
             </Box>
-
           </Typography>
-
           <Divider sx={{ width: '100%', my: 1, opacity: 0.5 }} />
           <Box
             sx={{
@@ -87,7 +84,6 @@ export function Footer() {
             >
               用户协议
             </Typography>
-
             <Typography
               component={Link}
               to="/privacy"
@@ -104,16 +100,10 @@ export function Footer() {
             >
               隐私政策
             </Typography>
-
           </Box>
-
         </Box>
-
       </Container>
-
     </Box>
-
     </Fade>
-
   );
 }
