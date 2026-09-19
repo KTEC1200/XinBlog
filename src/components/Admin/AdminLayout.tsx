@@ -12,7 +12,6 @@ import { AdminVersionNotice } from './AdminVersionNotice';
 import { useUIStore } from '@/stores/uiStore';
 import { useSmoothScroll } from '@/hooks/useSmoothScroll';
 import { useSafeMediaQuery } from '@/hooks/useSafeMediaQuery';
-
 export function AdminLayout() {
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
@@ -25,20 +24,16 @@ export function AdminLayout() {
     touchMultiplier: 1,
     disableOnTouch: true,
   });
-
   useEffect(() => {
     scrollToTop(true);
   }, [location.pathname, scrollToTop]);
-
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
   };
-
   const isDesktop = useSafeMediaQuery((t) => t.breakpoints.up('md'), true);
   const currentDrawerWidth = isDesktop
     ? (collapsed ? adminMiniDrawerWidth : adminDrawerWidth)
     : adminMobileDrawerWidth;
-
   return (
     <Box
       sx={{
@@ -53,7 +48,6 @@ export function AdminLayout() {
       <Box sx={{ display: adminNavHidden ? 'none' : 'block' }}>
         <AdminNavBar onMenuClick={handleDrawerToggle} />
       </Box>
-
       <AdminSideBar
         collapsed={collapsed}
         onToggle={() => setCollapsed(!collapsed)}
@@ -92,16 +86,10 @@ export function AdminLayout() {
               <Box sx={{ minWidth: 0, height: '100%' }}>
                 <Outlet />
               </Box>
-
             </Fade>
-
           </Box>
-
         </Box>
-
       </Box>
-
     </Box>
-
   );
 }

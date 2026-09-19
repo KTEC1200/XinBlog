@@ -15,7 +15,6 @@ import { Close, Image as ImageIcon } from '@mui/icons-material';
 import { extractMediaId, deleteMedia } from '@/api/media';
 import { ConfirmDialog } from '@/components/Common/ConfirmDialog';
 import { useSnackbar } from 'notistack';
-
 interface ImageFieldProps {
   label: string;
   value: string;
@@ -27,8 +26,6 @@ interface ImageFieldProps {
   isMobileAdmin?: boolean;
   onUpload: (file: File, targetSize: number, setter: (url: string) => void, label: string) => Promise<void>;
 }
-
-
 export function ImageField({
   label,
   value,
@@ -45,7 +42,6 @@ export function ImageField({
   const [deleting, setDeleting] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [pendingDeleteMediaId, setPendingDeleteMediaId] = useState<number | null>(null);
-
   const sizeOptions = useMemo(() => {
     const options: number[] = [];
     for (let s = 100 * 1024; s <= maxSize; s += 100 * 1024) {
@@ -53,7 +49,6 @@ export function ImageField({
     }
     return options;
   }, [maxSize]);
-
   const handleClear = () => {
     const mediaId = extractMediaId(value);
     if (mediaId) {
@@ -63,7 +58,6 @@ export function ImageField({
       onChange('');
     }
   };
-
   const handleConfirmDelete = async () => {
     setDeleting(true);
     onChange('');
@@ -79,13 +73,11 @@ export function ImageField({
     setDeleteDialogOpen(false);
     setPendingDeleteMediaId(null);
   };
-
   return (
     <Box>
       <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
         {label}
       </Typography>
-
       {value ? (
         <Box sx={{ position: 'relative', display: 'inline-block', mb: 1 }}>
           <Box
@@ -100,9 +92,7 @@ export function ImageField({
           >
             <Close fontSize="small" />
           </IconButton>
-
         </Box>
-
       ) : null}
       <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
         <Button
@@ -128,11 +118,9 @@ export function ImageField({
             }}
           />
         </Button>
-
         {showSizeSelect && (
           <FormControl size="small" sx={{ minWidth: 120, flexShrink: 0 }}>
             <InputLabel id={`${label}-size-label`}>压缩目标</InputLabel>
-
             <Select
               labelId={`${label}-size-label`}
               value={targetSize}
@@ -144,12 +132,9 @@ export function ImageField({
                 <MenuItem key={s} value={s}>
                   {s >= 1024 ? `${Math.round(s / 1024)}KB` : `${s}B`}
                 </MenuItem>
-
               ))}
             </Select>
-
           </FormControl>
-
         )}
         {acceptUrl && (
           <TextField
@@ -161,14 +146,11 @@ export function ImageField({
           />
         )}
       </Box>
-
       {hint && (
         <Typography variant="caption" color="text.secondary">
           {hint}
         </Typography>
-
       )}
-
       <ConfirmDialog
         open={deleteDialogOpen}
         title={`确认移除${label}？`}
@@ -180,6 +162,5 @@ export function ImageField({
         onConfirm={handleConfirmDelete}
       />
     </Box>
-
   );
 }

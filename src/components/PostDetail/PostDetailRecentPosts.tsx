@@ -2,22 +2,18 @@ import { Box, Typography, alpha } from '@mui/material';
 import { Link } from 'react-router-dom';
 import dayjs from 'dayjs';
 import type { Post } from '@/types';
-
 interface PostDetailRecentPostsProps {
   posts: Post[];
   currentSlug?: string;
   title?: string;
 }
-
 export function PostDetailRecentPosts({
   posts,
   currentSlug,
   title = 'RECOMMENDED',
 }: PostDetailRecentPostsProps) {
   const recentPosts = posts.filter((p) => p.slug !== currentSlug).slice(0, 4);
-
   if (recentPosts.length === 0) return null;
-
   return (
     <Box
       sx={{
@@ -56,8 +52,6 @@ export function PostDetailRecentPosts({
       >
         {title}
       </Typography>
-
-
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         {recentPosts.map((post) => (
           <Box
@@ -88,7 +82,6 @@ export function PostDetailRecentPosts({
             >
               {post.title}
             </Typography>
-
             <Typography
               variant="caption"
               sx={{
@@ -102,13 +95,9 @@ export function PostDetailRecentPosts({
             >
               {dayjs(post.createdAt).format('YYYY-MM-DD')}
             </Typography>
-
           </Box>
-
         ))}
       </Box>
-
     </Box>
-
   );
 }

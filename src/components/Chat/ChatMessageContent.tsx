@@ -11,10 +11,6 @@ import type { Components } from 'react-markdown';
 import type { SxProps, Theme } from '@mui/material/styles';
 import { ImageLightbox } from '@/components/Common/ImageLightbox';
 import { buildChatMediaUrl } from '@/api/chat';
-
-
-
-
 const BLOCKED_TAGS = new Set([
   'input',
   'iframe',
@@ -37,12 +33,7 @@ const BLOCKED_TAGS = new Set([
   'details',
   'summary',
 ]);
-
-
-
-
 const DEFAULT_PROTOCOLS = (defaultSchema.protocols?.href as readonly string[] | undefined) || [];
-
 const chatSchema = {
   ...defaultSchema,
   tagNames: (defaultSchema.tagNames as string[]).filter((t) => !BLOCKED_TAGS.has(t)),
@@ -55,18 +46,12 @@ const chatSchema = {
     ],
   },
 };
-
 interface ChatMessageContentProps {
   content: string;
-  
   roomKey: string;
-  
   imageSx?: SxProps<Theme>;
-  
   onReplyQuoteClick?: (timestamp: number) => void;
 }
-
-
 function findCiteTs(children: ReactNode): number | null {
   let found: number | null = null;
   Children.forEach(children, (child) => {
@@ -88,13 +73,10 @@ function findCiteTs(children: ReactNode): number | null {
   });
   return found;
 }
-
 type HastNode = {
   properties?: { href?: unknown };
   children?: HastNode[];
 };
-
-
 function findCiteTsInNode(node: HastNode | undefined | null): number | null {
   if (!node || typeof node !== 'object') return null;
   const { properties, children: subs } = node;
@@ -110,10 +92,7 @@ function findCiteTsInNode(node: HastNode | undefined | null): number | null {
   }
   return null;
 }
-
 const MEDIA_RE = /^chat-media:\/\/(.+)$/;
-
-
 function ChatImage({ src, alt, onOpen, imageSx }: { src: string; alt: string; onOpen: () => void; imageSx?: SxProps<Theme> }) {
   const [loaded, setLoaded] = useState(false);
   return (
@@ -132,7 +111,6 @@ function ChatImage({ src, alt, onOpen, imageSx }: { src: string; alt: string; on
         >
           <CircularProgress size={24} thickness={5} />
         </Box>
-
       )}
       <Box
         component="img"
@@ -157,17 +135,11 @@ function ChatImage({ src, alt, onOpen, imageSx }: { src: string; alt: string; on
         }}
       />
     </Box>
-
   );
 }
-
 function ChatMessageContent({ content, roomKey, imageSx, onReplyQuoteClick }: ChatMessageContentProps) {
-  
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
-
   const components: Components = {
-    
-    
     img({ src, alt }) {
       let url = src as string | undefined;
       const m = typeof url === 'string' ? url.match(MEDIA_RE) : null;
@@ -175,33 +147,25 @@ function ChatMessageContent({ content, roomKey, imageSx, onReplyQuoteClick }: Ch
       if (!url) return null;
       return <ChatImage src={url} alt={alt || '图片'} onOpen={() => setLightboxSrc(url)} imageSx={imageSx} />;
     },
-    
-    
     a({ href, children }) {
       const { palette } = useTheme();
       if (typeof href === 'string' && href.startsWith('cite:')) {
         return <span style={{ color: palette.primary.main }}>{children}</span>;
-
       }
       const safeHref = href && /^(https?:\/\/|mailto:)/i.test(href);
       if (!safeHref) {
         return <span>{children}</span>;
-
       }
       return (
         <Link href={href} target="_blank" rel="nofollow noopener noreferrer" underline="hover">
           {children}
         </Link>
-
       );
     },
-    
-    
     blockquote({ children, node }) {
       const theme = useTheme();
       const { palette } = theme;
       const r = theme.shape.borderRadius;
-      
       const citeTs = findCiteTsInNode(node as HastNode | undefined) ?? findCiteTs(children);
       const baseSx = {
         m: '0 0 0.6em 0',
@@ -216,7 +180,6 @@ function ChatMessageContent({ content, roomKey, imageSx, onReplyQuoteClick }: Ch
           <Box component="blockquote" sx={baseSx}>
             {children}
           </Box>
-
         );
       }
       return (
@@ -234,19 +197,15 @@ function ChatMessageContent({ content, roomKey, imageSx, onReplyQuoteClick }: Ch
           }}
         >
           <Box sx={{ flex: 1, minWidth: 0 }}>{children}</Box>
-
           <Box sx={{ flexShrink: 0, display: 'flex', alignItems: 'center', color: palette.primary.main }}>
             <ArrowUpwardIcon sx={{ fontSize: 16 }} />
           </Box>
-
         </Box>
-
       );
     },
     code(props) {
       const { palette } = useTheme();
       const { children } = props;
-      
       const inline = Boolean((props as unknown as { inline?: boolean }).inline);
       if (inline) {
         return (
@@ -262,7 +221,6 @@ function ChatMessageContent({ content, roomKey, imageSx, onReplyQuoteClick }: Ch
           >
             {children}
           </code>
-
         );
       }
       return (
@@ -280,15 +238,12 @@ function ChatMessageContent({ content, roomKey, imageSx, onReplyQuoteClick }: Ch
         >
           {children}
         </code>
-
       );
     },
   };
-
   return (
     <Box
       sx={{
-        
         '& > :first-of-type': { mt: 0 },
         '& > :last-child': { mb: 0 },
         '& p': { m: '0.25em 0', fontSize: 'inherit', lineHeight: 'inherit' },
@@ -300,8 +255,6 @@ function ChatMessageContent({ content, roomKey, imageSx, onReplyQuoteClick }: Ch
         remarkPlugins={[remarkGfm, remarkBreaks]}
         rehypePlugins={[[rehypeSanitize, chatSchema] as never]}
         urlTransform={(url) => {
-          
-          
           if (/^(chat-media|cite):/i.test(url)) return url;
           return defaultUrlTransform(url);
         }}
@@ -309,15 +262,8 @@ function ChatMessageContent({ content, roomKey, imageSx, onReplyQuoteClick }: Ch
       >
         {content}
       </ReactMarkdown>
-
-
       <ImageLightbox open={Boolean(lightboxSrc)} src={lightboxSrc || ''} alt="图片" onClose={() => setLightboxSrc(null)} />
     </Box>
-
   );
 }
-
-
-
-
 export default memo(ChatMessageContent);

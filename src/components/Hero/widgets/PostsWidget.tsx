@@ -4,14 +4,12 @@ import { Article } from '@mui/icons-material';
 import { fetchPostsPage } from '@/api/posts';
 import { useHeroEditContext } from '@/components/Hero/HeroEditContext';
 import type { HeroWidgetConfig, Post } from '@/types';
-
 interface PostsWidgetPropsFromConfig {
   limit?: number;
   showCover?: boolean;
   showExcerpt?: boolean;
   showTags?: boolean;
 }
-
 export function PostsWidget({ config }: { config: HeroWidgetConfig }) {
   const props = (config.props || {}) as PostsWidgetPropsFromConfig;
   const { editable } = useHeroEditContext();
@@ -21,8 +19,6 @@ export function PostsWidget({ config }: { config: HeroWidgetConfig }) {
   const showTags = props.showTags !== false;
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
-
-  
   const { w, h } = config;
   const isTiny = w === 1 && h === 1;
   const isTall = w === 1 && h >= 2;
@@ -33,7 +29,6 @@ export function PostsWidget({ config }: { config: HeroWidgetConfig }) {
   const displayExcerpt = showExcerpt && (isLarge || (isTall && h >= 3)) && !isWide;
   const displayTags = showTags && (isLarge || (isTall && h >= 3)) && !isWide;
   const displayCover = showCover && !isTiny && !isTall && !isWide;
-
   useEffect(() => {
     let cancelled = false;
     fetchPostsPage({ page: 1, limit: displayLimit })
@@ -50,12 +45,10 @@ export function PostsWidget({ config }: { config: HeroWidgetConfig }) {
       cancelled = true;
     };
   }, [displayLimit]);
-
   const getItemProps = (post: Post) =>
     editable
       ? { component: 'div' as const }
       : { component: 'a' as const, href: `/post/${post.slug}` };
-
   return (
     <Box
       sx={{
@@ -73,20 +66,15 @@ export function PostsWidget({ config }: { config: HeroWidgetConfig }) {
         <Typography variant="subtitle2" fontWeight={700}>
           最新文章
         </Typography>
-
       </Box>
-
-
       {loading ? (
         <Typography variant="body2" color="text.secondary">
           加载中...
         </Typography>
-
       ) : posts.length === 0 ? (
         <Typography variant="body2" color="text.secondary">
           暂无文章
         </Typography>
-
       ) : (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
           {posts.slice(0, displayLimit).map((post) => (
@@ -117,7 +105,6 @@ export function PostsWidget({ config }: { config: HeroWidgetConfig }) {
                 <Typography variant="body2" fontWeight={700} noWrap>
                   {post.title}
                 </Typography>
-
                 {displayExcerpt && (
                   <Typography
                     variant="caption"
@@ -131,7 +118,6 @@ export function PostsWidget({ config }: { config: HeroWidgetConfig }) {
                   >
                     {post.excerpt}
                   </Typography>
-
                 )}
                 {displayTags && post.tags && post.tags.length > 0 && (
                   <Box sx={{ display: 'flex', gap: 0.5, mt: 0.25, flexWrap: 'nowrap', overflow: 'hidden' }}>
@@ -150,17 +136,12 @@ export function PostsWidget({ config }: { config: HeroWidgetConfig }) {
                       />
                     ))}
                   </Box>
-
                 )}
               </Box>
-
             </Box>
-
           ))}
         </Box>
-
       )}
     </Box>
-
   );
 }

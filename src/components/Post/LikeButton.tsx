@@ -6,18 +6,15 @@ import { getLikes, createLike, deleteLike } from '@/api/likes';
 import { getInteractionSettings } from '@/api/interaction';
 import { useAuthStore } from '@/stores/authStore';
 import type { LikeStatus } from '@/types/interaction';
-
 interface LikeButtonProps {
   slug: string;
 }
-
 const pop = keyframes`
   0% { transform: scale(1); }
   40% { transform: scale(1.35); }
   70% { transform: scale(0.92); }
   100% { transform: scale(1); }
 `;
-
 export default function LikeButton({ slug }: LikeButtonProps) {
   const { isAuthenticated } = useAuthStore();
   const { enqueueSnackbar } = useSnackbar();
@@ -25,7 +22,6 @@ export default function LikeButton({ slug }: LikeButtonProps) {
   const [status, setStatus] = useState<LikeStatus>({ count: 0, liked: false });
   const [loading, setLoading] = useState(false);
   const [popping, setPopping] = useState(false);
-
   useEffect(() => {
     let mounted = true;
     getInteractionSettings().then((res) => {
@@ -37,7 +33,6 @@ export default function LikeButton({ slug }: LikeButtonProps) {
       mounted = false;
     };
   }, []);
-
   useEffect(() => {
     if (enabled === false) return;
     let mounted = true;
@@ -50,9 +45,7 @@ export default function LikeButton({ slug }: LikeButtonProps) {
       mounted = false;
     };
   }, [slug, enabled]);
-
   if (enabled === false) return null;
-
   const handleToggle = async () => {
     if (!isAuthenticated) {
       enqueueSnackbar('登录后才可以点赞哦', { variant: 'info' });
@@ -83,7 +76,6 @@ export default function LikeButton({ slug }: LikeButtonProps) {
       setLoading(false);
     }
   };
-
   return (
     <Button
       onClick={handleToggle}
@@ -135,7 +127,6 @@ export default function LikeButton({ slug }: LikeButtonProps) {
           }}
         />
       </Box>
-
       <Typography
         component="span"
         variant="body2"
@@ -147,7 +138,6 @@ export default function LikeButton({ slug }: LikeButtonProps) {
       >
         {status.count}
       </Typography>
-
       <Typography
         component="span"
         variant="body2"
@@ -159,8 +149,6 @@ export default function LikeButton({ slug }: LikeButtonProps) {
       >
         {loading ? '点赞中' : '赞'}
       </Typography>
-
     </Button>
-
   );
 }

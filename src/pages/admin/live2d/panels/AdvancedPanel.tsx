@@ -10,14 +10,11 @@ import {
   alpha,
 } from '@mui/material';
 import type { Live2dEditor } from '../useLive2dEditor';
-
 interface AdvancedPanelProps {
   editor: Live2dEditor;
 }
-
 export function AdvancedPanel({ editor }: AdvancedPanelProps) {
   const { logLevel, setLogLevel, customCdn, setCustomCdn } = editor;
-
   return (
     <Paper
       elevation={0}
@@ -33,7 +30,6 @@ export function AdvancedPanel({ editor }: AdvancedPanelProps) {
       <Typography variant="h6" sx={{ fontWeight: 700, mb: 3, overflowWrap: 'break-word' }}>
         高级选项
       </Typography>
-
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
         <FormControl fullWidth>
           <InputLabel>日志级别</InputLabel>
@@ -48,7 +44,6 @@ export function AdvancedPanel({ editor }: AdvancedPanelProps) {
             <MenuItem value="trace">详细</MenuItem>
           </Select>
         </FormControl>
-
         <TextField
           label="自定义模型 CDN 地址"
           placeholder="留空则使用官方 CDN"

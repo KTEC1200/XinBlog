@@ -10,11 +10,9 @@ import { useSiteStore } from '@/stores/siteStore';
 import { useSmoothScroll } from '@/hooks/useSmoothScroll';
 import { useSafeMediaQuery } from '@/hooks/useSafeMediaQuery';
 import { resolveSpacingConfig } from '@/utils/spacingConfig';
-
 interface MainLayoutProps {
   children: React.ReactNode;
 }
-
 export function MainLayout({ children }: MainLayoutProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { sidebarCollapsed } = useUIStore();
@@ -28,26 +26,24 @@ export function MainLayout({ children }: MainLayoutProps) {
     disableOnTouch: true,
     enabled: !config.disableSmoothScroll,
   });
-
   const hasBackground = Boolean(config.backgroundImage);
   const backgroundOpacity = config.backgroundOpacity ?? 1;
   const backgroundBlur = config.backgroundBlur ?? 0;
   const spacing = resolveSpacingConfig(config.spacing);
-
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
   };
-
   useEffect(() => {
     scrollToTop(true);
   }, [location.pathname, scrollToTop]);
-
+  const isImmersive = location.pathname.startsWith('/chat/') || location.pathname.startsWith('/agent/');
+  const useTopNav = config.nav?.layout === 'top';
   const isDesktop = useSafeMediaQuery((t) => t.breakpoints.up('md'), true);
-  const currentDrawerWidth = isDesktop
-    ? (sidebarCollapsed ? miniDrawerWidth : drawerWidth)
-    : mobileDrawerWidth;
-
-  
+  const currentDrawerWidth = useTopNav
+    ? 0
+    : isDesktop
+      ? (sidebarCollapsed ? miniDrawerWidth : drawerWidth)
+      : mobileDrawerWidth;
   const backgroundLayer = hasBackground ? (
     <Box
       sx={{
@@ -64,13 +60,6 @@ export function MainLayout({ children }: MainLayoutProps) {
       }}
     />
   ) : null;
-
-  
-  
-  
-  
-  const isImmersive = location.pathname.startsWith('/chat/') || location.pathname.startsWith('/agent/');
-
   return (
     <Box
       sx={{
@@ -88,12 +77,16 @@ export function MainLayout({ children }: MainLayoutProps) {
       {!isImmersive && (
         <NavBar
           onMenuClick={handleDrawerToggle}
-          drawerOpen
+          drawerOpen={!useTopNav}
           drawerWidth={currentDrawerWidth}
           scrollTargetRef={mainRef}
+          layout={useTopNav ? 'top' : 'sidebar'}
         />
       )}
-      <SideBar mobileOpen={mobileOpen} onMobileClose={() => setMobileOpen(false)} />
+      {}
+      {!useTopNav && (
+        <SideBar mobileOpen={mobileOpen} onMobileClose={() => setMobileOpen(false)} />
+      )}
       <Box
         ref={mainRef}
         component="main"
@@ -135,18 +128,12 @@ export function MainLayout({ children }: MainLayoutProps) {
               >
                 {children}
               </Box>
-
             </Fade>
-
           </Box>
-
           {!isImmersive && <Footer />}
         </Box>
-
       </Box>
-
       {!isImmersive && <Live2DWidget />}
     </Box>
-
   );
 }

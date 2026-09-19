@@ -1,30 +1,23 @@
 import { Box, Button, FormControlLabel, Slider, Stack, Switch, ToggleButton, ToggleButtonGroup, Typography, alpha } from '@mui/material';
 import { ColorPicker } from '@/components/Common/ColorPicker';
 import type { ChatBubbleThemeConfig, ThemeParamSchema } from '@/types';
-
 interface ChatBubbleParamEditorProps {
   schema: ThemeParamSchema[];
   config: ChatBubbleThemeConfig;
   onChange: (patch: Partial<ChatBubbleThemeConfig>) => void;
 }
-
 export function ChatBubbleParamEditor({ schema, config, onChange }: ChatBubbleParamEditorProps) {
   const params = config.params || {};
-
   const updateParam = (key: string, value: unknown) => {
     onChange({ params: { ...params, [key]: value } });
   };
-
   if (schema.length === 0) {
     return <Typography color="text.secondary">该聊天气泡主题暂无可调参数。</Typography>;
-
   }
-
   return (
     <Stack spacing={3}>
       {schema.map((item) => {
         const value = params[item.key];
-
         if (item.type === 'number') {
           const numeric = typeof value === 'number' ? value : (item.min ?? 0);
           return (
@@ -32,7 +25,6 @@ export function ChatBubbleParamEditor({ schema, config, onChange }: ChatBubblePa
               <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
                 {item.label} {numeric}px
               </Typography>
-
               <Slider
                 value={numeric}
                 onChange={(_, v) => updateParam(item.key, v as number)}
@@ -42,10 +34,8 @@ export function ChatBubbleParamEditor({ schema, config, onChange }: ChatBubblePa
                 valueLabelDisplay="auto"
               />
             </Box>
-
           );
         }
-
         if (item.type === 'boolean') {
           return (
             <FormControlLabel
@@ -55,14 +45,12 @@ export function ChatBubbleParamEditor({ schema, config, onChange }: ChatBubblePa
             />
           );
         }
-
         if (item.type === 'select') {
           return (
             <Box key={item.key}>
               <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
                 {item.label}
               </Typography>
-
               <ToggleButtonGroup
                 value={String(value ?? '')}
                 exclusive
@@ -92,22 +80,17 @@ export function ChatBubbleParamEditor({ schema, config, onChange }: ChatBubblePa
                   <ToggleButton key={opt.value} value={opt.value}>
                     {opt.label}
                   </ToggleButton>
-
                 ))}
               </ToggleButtonGroup>
-
             </Box>
-
           );
         }
-
         if (item.type === 'color') {
           return (
             <Box key={item.key}>
               <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
                 {item.label}
               </Typography>
-
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
                 <ColorPicker value={String(value || '#000000')} onChange={(v) => updateParam(item.key, v)} />
                 <Button
@@ -118,17 +101,12 @@ export function ChatBubbleParamEditor({ schema, config, onChange }: ChatBubblePa
                 >
                   使用主题色
                 </Button>
-
               </Box>
-
             </Box>
-
           );
         }
-
         return null;
       })}
     </Stack>
-
   );
 }

@@ -9,93 +9,62 @@ import {
   darken,
   lighten,
 } from '@mui/material';
-import { ChevronLeft, ChevronRight, Home, Info, LocalOffer, Login, Logout, Settings, AccountCircle, People, MusicNote, Forum, ChatBubble, SmartToy } from '@mui/icons-material';
-import { DRAWER_TRANSITION_MS, DrawerHeaderContainer, StyledNavButton, type NavItem } from './drawerShared';
+import { ChevronLeft, ChevronRight, Login, Logout, Settings } from '@mui/icons-material';
+import { DRAWER_TRANSITION_MS, DrawerHeaderContainer, StyledNavButton } from './drawerShared';
 import { Link, useLocation } from 'react-router-dom';
 import { useState, useEffect, useMemo } from 'react';
 import { useUIStore } from '@/stores/uiStore';
 import { useAuthStore } from '@/stores/authStore';
 import { isContentAdmin } from '@/utils/permission';
-import { useSiteStore } from '@/stores/siteStore';
-import { useMessageWallEnabled } from '@/hooks/useMessageWallEnabled';
-import { useChatEnabled } from '@/hooks/useChatEnabled';
+import { useBuiltinNavItems } from '@/hooks/useNavItems';
 import { Logo } from '@/components/Common/Logo';
 import { LogoutConfirmDialog } from '@/components/Common/LogoutConfirmDialog';
-
 interface SideBarProps {
   mobileOpen: boolean;
   onMobileClose: () => void;
 }
-
 export const drawerWidth = 260;
 export const miniDrawerWidth = 56;
 export const mobileDrawerWidth = 1;
-
-const baseNavItems: NavItem[] = [
-  { title: '首页', path: '/', icon: <Home fontSize="small" /> },
-  { title: '标签', path: '/tag/all', icon: <LocalOffer fontSize="small" /> },
-  { title: '留言墙', path: '/message-wall', icon: <Forum fontSize="small" /> },
-  { title: '聊天室', path: '/chat', icon: <ChatBubble fontSize="small" /> },
-  { title: '友链', path: '/friends', icon: <People fontSize="small" /> },
-  { title: '关于', path: '/about', icon: <Info fontSize="small" /> },
-  { title: '个人中心', path: '/profile', icon: <AccountCircle fontSize="small" /> },
-  { title: '音乐', path: '/music', icon: <MusicNote fontSize="small" /> },
-  { title: 'AI 助手', path: '/agent', icon: <SmartToy fontSize="small" /> },
-];
-
+interface SideBarNavItem {
+  id: string;
+  title: string;
+  path: string;
+  icon: React.ReactNode;
+}
 export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
   const location = useLocation();
   const { sidebarCollapsed, toggleSidebar } = useUIStore();
   const { isAuthenticated, user, logout } = useAuthStore();
-  const { config } = useSiteStore();
-  const messageWallEnabled = useMessageWallEnabled();
-  const chatEnabled = useChatEnabled();
-  
-  
-  const agentEnabled = config.agentEnabled === true && isContentAdmin(user?.role);
+  const builtinItems = useBuiltinNavItems();
   const [isAnimating, setIsAnimating] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
-
-  const navItems = useMemo(() => {
-    let items = [...baseNavItems];
-    if (!config.friends?.enabled) {
-      items = items.filter((item) => item.path !== '/friends');
-    }
-    if (!config.music?.showPage) {
-      items = items.filter((item) => item.path !== '/music');
-    }
-    if (!messageWallEnabled) {
-      items = items.filter((item) => item.path !== '/message-wall');
-    }
-    if (!chatEnabled) {
-      items = items.filter((item) => item.path !== '/chat');
-    }
-    if (!agentEnabled) {
-      items = items.filter((item) => item.path !== '/agent');
-    }
-    return items;
-  }, [config.friends?.enabled, config.music?.showPage, messageWallEnabled, chatEnabled, agentEnabled]);
-
+  const navItems = useMemo<SideBarNavItem[]>(
+    () =>
+      builtinItems.map((item) => ({
+        id: item.id,
+        title: item.title,
+        path: item.path,
+        icon: item.icon,
+      })),
+    [builtinItems]
+  );
   const handleToggle = () => {
     setIsAnimating(true);
     toggleSidebar();
   };
-
   useEffect(() => {
     if (!isAnimating) return;
     const timer = setTimeout(() => setIsAnimating(false), DRAWER_TRANSITION_MS);
     return () => clearTimeout(timer);
   }, [isAnimating, sidebarCollapsed]);
-
   const handleLogout = () => {
     if (isAuthenticated) {
       setLogoutOpen(true);
     }
     onMobileClose();
   };
-
   const drawerContent = (collapsed: boolean) => {
-    
     if (collapsed) {
       return (
         <Box
@@ -129,8 +98,6 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
           >
             <ChevronRight />
           </IconButton>
-
-
           {}
           <Stack
             sx={{
@@ -171,12 +138,9 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
                   >
                     {item.icon}
                   </IconButton>
-
                 </Tooltip>
-
               );
             })}
-
             {isContentAdmin(user?.role) && (
               <Tooltip title="管理后台" placement="right">
                 <IconButton
@@ -203,17 +167,12 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
                 >
                   <Settings fontSize="small" />
                 </IconButton>
-
               </Tooltip>
-
             )}
           </Stack>
-
         </Box>
-
       );
     }
-
     return (
       <Box
         sx={{
@@ -229,7 +188,6 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
           <Box sx={{ width: '100%', pl: 1.5, cursor: 'pointer', textDecoration: 'none' }} component={Link} to="/">
             <Logo />
           </Box>
-
           <Box>
             <IconButton
               onClick={() => {
@@ -243,12 +201,8 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
             >
               <ChevronLeft />
             </IconButton>
-
           </Box>
-
         </DrawerHeaderContainer>
-
-
         {}
         <Stack
           sx={{
@@ -286,16 +240,12 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
                 >
                   {item.icon}
                 </Box>
-
                 <Typography variant="body2" fontWeight={600} noWrap>
                   {item.title}
                 </Typography>
-
               </StyledNavButton>
-
             );
           })}
-
           {}
           {isContentAdmin(user?.role) && (
             <StyledNavButton
@@ -319,17 +269,12 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
               >
                 <Settings fontSize="small" />
               </Box>
-
               <Typography variant="body2" fontWeight={600} noWrap>
                 管理后台
               </Typography>
-
             </StyledNavButton>
-
           )}
         </Stack>
-
-
         {}
         <Box
           sx={{
@@ -360,22 +305,15 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
             >
               {isAuthenticated ? <Logout fontSize="small" /> : <Login fontSize="small" />}
             </Box>
-
             <Typography variant="body2" fontWeight={600} noWrap>
               {isAuthenticated && user ? user.username : '登录'}
             </Typography>
-
           </StyledNavButton>
-
         </Box>
-
       </Box>
-
     );
   };
-
   const currentWidth = sidebarCollapsed ? miniDrawerWidth : drawerWidth;
-
   return (
     <>
       {}
@@ -397,8 +335,6 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
       >
         {drawerContent(false)}
       </Drawer>
-
-
       {}
       <Drawer
         variant="persistent"
@@ -408,7 +344,6 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
           display: 'block',
           width: { xs: `${mobileDrawerWidth}px`, md: currentWidth },
           flexShrink: 0,
-          
           transition: (theme) =>
             theme.transitions.create('width', {
               easing: theme.transitions.easing.sharp,
@@ -443,9 +378,7 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
             drawerContent(sidebarCollapsed)
           )}
         </Box>
-
       </Drawer>
-
       <LogoutConfirmDialog
         open={logoutOpen}
         onClose={() => setLogoutOpen(false)}
@@ -455,10 +388,8 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
         }}
       />
     </>
-
   );
 }
-
 export function SideBarHeaderSpacer() {
   return <Toolbar />;
 }

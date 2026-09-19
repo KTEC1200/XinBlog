@@ -1,10 +1,8 @@
 import { Box, CircularProgress, Typography, Fade } from '@mui/material';
-
 interface LoadingProps {
   text?: string;
   fullScreen?: boolean;
 }
-
 export function Loading({ text = '加载中...', fullScreen = false }: LoadingProps) {
   return (
     <Fade in timeout={300}>
@@ -21,14 +19,10 @@ export function Loading({ text = '加载中...', fullScreen = false }: LoadingPr
       >
         <CircularProgress size={48} thickness={4} sx={{ color: 'primary.main' }} />
         <Typography color="text.secondary">{text}</Typography>
-
       </Box>
-
     </Fade>
-
   );
 }
-
 export function PageLoading() {
   return <Loading fullScreen text="页面加载中..." />;
 }

@@ -22,7 +22,6 @@ import {
 } from '@/api/admin';
 import { Loading } from '@/components/Common/Loading';
 import { FloatingSaveButton } from '@/components/Common/FloatingSaveButton';
-
 const MODE_OPTIONS: { value: AuthSettings['verificationMode']; label: string; desc: string }[] = [
   {
     value: 'none',
@@ -50,8 +49,6 @@ const MODE_OPTIONS: { value: AuthSettings['verificationMode']; label: string; de
     desc: 'Cloudflare 出品的隐私友好验证码，海外效果好。需在 hCaptcha 官网注册应用，获取 Site Key 与 Secret Key。',
   },
 ];
-
-
 export function VerificationSettings() {
   const { enqueueSnackbar } = useSnackbar();
   const [loading, setLoading] = useState(true);
@@ -67,7 +64,6 @@ export function VerificationSettings() {
   const [hcaptchaSiteKey, setHcaptchaSiteKey] = useState('');
   const [hcaptchaSecret, setHcaptchaSecret] = useState('');
   const [saving, setSaving] = useState(false);
-
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -80,7 +76,6 @@ export function VerificationSettings() {
         setRegisterVerification(data.registerVerification === true);
         setForgotPasswordVerification(data.forgotPasswordVerification === true);
         setTurnstileSiteKey(data.turnstileSiteKey || '');
-        
         setTurnstileSecret('');
         setGeetestCaptchaId(data.geetestCaptchaId || '');
         setGeetestCaptchaKey('');
@@ -93,7 +88,6 @@ export function VerificationSettings() {
       cancelled = true;
     };
   }, []);
-
   const handleSave = async () => {
     if (!loaded) return;
     setSaving(true);
@@ -104,7 +98,6 @@ export function VerificationSettings() {
       registerVerification,
       forgotPasswordVerification,
       turnstileSiteKey: turnstileSiteKey.trim(),
-      
       turnstileSecret: turnstileSecret.trim() || '****',
       geetestCaptchaId: geetestCaptchaId.trim(),
       geetestCaptchaKey: geetestCaptchaKey.trim() || '****',
@@ -115,7 +108,6 @@ export function VerificationSettings() {
     setSaving(false);
     if (ok) {
       enqueueSnackbar('验证设置已保存', { variant: 'success' });
-      
       setTurnstileSecret('');
       setGeetestCaptchaKey('');
       setHcaptchaSecret('');
@@ -124,12 +116,8 @@ export function VerificationSettings() {
       enqueueSnackbar('保存失败，请稍后再试', { variant: 'error' });
     }
   };
-
   if (loading) return <Loading />;
-
   const current = MODE_OPTIONS.find((o) => o.value === mode) || MODE_OPTIONS[0];
-
-  
   const isDirty = !!loaded && (
     mode !== loaded.verificationMode ||
     loginVerification !== !!loaded.loginVerification ||
@@ -142,7 +130,6 @@ export function VerificationSettings() {
     hcaptchaSiteKey.trim() !== (loaded.hcaptchaSiteKey || '') ||
     hcaptchaSecret.trim() !== ''
   );
-
   return (
     <Fade in timeout={400}>
       <Paper
@@ -159,12 +146,9 @@ export function VerificationSettings() {
         <Typography variant="h6" sx={{ fontWeight: 700, mb: 0.5 }}>
           验证设置
         </Typography>
-
-
         <Box sx={{ display: 'grid', gap: 3 }}>
           <FormControl fullWidth>
             <InputLabel>人机验证方式</InputLabel>
-
             <Select
               value={mode}
               label="人机验证方式"
@@ -174,28 +158,19 @@ export function VerificationSettings() {
                 <MenuItem key={o.value} value={o.value}>
                   {o.label}
                 </MenuItem>
-
               ))}
             </Select>
-
           </FormControl>
-
-
           <Alert severity={mode === 'none' ? 'warning' : 'info'} sx={{ borderRadius: 1 }}>
             <Typography variant="body2" fontWeight={600} sx={{ mb: 0.25 }}>
               {current.label}
             </Typography>
-
             <Typography variant="body2">{current.desc}</Typography>
-
           </Alert>
-
-
           <Box sx={{ display: 'grid', gap: 1.5 }}>
             <Typography variant="subtitle2" sx={{ color: 'text.secondary' }}>
               应用场景
             </Typography>
-
             <FormControlLabel
               control={
                 <Switch
@@ -224,8 +199,6 @@ export function VerificationSettings() {
               label="忘记密码时启用验证（含发验证码）"
             />
           </Box>
-
-
           {mode === 'turnstile' && (
             <Box sx={{ display: 'grid', gap: 2.5 }}>
               <TextField
@@ -242,9 +215,7 @@ export function VerificationSettings() {
                 fullWidth
               />
             </Box>
-
           )}
-
           {mode === 'geetest' && (
             <Box sx={{ display: 'grid', gap: 2.5 }}>
               <TextField
@@ -261,9 +232,7 @@ export function VerificationSettings() {
                 fullWidth
               />
             </Box>
-
           )}
-
           {mode === 'hcaptcha' && (
             <Box sx={{ display: 'grid', gap: 2.5 }}>
               <TextField
@@ -280,15 +249,10 @@ export function VerificationSettings() {
                 fullWidth
               />
             </Box>
-
           )}
-
         </Box>
-
         <FloatingSaveButton show={isDirty} saving={saving} onClick={handleSave} label="保存设置" />
       </Paper>
-
     </Fade>
-
   );
 }

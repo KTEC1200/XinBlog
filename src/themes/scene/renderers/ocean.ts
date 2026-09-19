@@ -1,6 +1,5 @@
 import { OceanEffect, type OceanEffectParams } from '@/themes/scene/components/OceanEffect';
 import type { SceneThemeRenderer } from './base';
-
 export const oceanSceneRenderer: SceneThemeRenderer<OceanEffectParams> = {
   id: 'ocean',
   name: '海洋呼吸',

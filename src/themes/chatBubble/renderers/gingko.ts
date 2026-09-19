@@ -1,6 +1,5 @@
 import type { ChatBubbleRenderer } from './base';
 import { resolveThemeColor, bubbleRadius, resolveImageRadius, type BubbleCorners } from './base';
-
 interface GinkgoParams extends Record<string, unknown> {
   mineStroke: string;
   mineText: string;
@@ -11,8 +10,6 @@ interface GinkgoParams extends Record<string, unknown> {
   mineSharpCorner: BubbleCorners;
   otherSharpCorner: BubbleCorners;
 }
-
-
 export const gingkoBubbleRenderer: ChatBubbleRenderer<GinkgoParams> = {
   id: 'gingko',
   name: '描边',
@@ -50,10 +47,8 @@ export const gingkoBubbleRenderer: ChatBubbleRenderer<GinkgoParams> = {
     const c2 = resolveThemeColor(params.otherStroke, '#f6d365');
     const mineText = resolveThemeColor(params.mineText, c1);
     const otherText = resolveThemeColor(params.otherText, c2);
-
     const stroke = (a: string, b: string) =>
       `linear-gradient(135deg, ${a} 0%, ${b} 100%) border-box`;
-
     return {
       mine: {
         backgroundColor: 'transparent',

@@ -1,6 +1,5 @@
 const fs = require('fs');
 const src = fs.readFileSync('public/_worker.js', 'utf8');
-
 function grab(name) {
   const i = src.indexOf('function ' + name);
   if (i < 0) throw new Error('not found ' + name);
@@ -15,7 +14,6 @@ function grab(name) {
   }
   throw new Error('fail ' + name);
 }
-
 let code = ['estimateTokensForText', 'estimateMessagesTokens', 'buildCompactionSummary', 'applyContextBudgetToMessages']
   .map(grab).join('\n');
 code += `

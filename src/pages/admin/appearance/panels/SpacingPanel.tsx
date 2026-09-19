@@ -2,16 +2,12 @@ import { Box, Typography, Paper, Stack, TextField, Button, Divider, alpha } from
 import { RestartAlt } from '@mui/icons-material';
 import type { SpacingConfig } from '@/types';
 import type { AppearanceEditor } from '../useAppearanceEditor';
-
 type Side = 'mobile' | 'desktop';
-
 interface SpacingItem {
   key: keyof SpacingConfig;
   label: string;
   desc: string;
 }
-
-
 const GROUPS: { title: string; desc: string; items: SpacingItem[] }[] = [
   {
     title: '主内容区',
@@ -105,7 +101,6 @@ const GROUPS: { title: string; desc: string; items: SpacingItem[] }[] = [
     ],
   },
 ];
-
 function SpacingRow({
   label,
   desc,
@@ -122,11 +117,9 @@ function SpacingRow({
       <Typography variant="body2" sx={{ fontWeight: 600 }}>
         {label}
       </Typography>
-
       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25, mb: 1.5 }}>
         {desc}
       </Typography>
-
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
         {(['mobile', 'desktop'] as Side[]).map((side) => (
           <TextField
@@ -141,15 +134,11 @@ function SpacingRow({
           />
         ))}
       </Stack>
-
     </Box>
-
   );
 }
-
 export function SpacingPanel({ editor }: { editor: AppearanceEditor }) {
   const { spacing, updateSpacing, resetSpacing, enqueueSnackbar } = editor;
-
   return (
     <Paper
       elevation={0}
@@ -167,7 +156,6 @@ export function SpacingPanel({ editor }: { editor: AppearanceEditor }) {
         <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
           间距设置
         </Typography>
-
         <Button
           size="small"
           variant="outlined"
@@ -180,14 +168,10 @@ export function SpacingPanel({ editor }: { editor: AppearanceEditor }) {
         >
           还原默认配置
         </Button>
-
       </Box>
-
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
         所有间距单位均为 px。修改后点击右下角「保存外观设置」才会生效，且无需预览，可反复调整。
       </Typography>
-
-
       <Stack spacing={4}>
         {GROUPS.map((group, idx) => (
           <Box key={group.title}>
@@ -195,11 +179,9 @@ export function SpacingPanel({ editor }: { editor: AppearanceEditor }) {
             <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5 }}>
               {group.title}
             </Typography>
-
             <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
               {group.desc}
             </Typography>
-
             <Stack spacing={2.5}>
               {group.items.map((item) => (
                 <SpacingRow
@@ -211,13 +193,9 @@ export function SpacingPanel({ editor }: { editor: AppearanceEditor }) {
                 />
               ))}
             </Stack>
-
           </Box>
-
         ))}
       </Stack>
-
     </Paper>
-
   );
 }

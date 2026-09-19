@@ -1,6 +1,5 @@
 import type { ChatBubbleRenderer } from './base';
 import { resolveThemeColor, bubbleRadius, resolveImageRadius, type BubbleCorners } from './base';
-
 interface CandyParams extends Record<string, unknown> {
   mineBg: string;
   mineText: string;
@@ -11,8 +10,6 @@ interface CandyParams extends Record<string, unknown> {
   mineSharpCorner: BubbleCorners;
   otherSharpCorner: BubbleCorners;
 }
-
-
 export const candyBubbleRenderer: ChatBubbleRenderer<CandyParams> = {
   id: 'candy',
   name: '糖果',
@@ -50,7 +47,6 @@ export const candyBubbleRenderer: ChatBubbleRenderer<CandyParams> = {
     const otherText = resolveThemeColor(params.otherText, '#7a4a1e');
     const mine = bubbleRadius(params.mineSharpCorner, radius);
     const other = bubbleRadius(params.otherSharpCorner, radius);
-
     return {
       mine: {
         backgroundColor: mineBg,

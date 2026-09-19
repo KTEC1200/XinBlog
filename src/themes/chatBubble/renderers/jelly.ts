@@ -1,6 +1,5 @@
 import type { ChatBubbleRenderer } from './base';
 import { resolveThemeColor, bubbleRadius, resolveImageRadius, type BubbleCorners } from './base';
-
 interface JellyParams extends Record<string, unknown> {
   mineA: string;
   mineB: string;
@@ -13,8 +12,6 @@ interface JellyParams extends Record<string, unknown> {
   mineSharpCorner: BubbleCorners;
   otherSharpCorner: BubbleCorners;
 }
-
-
 export const jellyBubbleRenderer: ChatBubbleRenderer<JellyParams> = {
   id: 'jelly',
   name: '果冻',
@@ -56,7 +53,6 @@ export const jellyBubbleRenderer: ChatBubbleRenderer<JellyParams> = {
     const otherB = resolveThemeColor(params.otherB, '#e6e9f0');
     const mine = bubbleRadius(params.mineSharpCorner, radius);
     const other = bubbleRadius(params.otherSharpCorner, radius);
-
     return {
       mine: {
         background: `radial-gradient(ellipse at 20% 0%, ${mineA} 0%, ${mineB} 45%, ${mineB} 100%)`,

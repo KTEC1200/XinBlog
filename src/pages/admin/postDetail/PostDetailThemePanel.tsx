@@ -11,13 +11,10 @@ import { BUILTIN_POST_DETAIL_THEMES } from '@/themes/postDetail/builtin';
 import { PostDetailThemeCard } from './PostDetailThemeCard';
 import { PostDetailThemeParamEditor } from './PostDetailThemeParamEditor';
 import { PostDetailThemePreview } from './PostDetailThemePreview';
-
 const DEFAULT_POST_DETAIL_THEME: PostDetailThemeConfig = { variant: 'default' };
-
 function getThemeById(id: string): ThemePackage | undefined {
   return BUILTIN_POST_DETAIL_THEMES.find((t) => t.id === id);
 }
-
 function resolveActiveId(variant: string): string {
   if (variant === 'default') return '';
   const t = BUILTIN_POST_DETAIL_THEMES.find(
@@ -25,7 +22,6 @@ function resolveActiveId(variant: string): string {
   );
   return t?.id || '';
 }
-
 function buildEditingTheme(id: string, saved?: PostDetailThemeConfig): ThemePackage | null {
   const pkg = getThemeById(id);
   if (!pkg) return null;
@@ -40,7 +36,6 @@ function buildEditingTheme(id: string, saved?: PostDetailThemeConfig): ThemePack
     },
   };
 }
-
 export function PostDetailThemePanel() {
   const site = useSiteStore();
   const { enqueueSnackbar } = useSnackbar();
@@ -53,7 +48,6 @@ export function PostDetailThemePanel() {
   const [originalEditingTheme, setOriginalEditingTheme] = useState<ThemePackage | null>(null);
   const [previewPosts, setPreviewPosts] = useState<Post[]>([]);
   const [previewLoading, setPreviewLoading] = useState(false);
-
   useEffect(() => {
     let mounted = true;
     const load = async () => {
@@ -81,9 +75,8 @@ export function PostDetailThemePanel() {
     return () => {
       mounted = false;
     };
-    
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
   useEffect(() => {
     let mounted = true;
     setPreviewLoading(true);
@@ -96,7 +89,6 @@ export function PostDetailThemePanel() {
       mounted = false;
     };
   }, []);
-
   const handleSelectEditTheme = (id: string) => {
     setEditingThemeId(id);
     const savedVariant = site.config.postDetailTheme?.variant || 'default';
@@ -111,13 +103,11 @@ export function PostDetailThemePanel() {
       setOriginalEditingTheme(null);
     }
   };
-
   const handleApplyTheme = (id: string) => {
     setPendingActiveThemeId(id);
     handleSelectEditTheme(id);
     enqueueSnackbar('已选择该主题，点击保存后生效', { variant: 'info' });
   };
-
   const handleResetToDefault = () => {
     setPendingActiveThemeId('');
     setEditingThemeId('');
@@ -125,15 +115,12 @@ export function PostDetailThemePanel() {
     setOriginalEditingTheme(null);
     enqueueSnackbar('已选择默认主题，点击保存后生效', { variant: 'info' });
   };
-
   const editingDetailTheme = useMemo<PostDetailThemeConfig>(() => {
     return editingTheme?.components?.postDetail || DEFAULT_POST_DETAIL_THEME;
   }, [editingTheme]);
-
   const activeSchema = useMemo(() => {
     return editingDetailTheme.schema || [];
   }, [editingDetailTheme]);
-
   const updateEditingDetailTheme = (patch: Partial<PostDetailThemeConfig>) => {
     setEditingTheme((prev) => {
       if (!prev) return prev;
@@ -153,12 +140,10 @@ export function PostDetailThemePanel() {
       };
     });
   };
-
   const isDirty = useMemo(() => {
     if (!editingTheme || !originalEditingTheme) return false;
     return JSON.stringify(editingTheme) !== JSON.stringify(originalEditingTheme);
   }, [editingTheme, originalEditingTheme]);
-
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -166,14 +151,11 @@ export function PostDetailThemePanel() {
         pendingActiveThemeId === ''
           ? { ...DEFAULT_POST_DETAIL_THEME }
           : (editingTheme?.components?.postDetail ?? site.config.postDetailTheme ?? DEFAULT_POST_DETAIL_THEME);
-
       const optimistic = normalizeSiteConfig({ ...site.config, postDetailTheme: nextTheme });
       site.setConfig({ postDetailTheme: optimistic.postDetailTheme ?? DEFAULT_POST_DETAIL_THEME });
       setCachedSiteConfig(optimistic);
-
       const ok = await site.saveConfig({ postDetailTheme: nextTheme });
       if (!ok) throw new Error('文章详情主题保存失败');
-
       const newActiveId = resolveActiveId(nextTheme.variant);
       setActiveThemeId(newActiveId);
       setPendingActiveThemeId(newActiveId);
@@ -185,9 +167,7 @@ export function PostDetailThemePanel() {
       setSaving(false);
     }
   };
-
   if (loading) return <Loading text="加载文章详情主题中..." />;
-
   return (
     <Stack spacing={3}>
       <Paper
@@ -204,7 +184,6 @@ export function PostDetailThemePanel() {
         <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
           所有主题
         </Typography>
-
         <Grid container spacing={2}>
           <Grid item xs={12} sm={6} md={4} sx={{ display: 'flex' }}>
             <Paper
@@ -244,22 +223,16 @@ export function PostDetailThemePanel() {
                     <Box sx={{ height: 3, width: '100%', bgcolor: (t) => alpha(t.palette.primary.main, 0.25), borderRadius: 0.5 }} />
                     <Box sx={{ height: 3, width: '75%', bgcolor: (t) => alpha(t.palette.primary.main, 0.25), borderRadius: 0.5 }} />
                   </Box>
-
                 </Box>
-
                 <Box sx={{ flex: 1, minWidth: 0 }}>
                   <Typography variant="subtitle2" fontWeight={700} noWrap>
                     默认主题
                   </Typography>
-
                   <Typography variant="caption" color="text.secondary" sx={{ wordBreak: 'break-word', whiteSpace: 'normal' }}>
                     恢复为系统内置默认文章详情样式
                   </Typography>
-
                 </Box>
-
               </Box>
-
               <Box sx={{ mt: 1.5 }}>
                 <Button
                   variant={pendingActiveThemeId === '' ? 'outlined' : 'contained'}
@@ -274,14 +247,9 @@ export function PostDetailThemePanel() {
                 >
                   {pendingActiveThemeId === '' ? '已选中' : '恢复默认'}
                 </Button>
-
               </Box>
-
             </Paper>
-
           </Grid>
-
-
           {BUILTIN_POST_DETAIL_THEMES.map((t) => (
             <Grid item xs={12} sm={6} md={4} key={t.id} sx={{ display: 'flex' }}>
               <PostDetailThemeCard
@@ -292,13 +260,9 @@ export function PostDetailThemePanel() {
                 onReset={handleResetToDefault}
               />
             </Grid>
-
           ))}
         </Grid>
-
       </Paper>
-
-
       {editingTheme && pendingActiveThemeId !== '' && (
         <Fade in timeout={400}>
           <Box>
@@ -333,10 +297,8 @@ export function PostDetailThemePanel() {
                     >
                       正在使用
                     </Box>
-
                   )}
                 </Typography>
-
                 <Button
                   variant="outlined"
                   size="small"
@@ -352,17 +314,13 @@ export function PostDetailThemePanel() {
                 >
                   恢复默认
                 </Button>
-
               </Box>
-
               <PostDetailThemeParamEditor
                 schema={activeSchema}
                 config={editingDetailTheme}
                 onChange={updateEditingDetailTheme}
               />
             </Paper>
-
-
             <Paper
               elevation={0}
               sx={{
@@ -378,7 +336,6 @@ export function PostDetailThemePanel() {
               <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
                 实时预览
               </Typography>
-
               {previewLoading ? (
                 <Loading text="加载预览中..." />
               ) : (
@@ -388,13 +345,9 @@ export function PostDetailThemePanel() {
                 />
               )}
             </Paper>
-
           </Box>
-
         </Fade>
-
       )}
-
       <FloatingSaveButton
         show={isDirty || pendingActiveThemeId !== activeThemeId}
         saving={saving}
@@ -402,6 +355,5 @@ export function PostDetailThemePanel() {
         label="保存主题"
       />
     </Stack>
-
   );
 }

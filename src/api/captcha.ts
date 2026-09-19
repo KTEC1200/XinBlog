@@ -1,8 +1,4 @@
-
-
-
 export type CaptchaMode = 'none' | 'turnstile' | 'math' | 'geetest' | 'hcaptcha';
-
 export interface CaptchaConfig {
   mode: CaptchaMode;
   loginRequired: boolean;
@@ -12,13 +8,10 @@ export interface CaptchaConfig {
   geetestCaptchaId: string;
   hcaptchaSiteKey: string;
 }
-
 export interface MathCaptcha {
   question: string;
   token: string;
 }
-
-
 export interface CaptchaPayload {
   mode: CaptchaMode;
   turnstileToken?: string;
@@ -30,7 +23,6 @@ export interface CaptchaPayload {
   genTime?: string;
   hcaptchaToken?: string;
 }
-
 export async function fetchCaptchaConfig(): Promise<CaptchaConfig | null> {
   try {
     const res = await fetch('/api/v1/auth/captcha/config', {
@@ -44,7 +36,6 @@ export async function fetchCaptchaConfig(): Promise<CaptchaConfig | null> {
     return null;
   }
 }
-
 export async function fetchMathCaptcha(): Promise<MathCaptcha | null> {
   try {
     const res = await fetch('/api/v1/auth/captcha/math', {

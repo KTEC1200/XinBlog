@@ -3,20 +3,16 @@ import { Alert, AlertTitle, Button, List, ListItem, ListItemIcon, ListItemText, 
 import NewReleasesIcon from '@mui/icons-material/NewReleases';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { APP_VERSION, SITE_HOMEPAGE_URL } from '@/config';
-
 interface VersionLog {
   version: string;
   title?: string;
   content?: string[];
 }
-
 interface VersionInfo {
   latest: string;
   url?: string;
   logs?: VersionLog[];
 }
-
-
 function compareVersions(a: string, b: string): number {
   const pa = a.replace(/^v/i, '').split('.').map((n) => parseInt(n, 10) || 0);
   const pb = b.replace(/^v/i, '').split('.').map((n) => parseInt(n, 10) || 0);
@@ -29,14 +25,10 @@ function compareVersions(a: string, b: string): number {
   }
   return 0;
 }
-
-
-
 export function AdminVersionNotice() {
   const theme = useTheme();
   const [info, setInfo] = useState<VersionInfo | null>(null);
   const [failed, setFailed] = useState(false);
-
   useEffect(() => {
     let mounted = true;
     const controller = new AbortController();
@@ -46,7 +38,6 @@ export function AdminVersionNotice() {
         if (mounted) setInfo(data);
       })
       .catch(() => {
-        
         if (mounted) setFailed(true);
       });
     return () => {
@@ -54,29 +45,23 @@ export function AdminVersionNotice() {
       controller.abort();
     };
   }, []);
-
   if (failed || !info || !info.latest) return null;
-
   const latest = String(info.latest).replace(/^v/i, '');
-  
   if (compareVersions(APP_VERSION, latest) >= 0) return null;
-
   const log = info.logs?.find((l) => String(l.version).replace(/^v/i, '') === latest);
   const changelogUrl = info.url || `${SITE_HOMEPAGE_URL}/changelog.html`;
-
   return (
     <Alert
       severity="info"
       sx={{
         mb: 3,
-        borderRadius: (t) => Math.max(8, t.shape.borderRadius - 4),
+        borderRadius: (t) => t.shape.borderRadius,
         '& .MuiAlert-icon': { alignItems: 'center' },
       }}
     >
       <AlertTitle sx={{ fontWeight: 700 }}>
         发现新版本 v{latest}（当前版本 v{APP_VERSION}）
       </AlertTitle>
-
       {log?.content?.length ? (
         <List dense disablePadding sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mb: 1 }}>
           {log.content.map((item, i) => (
@@ -84,7 +69,6 @@ export function AdminVersionNotice() {
               <ListItemIcon sx={{ minWidth: 28, mt: 0.25 }}>
                 <CheckCircleIcon fontSize="small" color="primary" />
               </ListItemIcon>
-
               <ListItemText
                 primary={item}
                 primaryTypographyProps={{
@@ -93,10 +77,8 @@ export function AdminVersionNotice() {
                 }}
               />
             </ListItem>
-
           ))}
         </List>
-
       ) : null}
       <Button
         component="a"
@@ -110,8 +92,6 @@ export function AdminVersionNotice() {
       >
         查看更新日志
       </Button>
-
     </Alert>
-
   );
 }

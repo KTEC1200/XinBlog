@@ -1,6 +1,4 @@
 import type { ThemePackage } from '@/types';
-
-
 export const BUILTIN_CHAT_BUBBLE_THEMES: ThemePackage[] = [
   {
     id: 'chat-bubble-ios',

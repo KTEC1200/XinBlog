@@ -2,6 +2,9 @@ import {
   AppBar,
   Avatar,
   Box,
+  ButtonBase,
+  Collapse,
+  Divider,
   IconButton,
   InputBase,
   Menu,
@@ -12,28 +15,39 @@ import {
   useTheme,
   useMediaQuery,
 } from '@mui/material';
+import type { Theme } from '@mui/material/styles';
 import { LogoutConfirmDialog } from '@/components/Common/LogoutConfirmDialog';
 import { Menu as MenuIcon, Person, Search, Settings, AccountCircle, Logout, ArrowBack } from '@mui/icons-material';
-import { useState, type RefObject } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect, type RefObject } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { ThemeToggle } from '@/components/Common/ThemeToggle';
 import { NavLinks } from '@/components/Frame/NavLinks';
+import { TopNavTabs } from '@/components/Frame/TopNavTabs';
+import { AnimatedMenuButton } from '@/components/Frame/AnimatedMenuButton';
+import { Logo } from '@/components/Common/Logo';
+import { useTopNavItems } from '@/hooks/useNavItems';
 import { useAuthStore } from '@/stores/authStore';
 import { isContentAdmin } from '@/utils/permission';
 import { useSiteStore } from '@/stores/siteStore';
 import { useScrollDirection } from '@/hooks/useScrollDirection';
 import { resolveSpacingConfig } from '@/utils/spacingConfig';
-
 interface NavBarProps {
   onMenuClick: () => void;
   drawerOpen?: boolean;
   drawerWidth?: number;
   scrollTargetRef?: RefObject<HTMLElement | null>;
+  layout?: 'sidebar' | 'top';
 }
-
-export function NavBar({ onMenuClick, drawerOpen = false, drawerWidth = 0, scrollTargetRef }: NavBarProps) {
+export function NavBar({
+  onMenuClick,
+  drawerOpen = false,
+  drawerWidth = 0,
+  scrollTargetRef,
+  layout = 'sidebar',
+}: NavBarProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isTop = layout === 'top';
   const navigate = useNavigate();
   const { isAuthenticated, user, logout } = useAuthStore();
   const { config } = useSiteStore();
@@ -46,16 +60,19 @@ export function NavBar({ onMenuClick, drawerOpen = false, drawerWidth = 0, scrol
   const [searchValue, setSearchValue] = useState('');
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const userMenuOpen = Boolean(anchorEl);
-
+  const location = useLocation();
+  const topNavItems = useTopNavItems();
+  useEffect(() => {
+    setMobileNavOpen(false);
+  }, [location.pathname]);
   const handleUserMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
   };
-
   const handleUserMenuClose = () => {
     setAnchorEl(null);
   };
-
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = searchValue.trim();
@@ -63,21 +80,17 @@ export function NavBar({ onMenuClick, drawerOpen = false, drawerWidth = 0, scrol
       navigate(`/?q=${encodeURIComponent(trimmed)}`);
     }
   };
-
   const handleMobileSearchOpen = () => {
     setMobileSearchOpen(true);
   };
-
   const handleMobileSearchClose = () => {
     setMobileSearchOpen(false);
     setSearchValue('');
   };
-
   const glassOpacity = navTheme.glassOpacity ?? 0.4;
   const glassBlur = navTheme.blur ?? 16;
   const borderOpacity = navTheme.borderOpacity ?? 0.2;
   const shadowOpacity = navTheme.shadowOpacity ?? 0.08;
-
   return (
     <AppBar
       position="fixed"
@@ -111,22 +124,36 @@ export function NavBar({ onMenuClick, drawerOpen = false, drawerWidth = 0, scrol
     >
       <Toolbar sx={{ justifyContent: 'space-between', px: { xs: `${spacing.navPaddingX.mobile}px`, md: `${spacing.navPaddingX.desktop}px` }, minHeight: { xs: 56, sm: 64 } }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0 }}>
-          <IconButton
-            onClick={onMenuClick}
-            aria-label="打开导航菜单"
-            className="live2d-tip-menu"
-            sx={{
-              display: { md: 'none' },
-              color: navTheme.textColor || 'text.primary',
-              borderRadius: 1,
-            }}
-          >
-            <MenuIcon />
-          </IconButton>
-
+          {isTop ? (
+            <>
+              {}
+              <Box sx={{ display: { xs: 'none', md: 'flex' }, flexShrink: 0 }}>
+                <Logo />
+              </Box>
+              {}
+              <Box sx={{ display: { md: 'none' } }}>
+                <AnimatedMenuButton
+                  open={mobileNavOpen}
+                  onClick={() => setMobileNavOpen((v) => !v)}
+                  color={navTheme.textColor || theme.palette.text.primary}
+                />
+              </Box>
+            </>
+          ) : (
+            <IconButton
+              onClick={onMenuClick}
+              aria-label="打开导航菜单"
+              className="live2d-tip-menu"
+              sx={{
+                display: { md: 'none' },
+                color: navTheme.textColor || 'text.primary',
+                borderRadius: 1,
+              }}
+            >
+              <MenuIcon />
+            </IconButton>
+          )}
         </Box>
-
-
         {isMobile ? (
           <Box
             component="form"
@@ -191,7 +218,6 @@ export function NavBar({ onMenuClick, drawerOpen = false, drawerWidth = 0, scrol
               }}
             />
           </Box>
-
         ) : (
           <Box
             sx={{
@@ -203,14 +229,46 @@ export function NavBar({ onMenuClick, drawerOpen = false, drawerWidth = 0, scrol
           />
         )}
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: { xs: `${spacing.navGap.mobile}px`, md: `${spacing.navGap.desktop}px` }, flex: 1, minWidth: 0 }}>
-          <Box sx={{ display: { xs: 'none', md: 'flex' }, flex: 1, minWidth: 0, maxWidth: { md: '80%', lg: '85%' } }}>
-            <NavLinks items={config.nav?.items || []} navTheme={navTheme} />
-          </Box>
-
-          <Box sx={{ display: { md: 'none' } }}>
-            <NavLinks items={config.nav?.items || []} forceMobile navTheme={navTheme} />
-          </Box>
-
+          {isTop ? (
+            <Box
+              sx={{
+                position: 'absolute',
+                left: '50%',
+                top: 0,
+                bottom: 0,
+                width: { md: '68%', lg: '74%' },
+                transform: 'translateX(-50%)',
+                display: { xs: 'none', md: 'flex' },
+                alignItems: 'center',
+                justifyContent: 'center',
+                minWidth: 0,
+                pointerEvents: 'none',
+              }}
+            >
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '100%',
+                  minWidth: 0,
+                  pointerEvents: 'auto',
+                }}
+              >
+                <TopNavTabs navTheme={navTheme} />
+              </Box>
+            </Box>
+          ) : (
+            <Box sx={{ display: { xs: 'none', md: 'flex' }, flex: 1, minWidth: 0, maxWidth: { md: '82%', lg: '88%' } }}>
+              <NavLinks items={config.nav?.items || []} navTheme={navTheme} />
+            </Box>
+          )}
+          {}
+          {!isTop && (
+            <Box sx={{ display: { md: 'none' } }}>
+              <NavLinks items={config.nav?.items || []} forceMobile navTheme={navTheme} />
+            </Box>
+          )}
           <Tooltip title="搜索文章">
             <IconButton
               onClick={handleMobileSearchOpen}
@@ -226,14 +284,10 @@ export function NavBar({ onMenuClick, drawerOpen = false, drawerWidth = 0, scrol
             >
               <Search />
             </IconButton>
-
           </Tooltip>
-
           <Box sx={{ color: navTheme.textColor || 'inherit' }}>
             <ThemeToggle />
           </Box>
-
-
           {isAuthenticated && user ? (
             <>
               <Tooltip title="账户菜单">
@@ -265,11 +319,8 @@ export function NavBar({ onMenuClick, drawerOpen = false, drawerWidth = 0, scrol
                   >
                     {user.username.charAt(0).toUpperCase()}
                   </Avatar>
-
                 </IconButton>
-
               </Tooltip>
-
               <Menu
                 id="user-menu"
                 anchorEl={anchorEl}
@@ -297,7 +348,6 @@ export function NavBar({ onMenuClick, drawerOpen = false, drawerWidth = 0, scrol
                   <AccountCircle fontSize="small" sx={{ mr: 1.5 }} />
                   个人中心
                 </MenuItem>
-
                 {isContentAdmin(user?.role) && (
                   <MenuItem
                     component={Link}
@@ -307,7 +357,6 @@ export function NavBar({ onMenuClick, drawerOpen = false, drawerWidth = 0, scrol
                     <Settings fontSize="small" sx={{ mr: 1.5 }} />
                     管理后台
                   </MenuItem>
-
                 )}
                 <MenuItem
                   onClick={() => {
@@ -318,11 +367,8 @@ export function NavBar({ onMenuClick, drawerOpen = false, drawerWidth = 0, scrol
                   <Logout fontSize="small" sx={{ mr: 1.5 }} />
                   退出登录
                 </MenuItem>
-
               </Menu>
-
             </>
-
           ) : (
             <Tooltip title="登录">
               <IconButton
@@ -339,15 +385,101 @@ export function NavBar({ onMenuClick, drawerOpen = false, drawerWidth = 0, scrol
               >
                 <Person />
               </IconButton>
-
             </Tooltip>
-
           )}
         </Box>
-
       </Toolbar>
-
-
+      {}
+      {isTop && (
+        <Box
+          sx={{
+            position: 'absolute',
+            top: '100%',
+            left: 0,
+            right: 0,
+            display: { md: 'none' },
+            maxHeight: 'calc(100dvh - 64px)',
+            overflowY: 'auto',
+            WebkitOverflowScrolling: 'touch',
+            pointerEvents: mobileNavOpen ? 'auto' : 'none',
+          }}
+        >
+          <Collapse in={mobileNavOpen} timeout={280}>
+            <Box
+              sx={{
+                backdropFilter: isGlass ? `blur(${glassBlur}px)` : 'blur(12px)',
+                backgroundColor: isGlass
+                  ? (theme) => alpha(theme.palette.background.paper, glassOpacity)
+                  : (theme) =>
+                      alpha(theme.palette.background.paper, theme.palette.mode === 'light' ? 0.97 : 0.95),
+                borderBottom: isGlass ? 1 : 0,
+                borderColor: isGlass
+                  ? (theme) =>
+                      alpha(
+                        theme.palette.mode === 'light' ? theme.palette.common.white : theme.palette.common.black,
+                        borderOpacity
+                      )
+                  : 'transparent',
+                boxShadow: isGlass
+                  ? (theme) => `0 8px 28px ${alpha(theme.palette.common.black, shadowOpacity)}`
+                  : 'none',
+              }}
+            >
+              {topNavItems.map((item, index) => {
+                const active =
+                  !/^https?:\/\//i.test(item.url) &&
+                  (item.url === '/' ? location.pathname === '/' : location.pathname.startsWith(item.url));
+                const rowSx = {
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1.5,
+                  width: '100%',
+                  px: { xs: `${spacing.navPaddingX.mobile}px`, sm: 3 },
+                  py: 1.5,
+                  justifyContent: 'flex-start',
+                  textAlign: 'left' as const,
+                  color: item.color?.trim()
+                    ? item.color
+                    : active
+                      ? navTheme.activeColor || 'primary.main'
+                      : navTheme.textColor || 'text.primary',
+                  fontWeight: active ? 700 : 500,
+                  backgroundColor: active
+                    ? (theme: Theme) => alpha(theme.palette.primary.main, 0.08)
+                    : 'transparent',
+                  '&:hover': {
+                    backgroundColor: (theme: Theme) => theme.palette.action.hover,
+                  },
+                };
+                const isExternal = /^https?:\/\//i.test(item.url);
+                return (
+                  <Box key={item.id}>
+                    {index > 0 && <Divider />}
+                    {isExternal ? (
+                      <ButtonBase
+                        component="a"
+                        href={item.url}
+                        target={item.openInNewTab ? '_blank' : undefined}
+                        rel={item.openInNewTab ? 'noopener noreferrer' : undefined}
+                        onClick={() => setMobileNavOpen(false)}
+                        sx={rowSx}
+                      >
+                        {item.icon}
+                        {item.title}
+                      </ButtonBase>
+                    ) : (
+                      <ButtonBase component={Link} to={item.url} onClick={() => setMobileNavOpen(false)} sx={rowSx}>
+                        {item.icon}
+                        {item.title}
+                      </ButtonBase>
+                    )}
+                  </Box>
+                );
+              })}
+            </Box>
+          </Collapse>
+        </Box>
+      )}
       {mobileSearchOpen && (
         <Toolbar
           sx={{
@@ -381,7 +513,6 @@ export function NavBar({ onMenuClick, drawerOpen = false, drawerWidth = 0, scrol
           >
             <ArrowBack />
           </IconButton>
-
           <Box
             component="form"
             onSubmit={handleSearchSubmit}
@@ -430,11 +561,8 @@ export function NavBar({ onMenuClick, drawerOpen = false, drawerWidth = 0, scrol
               }}
             />
           </Box>
-
         </Toolbar>
-
       )}
-
       <LogoutConfirmDialog
         open={logoutOpen}
         onClose={() => setLogoutOpen(false)}
@@ -444,6 +572,5 @@ export function NavBar({ onMenuClick, drawerOpen = false, drawerWidth = 0, scrol
         }}
       />
     </AppBar>
-
   );
 }

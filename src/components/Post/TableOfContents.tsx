@@ -10,22 +10,17 @@ import {
 } from '@mui/material';
 import { MenuBook, Close } from '@mui/icons-material';
 import { smoothScrollTo } from '@/utils/smoothScrollController';
-
 export interface HeadingItem {
   id: string;
   text: string;
   level: number;
 }
-
 interface TableOfContentsProps {
   headings: HeadingItem[];
 }
-
 function getScrollContainer(): HTMLElement | null {
   return document.querySelector('main') as HTMLElement | null;
 }
-
-
 function getHeadingTop(id: string): number | null {
   const container = getScrollContainer();
   const el = document.getElementById(id);
@@ -34,23 +29,17 @@ function getHeadingTop(id: string): number | null {
   const elRect = el.getBoundingClientRect();
   return container.scrollTop + (elRect.top - containerRect.top);
 }
-
 export function TableOfContents({ headings }: TableOfContentsProps) {
   const theme = useTheme();
   const [open, setOpen] = useState(false);
   const [activeId, setActiveId] = useState<string>('');
   const listRef = useRef<HTMLDivElement>(null);
   const activeItemRef = useRef<HTMLButtonElement | null>(null);
-
   const hasHeadings = headings.length > 0;
-
-  
   useEffect(() => {
     if (!hasHeadings) return;
-
     const container = getScrollContainer();
     if (!container) return;
-
     const observer = new IntersectionObserver(
       (entries) => {
         const visible = entries
@@ -66,13 +55,10 @@ export function TableOfContents({ headings }: TableOfContentsProps) {
         threshold: 0,
       }
     );
-
     headings.forEach((h) => {
       const el = document.getElementById(h.id);
       if (el) observer.observe(el);
     });
-
-    
     const init = () => {
       const scrollTop = container.scrollTop;
       let current = headings[0]?.id || '';
@@ -85,11 +71,8 @@ export function TableOfContents({ headings }: TableOfContentsProps) {
       setActiveId(current);
     };
     init();
-
     return () => observer.disconnect();
   }, [headings, hasHeadings]);
-
-  
   useEffect(() => {
     if (open && activeItemRef.current && listRef.current) {
       const list = listRef.current;
@@ -100,13 +83,10 @@ export function TableOfContents({ headings }: TableOfContentsProps) {
       list.scrollTo({ top: list.scrollTop + offset, behavior: 'smooth' });
     }
   }, [open]);
-
   const handleClick = (id: string) => {
     const container = getScrollContainer();
     if (!container) return;
-
     setOpen(false);
-
     const computeTarget = (): number | null => {
       const el = document.getElementById(id);
       if (!container || !el) return null;
@@ -115,16 +95,9 @@ export function TableOfContents({ headings }: TableOfContentsProps) {
       const top = container.scrollTop + (elRect.top - containerRect.top);
       return Math.max(0, top - 24);
     };
-
     const target = computeTarget();
     if (target === null) return;
-
-    
     if (smoothScrollTo(target)) return;
-
-    
-    
-    
     window.setTimeout(() => {
       const finalTarget = computeTarget();
       if (finalTarget !== null) {
@@ -132,9 +105,7 @@ export function TableOfContents({ headings }: TableOfContentsProps) {
       }
     }, 260);
   };
-
   if (!hasHeadings) return null;
-
   return (
     <>
       <Tooltip title="目录" arrow placement="left">
@@ -171,10 +142,7 @@ export function TableOfContents({ headings }: TableOfContentsProps) {
         >
           <MenuBook />
         </Fab>
-
       </Tooltip>
-
-
       <Drawer
         anchor="right"
         open={open}
@@ -208,7 +176,6 @@ export function TableOfContents({ headings }: TableOfContentsProps) {
           <Typography variant="subtitle1" fontWeight={700}>
             目录
           </Typography>
-
           <Box
             component="button"
             onClick={() => setOpen(false)}
@@ -236,10 +203,7 @@ export function TableOfContents({ headings }: TableOfContentsProps) {
           >
             <Close fontSize="small" />
           </Box>
-
         </Box>
-
-
         <Box
           ref={listRef}
           sx={{
@@ -295,16 +259,11 @@ export function TableOfContents({ headings }: TableOfContentsProps) {
                 >
                   {h.text}
                 </Typography>
-
               </Box>
-
             );
           })}
         </Box>
-
       </Drawer>
-
     </>
-
   );
 }

@@ -21,7 +21,6 @@ import { RECALL_WINDOW_MS } from '@/hooks/useChatRoom';
 import ChatMessageContent from './ChatMessageContent';
 import { getChatBubbleRenderer } from '@/themes/chatBubble/renderers';
 import { useSiteStore } from '@/stores/siteStore';
-
 function formatTime(ts?: number): string {
   if (!ts || Number.isNaN(ts)) return '';
   return new Date(ts).toLocaleTimeString('zh-CN', {
@@ -29,16 +28,12 @@ function formatTime(ts?: number): string {
     minute: '2-digit',
   });
 }
-
 interface ChatMessageListProps {
   messages: ChatMessageEntry[];
-  
   roomKey: string;
   currentUserName?: string;
-  
   selfNames?: string[];
   loading?: boolean;
-  
   hasMoreHistory?: boolean;
   loadingOlder?: boolean;
   onLoadOlder?: () => void;
@@ -46,13 +41,11 @@ interface ChatMessageListProps {
   onQuote?: (msg: ChatMessageEntry) => void;
   onRecall?: (msg: ChatMessageEntry) => void;
 }
-
 interface ContextMenuState {
   x: number;
   y: number;
   msg: ChatMessageEntry;
 }
-
 export default function ChatMessageList({
   messages,
   roomKey,
@@ -68,13 +61,7 @@ export default function ChatMessageList({
 }: ChatMessageListProps) {
   const theme = useTheme();
   const scrollRef = useRef<HTMLDivElement>(null);
-
-  
   const radius = theme.shape.borderRadius;
-
-  
-  
-  
   const site = useSiteStore();
   const bubbleTheme = site.config.chatBubbleTheme || { variant: 'default' };
   const bubbleRenderer = getChatBubbleRenderer(bubbleTheme.variant);
@@ -82,23 +69,14 @@ export default function ChatMessageList({
     if (!bubbleRenderer) return null;
     const params = { ...bubbleRenderer.defaultParams, ...(bubbleTheme.params || {}) };
     return bubbleRenderer.render(params, {
-      
       themeColor: theme.palette.primary.main,
       borderRadius: theme.shape.borderRadius ?? 16,
     });
   }, [bubbleRenderer, bubbleTheme.params, theme.palette.primary.main, theme.shape.borderRadius]);
-
-  
   const messageRefs = useRef(new Map<number, HTMLDivElement>());
-
-  
   const [menu, setMenu] = useState<ContextMenuState | null>(null);
   const [pressedId, setPressedId] = useState<number | null>(null);
-  
   const [highlightTs, setHighlightTs] = useState<number | null>(null);
-
-  
-  
   const prevFirstRef = useRef<ChatMessageEntry | null>(null);
   const prevLastRef = useRef<ChatMessageEntry | null>(null);
   useEffect(() => {
@@ -115,10 +93,6 @@ export default function ChatMessageList({
       el.scrollTop = el.scrollHeight;
     }
   }, [messages]);
-
-  
-  
-  
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
@@ -126,11 +100,6 @@ export default function ChatMessageList({
     el.addEventListener('wheel', stopWheel, { capture: true });
     return () => el.removeEventListener('wheel', stopWheel, { capture: true });
   }, []);
-
-  
-  
-  
-  
   const scrollToTimestamp = useCallback(
     (ts: number) => {
       const el = messageRefs.current.get(ts);
@@ -145,31 +114,21 @@ export default function ChatMessageList({
     },
     []
   );
-
   const canRecall = (msg: ChatMessageEntry): boolean => {
     return Boolean(msg.timestamp) && Date.now() - (msg.timestamp as number) <= RECALL_WINDOW_MS;
   };
-
-  
-  
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  
   const openContextMenuAt = (x: number, y: number, msg: ChatMessageEntry) => {
     setMenu({ x, y, msg });
-    
     setPressedId(msg.id);
     window.setTimeout(() => setPressedId((cur) => (cur === msg.id ? null : cur)), 300);
   };
-
   const openContextMenu = (ev: React.MouseEvent, msg: ChatMessageEntry) => {
     ev.preventDefault();
     ev.stopPropagation();
     openContextMenuAt(ev.clientX, ev.clientY, msg);
   };
-
-  
   const onTouchStart = (ev: React.TouchEvent, msg: ChatMessageEntry) => {
     const t = ev.touches[0];
     if (!t) return;
@@ -180,8 +139,6 @@ export default function ChatMessageList({
       openContextMenuAt(t.clientX, t.clientY, msg);
     }, 480);
   };
-
-  
   const onTouchMove = (ev: React.TouchEvent) => {
     const start = touchStartRef.current;
     const t = ev.touches[0];
@@ -192,15 +149,12 @@ export default function ChatMessageList({
       touchStartRef.current = null;
     }
   };
-
   const cancelLongPress = () => {
     if (longPressTimer.current) clearTimeout(longPressTimer.current);
     longPressTimer.current = null;
     touchStartRef.current = null;
   };
-
   const closeMenu = () => setMenu(null);
-
   const runAction = (action: 'copy' | 'quote' | 'recall') => {
     if (!menu) return;
     const { msg } = menu;
@@ -209,7 +163,6 @@ export default function ChatMessageList({
     else if (action === 'quote' && onQuote) onQuote(msg);
     else if (action === 'recall' && onRecall) onRecall(msg);
   };
-
   if (messages.length === 0 && loading) {
     return (
       <Box
@@ -226,12 +179,9 @@ export default function ChatMessageList({
       >
         <CircularProgress size={32} thickness={4} />
         <Typography variant="body2">连接中…</Typography>
-
       </Box>
-
     );
   }
-
   if (messages.length === 0) {
     return (
       <Box
@@ -245,12 +195,9 @@ export default function ChatMessageList({
         }}
       >
         <Typography variant="body2">还没有消息，快来抢占沙发~</Typography>
-
       </Box>
-
     );
   }
-
   return (
     <Box ref={scrollRef} sx={{ flex: 1, overflowY: 'auto', px: { xs: 1.5, sm: 2 }, py: 2 }}>
       {}
@@ -259,15 +206,12 @@ export default function ChatMessageList({
           <Button size="small" variant="outlined" onClick={onLoadOlder} sx={{ textTransform: 'none', borderRadius: 1 }}>
             加载更早消息
           </Button>
-
         </Box>
-
       )}
       {loadingOlder && (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 1, mb: 1 }}>
           <CircularProgress size={20} />
         </Box>
-
       )}
       {messages.map((msg) => {
         if (msg.kind === 'system') {
@@ -286,13 +230,9 @@ export default function ChatMessageList({
               >
                 {msg.content}
               </Typography>
-
             </Box>
-
           );
         }
-
-        
         if (msg.recalled) {
           return (
             <Box key={msg.id} sx={{ textAlign: 'center', my: 1 }}>
@@ -306,15 +246,10 @@ export default function ChatMessageList({
               >
                 {msg.name ? `${msg.name} 撤回了一条消息` : '消息已撤回'}
               </Typography>
-
             </Box>
-
           );
         }
-
-        
         const mine = !!currentUserName && !!selfNames?.includes(msg.name ?? '');
-        
         const shownName = mine && currentUserName ? currentUserName : msg.name;
         return (
           <Box
@@ -328,10 +263,8 @@ export default function ChatMessageList({
               display: 'flex',
               gap: 1,
               mb: 1.5,
-              
               alignItems: 'flex-start',
               flexDirection: mine ? 'row-reverse' : 'row',
-              
               ...(Number.isFinite(highlightTs) && highlightTs === msg.timestamp
                 ? {
                     borderRadius: `${radius}px`,
@@ -348,7 +281,6 @@ export default function ChatMessageList({
                 flexShrink: 0,
                 bgcolor: (t) => (mine ? alpha(t.palette.primary.main, 0.18) : alpha(t.palette.secondary.main, 0.18)),
                 color: mine ? 'primary.main' : 'secondary.main',
-                
                 fontSize: 18,
                 fontWeight: 700,
                 fontFamily: '"tahoma", "arial", sans-serif',
@@ -356,21 +288,17 @@ export default function ChatMessageList({
             >
               {shownName?.charAt(0) ?? '访'}
             </Avatar>
-
             <Box sx={{ maxWidth: '72%', display: 'flex', flexDirection: 'column', alignItems: mine ? 'flex-end' : 'flex-start' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.25 }}>
                 <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
                   {shownName}
                 </Typography>
-
                 {Boolean(msg.timestamp) && (
                   <Typography variant="caption" sx={{ color: alpha(theme.palette.text.secondary, 0.6), fontSize: 11 }}>
                     {formatTime(msg.timestamp)}
                   </Typography>
-
                 )}
               </Box>
-
               <Box
                 onContextMenu={(e) => openContextMenu(e, msg)}
                 onTouchStart={(e) => onTouchStart(e, msg)}
@@ -382,17 +310,13 @@ export default function ChatMessageList({
                   touchAction: 'pan-y', 
                   minWidth: 0,
                   maxWidth: '100%',
-                  
                   wordBreak: 'break-word',
                   overflowWrap: 'break-word',
                   px: 1.5,
                   py: 0.9,
-                  
                   ...(bubbleStyles ? (mine ? bubbleStyles.mine : bubbleStyles.other) : {}),
-                  
                   ...(!bubbleStyles
                     ? {
-                        
                         borderRadius: mine
                           ? `${radius}px 4px ${radius}px ${radius}px`
                           : `4px ${radius}px ${radius}px ${radius}px`,
@@ -406,7 +330,6 @@ export default function ChatMessageList({
                   color: 'text.primary',
                   fontSize: '0.92rem',
                   lineHeight: 1.55,
-                  
                   transformOrigin: 'center',
                   animation: pressedId === msg.id ? 'chatPress 0.28s ease' : 'none',
                   '@keyframes chatPress': {
@@ -423,14 +346,10 @@ export default function ChatMessageList({
                 onReplyQuoteClick={scrollToTimestamp}
               />
               </Box>
-
             </Box>
-
           </Box>
-
         );
       })}
-
       {}
       <Menu
         open={Boolean(menu)}
@@ -451,31 +370,22 @@ export default function ChatMessageList({
       >
         <MenuItem onClick={() => runAction('copy')}>
           <ListItemIcon><ContentCopyIcon fontSize="small" /></ListItemIcon>
-
           复制
         </MenuItem>
-
         <MenuItem onClick={() => runAction('quote')}>
           <ListItemIcon><FormatQuoteIcon fontSize="small" /></ListItemIcon>
-
           引用
         </MenuItem>
-
         {menu && selfNames?.includes(menu.msg.name ?? '') && canRecall(menu.msg) && (
           <>
             <Divider sx={{ my: 0.5 }} />
             <MenuItem onClick={() => runAction('recall')} sx={{ color: 'error.main' }}>
               <ListItemIcon><UndoIcon fontSize="small" sx={{ color: 'error.main' }} /></ListItemIcon>
-
               撤回
             </MenuItem>
-
           </>
-
         )}
       </Menu>
-
     </Box>
-
   );
 }

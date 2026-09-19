@@ -1,6 +1,5 @@
 import type { ChatBubbleRenderer } from './base';
 import { resolveThemeColor, bubbleRadius, resolveImageRadius, type BubbleCorners } from './base';
-
 interface MarbleParams extends Record<string, unknown> {
   mineText: string;
   otherText: string;
@@ -9,8 +8,6 @@ interface MarbleParams extends Record<string, unknown> {
   mineSharpCorner: BubbleCorners;
   otherSharpCorner: BubbleCorners;
 }
-
-
 export const marbleBubbleRenderer: ChatBubbleRenderer<MarbleParams> = {
   id: 'marble',
   name: '石纹',
@@ -43,12 +40,10 @@ export const marbleBubbleRenderer: ChatBubbleRenderer<MarbleParams> = {
     const base = themeColor || '#5b7cfa';
     const mineText = resolveThemeColor(params.mineText, '#374151');
     const otherText = resolveThemeColor(params.otherText, '#6b7280');
-
     const veins = (tint: string) => `
       radial-gradient(ellipse at 20% 15%, ${tint}15 0%, transparent 60%),
       radial-gradient(ellipse at 80% 70%, ${tint}10 0%, transparent 55%),
       linear-gradient(135deg, #ffffff 0%, #f2f4f7 100%)`;
-
     return {
       mine: {
         background: veins(base),

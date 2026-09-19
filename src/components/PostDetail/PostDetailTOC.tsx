@@ -2,17 +2,12 @@ import { useEffect, useState } from 'react';
 import { Box, Typography, alpha } from '@mui/material';
 import type { HeadingItem } from '@/components/Post/TableOfContents';
 import { smoothScrollTo } from '@/utils/smoothScrollController';
-
 interface PostDetailTOCProps {
   headings: HeadingItem[];
 }
-
 function getScrollContainer(): HTMLElement | null {
   return document.querySelector('main') as HTMLElement | null;
 }
-
-
-
 function getHeadingTop(id: string): number | null {
   const container = getScrollContainer();
   const el = document.getElementById(id);
@@ -21,19 +16,15 @@ function getHeadingTop(id: string): number | null {
   const elRect = el.getBoundingClientRect();
   return container.scrollTop + (elRect.top - containerRect.top);
 }
-
 function cleanHeadingText(text: string): string {
   return text.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/<!\[CDATA\[|\]\]>/g, '').trim();
 }
-
 export function PostDetailTOC({ headings }: PostDetailTOCProps) {
   const [activeId, setActiveId] = useState<string>('');
-
   useEffect(() => {
     if (headings.length === 0) return;
     const container = getScrollContainer();
     if (!container) return;
-
     const handleScroll = () => {
       const scrollTop = container.scrollTop;
       const offset = 150;
@@ -46,12 +37,10 @@ export function PostDetailTOC({ headings }: PostDetailTOCProps) {
       }
       if (currentActiveId) setActiveId(currentActiveId);
     };
-
     handleScroll();
     container.addEventListener('scroll', handleScroll, { passive: true });
     return () => container.removeEventListener('scroll', handleScroll);
   }, [headings]);
-
   const handleClick = (id: string) => {
     const container = getScrollContainer();
     const el = document.getElementById(id);
@@ -60,15 +49,12 @@ export function PostDetailTOC({ headings }: PostDetailTOCProps) {
     const elRect = el.getBoundingClientRect();
     const top = container.scrollTop + (elRect.top - containerRect.top);
     const target = Math.max(0, top - 24);
-    
     if (!smoothScrollTo(target)) {
       container.scrollTo({ top: target, behavior: 'smooth' });
     }
     setActiveId(id);
   };
-
   if (headings.length === 0) return null;
-
   return (
     <Box
       sx={{
@@ -104,8 +90,6 @@ export function PostDetailTOC({ headings }: PostDetailTOCProps) {
       >
         TABLE OF CONTENTS
       </Typography>
-
-
       <Box sx={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 1 }}>
         <Box
           sx={{
@@ -173,14 +157,10 @@ export function PostDetailTOC({ headings }: PostDetailTOCProps) {
               >
                 {cleanHeadingText(h.text)}
               </Typography>
-
             </Box>
-
           );
         })}
       </Box>
-
     </Box>
-
   );
 }

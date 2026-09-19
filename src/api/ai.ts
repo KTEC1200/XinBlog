@@ -1,6 +1,5 @@
 import { apiGet, apiPost, apiPatch, apiDelete, API_BASE } from './client';
 import { getToken } from '@/utils/token';
-
 export interface AiSettings {
   enabled: boolean;
   agentEnabled: boolean;
@@ -11,7 +10,6 @@ export interface AiSettings {
   maxTokens: number;
   agentAvatar?: string;
 }
-
 export interface AiModel {
   id: string;
   name?: string;
@@ -20,7 +18,6 @@ export interface AiModel {
   owned_by?: string;
   builtIn?: boolean;
 }
-
 export interface AiCustomModel {
   id: number;
   name: string;
@@ -31,7 +28,6 @@ export interface AiCustomModel {
   createdAt: string;
   updatedAt: string;
 }
-
 export interface AiGeneratedPost {
   title: string;
   slug: string;
@@ -40,12 +36,10 @@ export interface AiGeneratedPost {
   content: string;
   raw?: string;
 }
-
 export function isTextAiModel(modelId: string): boolean {
   const id = modelId.toLowerCase();
   return !id.includes('flux') && !id.includes('sdxl') && !id.includes('whisper') && !id.includes('embedding') && !id.includes('bge');
 }
-
 export interface AiApiKey {
   id: number;
   name: string;
@@ -53,31 +47,26 @@ export interface AiApiKey {
   created_at: string;
   updated_at: string;
 }
-
 export async function fetchAiSettings(): Promise<AiSettings | null> {
   const res = await apiGet<AiSettings>('/api/v1/admin/settings/ai');
   if (res.code !== 0 || !res.data) return null;
   return res.data;
 }
-
 export async function updateAiSettings(settings: Partial<AiSettings>): Promise<AiSettings | null> {
   const res = await apiPatch<AiSettings>('/api/v1/admin/settings/ai', settings);
   if (res.code !== 0 || !res.data) return null;
   return res.data;
 }
-
 export async function fetchAiModels(): Promise<AiModel[]> {
   const res = await apiGet<{ models: AiModel[] }>('/api/v1/admin/ai/models');
   if (res.code !== 0 || !res.data) return [];
   return res.data.models;
 }
-
 export class AiGenerateError extends Error {
   raw?: string;
   model?: string;
   errorDetail?: string;
   firstError?: string;
-
   constructor(message: string, details?: { raw?: string; model?: string; error?: string; firstError?: string }) {
     super(message);
     this.name = 'AiGenerateError';
@@ -87,7 +76,6 @@ export class AiGenerateError extends Error {
     this.firstError = details?.firstError;
   }
 }
-
 export async function generateAiPost(
   topic: string,
   existingTags: { id: number; name: string }[],
@@ -117,7 +105,6 @@ export async function generateAiPost(
   }
   return res.data;
 }
-
 export async function formatOptimize(
   content: string,
   options: { model?: string; temperature?: number; maxTokens?: number } = {}
@@ -133,7 +120,6 @@ export async function formatOptimize(
   }
   return res.data;
 }
-
 export async function generateAiSummary(
   title: string,
   content: string,
@@ -151,7 +137,6 @@ export async function generateAiSummary(
   }
   return res.data;
 }
-
 export async function chatWithAi(
   messages: { role: string; content: string }[],
   options: { model?: string; stream?: boolean; temperature?: number; max_tokens?: number } = {}
@@ -171,7 +156,6 @@ export async function chatWithAi(
     }),
   });
 }
-
 export async function agentChatStream(
   messages: { role: string; content: string }[],
   options: { model?: string; mode?: 'warm' | 'humorous' | 'professional'; sessionId?: string } = {}
@@ -190,8 +174,6 @@ export async function agentChatStream(
     }),
   });
 }
-
-
 export interface AgentSession {
   id: string;
   title: string;
@@ -214,7 +196,6 @@ export interface AgentSessionDetail extends AgentSession {
   partIndex?: number; 
   partTotal?: number; 
 }
-
 export interface AgentSessionCheck {
   id: string;
   title: string;
@@ -222,14 +203,12 @@ export interface AgentSessionCheck {
   partTotal: number;
   needsSync: boolean;
 }
-
 export async function fetchAgentSessions(): Promise<AgentSession[]> {
   const q = new URLSearchParams({ limit: '100' });
   const res = await apiGet<{ list: AgentSession[] }>(`/api/v1/admin/ai/agent/sessions?${q}`);
   if (res.code !== 0 || !res.data) return [];
   return res.data.list || [];
 }
-
 export async function fetchAgentSession(id: string): Promise<AgentSessionDetail | null> {
   const res = await apiGet<{ session: AgentSessionDetail }>(
     `/api/v1/admin/ai/agent/sessions/${encodeURIComponent(id)}`
@@ -237,8 +216,6 @@ export async function fetchAgentSession(id: string): Promise<AgentSessionDetail 
   if (res.code !== 0 || !res.data) return null;
   return res.data.session;
 }
-
-
 export async function fetchAgentSessionPart(id: string, partIndex: number): Promise<AgentSessionDetail | null> {
   const q = new URLSearchParams({ part: String(partIndex) });
   const res = await apiGet<{ session: AgentSessionDetail }>(
@@ -247,8 +224,6 @@ export async function fetchAgentSessionPart(id: string, partIndex: number): Prom
   if (res.code !== 0 || !res.data) return null;
   return res.data.session;
 }
-
-
 export async function fetchAgentSessionCheck(
   id: string,
   _localUpdated: number,
@@ -261,30 +236,22 @@ export async function fetchAgentSessionCheck(
   if (res.code !== 0 || !res.data) return null;
   return res.data.session;
 }
-
 export async function deleteAgentSession(id: string): Promise<boolean> {
   const res = await apiDelete(`/api/v1/admin/ai/agent/sessions/${encodeURIComponent(id)}`);
   return res.code === 0;
 }
-
 export async function clearAgentSessions(): Promise<boolean> {
   const res = await apiDelete('/api/v1/admin/ai/agent/sessions');
   return res.code === 0;
 }
-
-
 export async function confirmAgentAction(token: string, approved: boolean): Promise<boolean> {
   const res = await apiPost<{ ok: boolean }>('/api/v1/admin/ai/agent/confirm', { token, approved });
   return res.code === 0;
 }
-
-
 export async function undoAgentWrite(undoId: string): Promise<{ ok: boolean; msg?: string }> {
   const res = await apiPost<{ ok: boolean }>('/api/v1/admin/ai/agent/undo', { undoId });
   return { ok: res.code === 0, msg: res.msg };
 }
-
-
 export interface AiUndoLog {
   id: string;
   skill: string;
@@ -302,65 +269,54 @@ export interface AiUndoLogPage {
   page: number;
   pageSize: number;
 }
-
 export async function fetchAiUndoLogs(status: string, page = 1, pageSize = 20): Promise<AiUndoLogPage> {
   const q = new URLSearchParams({ status, page: String(page), pageSize: String(pageSize) });
   const res = await apiGet<AiUndoLogPage>(`/api/v1/admin/ai/agent/undo/list?${q}`);
   if (res.code !== 0 || !res.data) return { list: [], total: 0, page, pageSize };
   return res.data;
 }
-
 export async function undoAgentWriteAdmin(id: string): Promise<{ ok: boolean; msg?: string }> {
   const res = await apiPost<{ ok: boolean }>(`/api/v1/admin/ai/agent/undo/${encodeURIComponent(id)}`, {});
   return { ok: res.code === 0, msg: res.msg };
 }
-
 export async function deleteAiUndoLog(id: string): Promise<boolean> {
   const res = await apiDelete(`/api/v1/admin/ai/agent/undo/${encodeURIComponent(id)}`);
   return res.code === 0;
 }
-
 export async function fetchAgentEnabled(): Promise<boolean> {
   const res = await apiGet<{ enabled: boolean }>('/api/v1/settings/agent');
   if (res.code !== 0 || !res.data) return false;
   return res.data.enabled === true;
 }
-
 export async function fetchAiApiKeys(): Promise<AiApiKey[]> {
   const res = await apiGet<{ list: AiApiKey[] }>('/api/v1/admin/ai/keys');
   if (res.code !== 0 || !res.data) return [];
   return res.data.list;
 }
-
 export async function createAiApiKey(name: string): Promise<{ id?: number; key?: string; msg?: string }> {
   const res = await apiPost<{ id: number; key: string }>('/api/v1/admin/ai/keys', { name });
   if (res.code !== 0) return { msg: res.msg };
   return res.data || {};
 }
-
 export async function deleteAiApiKey(id: number): Promise<boolean> {
   const res = await apiDelete(`/api/v1/admin/ai/keys/${id}`);
   return res.code === 0;
 }
-
 export async function fetchAiCustomModels(): Promise<AiCustomModel[]> {
   const res = await apiGet<{ list: AiCustomModel[] }>('/api/v1/admin/ai/custom-models');
   if (res.code !== 0 || !res.data) return [];
   return res.data.list;
 }
-
 export async function createAiCustomModel(data: Omit<AiCustomModel, 'id' | 'createdAt' | 'updatedAt'>): Promise<AiCustomModel | null> {
   const res = await apiPost<AiCustomModel>('/api/v1/admin/ai/custom-models', data);
   if (res.code !== 0 || !res.data) return null;
   return res.data;
 }
-
 export async function updateAiCustomModel(id: number, data: Omit<AiCustomModel, 'id' | 'createdAt' | 'updatedAt'>): Promise<AiCustomModel | null> {
   const res = await apiPatch<AiCustomModel>(`/api/v1/admin/ai/custom-models/${id}`, data);
   if (res.code !== 0 || !res.data) return null;
   return res.data;
 }
-
 export async function deleteAiCustomModel(id: number): Promise<boolean> {
   const res = await apiDelete(`/api/v1/admin/ai/custom-models/${id}`);
   return res.code === 0;

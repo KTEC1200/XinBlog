@@ -9,18 +9,14 @@ import { getComments } from '@/api/comments';
 import { getInteractionSettings } from '@/api/interaction';
 import { useAuthStore } from '@/stores/authStore';
 import type { Comment, InteractionSettings, CommentListResponse } from '@/types/interaction';
-
 interface CommentSectionProps {
   slug: string;
 }
-
 const PAGE_SIZE = 20;
 const COMMENTS_CACHE_TTL = 2 * 60 * 1000; 
-
 function getCommentsCacheKey(slug: string) {
   return `comments-cache-${slug}`;
 }
-
 function readCommentsCache(slug: string): CommentListResponse | null {
   if (typeof window === 'undefined') return null;
   try {
@@ -36,21 +32,17 @@ function readCommentsCache(slug: string): CommentListResponse | null {
     return null;
   }
 }
-
 function writeCommentsCache(slug: string, data: CommentListResponse) {
   if (typeof window === 'undefined') return;
   try {
     localStorage.setItem(getCommentsCacheKey(slug), JSON.stringify({ data, ts: Date.now() }));
   } catch {
-    
   }
 }
-
 function clearCommentsCache(slug: string) {
   if (typeof window === 'undefined') return;
   localStorage.removeItem(getCommentsCacheKey(slug));
 }
-
 export default function CommentSection({ slug }: CommentSectionProps) {
   const navigate = useNavigate();
   const { enqueueSnackbar } = useSnackbar();
@@ -62,7 +54,6 @@ export default function CommentSection({ slug }: CommentSectionProps) {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
-
   const loadSettings = useCallback(async () => {
     const res = await getInteractionSettings();
     if (res.code === 0 && res.data) {
@@ -72,7 +63,6 @@ export default function CommentSection({ slug }: CommentSectionProps) {
     }
     setLoadingSettings(false);
   }, [enqueueSnackbar]);
-
   const loadComments = useCallback(
     async (targetPage: number, append = false) => {
       if (targetPage === 1) setLoading(true);
@@ -92,7 +82,6 @@ export default function CommentSection({ slug }: CommentSectionProps) {
     },
     [slug, enqueueSnackbar]
   );
-
   useEffect(() => {
     loadSettings();
     const cached = readCommentsCache(slug);
@@ -105,35 +94,28 @@ export default function CommentSection({ slug }: CommentSectionProps) {
       loadComments(1);
     }
   }, [loadSettings, loadComments, slug]);
-
   const handleRefresh = () => {
     clearCommentsCache(slug);
     setPage(1);
     loadComments(1);
   };
-
   const handleLoadMore = () => {
     const nextPage = page + 1;
     setPage(nextPage);
     loadComments(nextPage, true);
   };
-
   if (loadingSettings) {
     return (
       <Box sx={{ mt: 4 }}>
         <Skeleton variant="text" width="30%" height={32} />
         <Skeleton variant="rectangular" height={120} sx={{ mt: 2, borderRadius: 1 }} />
       </Box>
-
     );
   }
-
   if (!settings || !settings.commentsEnabled) {
     return null;
   }
-
   const hasMore = comments.length < total;
-
   return (
     <Box sx={{ mt: 5 }}>
       <Divider sx={{ mb: 3 }} />
@@ -142,7 +124,6 @@ export default function CommentSection({ slug }: CommentSectionProps) {
         <Typography variant="h6" sx={{ fontWeight: 700 }}>
           评论
         </Typography>
-
         <Box
           sx={{
             ml: 0.5,
@@ -157,10 +138,7 @@ export default function CommentSection({ slug }: CommentSectionProps) {
         >
           {total}
         </Box>
-
       </Box>
-
-
       {isAuthenticated ? (
         <Box sx={{ display: 'flex', gap: 1.5, mb: 3 }}>
           <Avatar
@@ -171,9 +149,7 @@ export default function CommentSection({ slug }: CommentSectionProps) {
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <CommentEditor slug={slug} onSuccess={handleRefresh} />
           </Box>
-
         </Box>
-
       ) : (
         <Paper
           elevation={0}
@@ -189,11 +165,9 @@ export default function CommentSection({ slug }: CommentSectionProps) {
           <Typography variant="body1" sx={{ fontWeight: 600, mb: 0.5 }}>
             登录后留下你的想法
           </Typography>
-
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
             加入讨论，与大家一起分享观点
           </Typography>
-
           <Button
             variant="contained"
             size="small"
@@ -207,11 +181,8 @@ export default function CommentSection({ slug }: CommentSectionProps) {
           >
             去登录
           </Button>
-
         </Paper>
-
       )}
-
       {loading ? (
         <Skeleton variant="rectangular" height={200} sx={{ borderRadius: 1 }} />
       ) : (
@@ -227,11 +198,8 @@ export default function CommentSection({ slug }: CommentSectionProps) {
               onReplied={handleRefresh}
             />
           </Box>
-
         </Fade>
-
       )}
     </Box>
-
   );
 }

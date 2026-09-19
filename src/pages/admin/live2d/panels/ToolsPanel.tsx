@@ -11,14 +11,11 @@ import {
   alpha,
 } from '@mui/material';
 import type { Live2dEditor } from '../useLive2dEditor';
-
 interface ToolsPanelProps {
   editor: Live2dEditor;
 }
-
 export function ToolsPanel({ editor }: ToolsPanelProps) {
   const { allTools, isToolEnabled, toggleTool } = editor;
-
   return (
     <Paper
       elevation={0}
@@ -37,7 +34,6 @@ export function ToolsPanel({ editor }: ToolsPanelProps) {
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
         勾选需要在看板娘工具栏中显示的功能按钮
       </Typography>
-
       <Grid container spacing={2}>
         {allTools.map((tool) => {
           const checked = isToolEnabled(tool.key);
@@ -78,7 +74,6 @@ export function ToolsPanel({ editor }: ToolsPanelProps) {
           );
         })}
       </Grid>
-
       <Box sx={{ mt: 3 }}>
         <FormControlLabel
           control={

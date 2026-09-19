@@ -1,5 +1,4 @@
 import type { ClickEffectColorMode } from '@/types';
-
 const MACARON_COLORS = [
   '#f472b6',
   '#fb7185',
@@ -16,11 +15,9 @@ const MACARON_COLORS = [
   '#f9a8d4',
   '#fda4af',
 ];
-
 export function getRandomColor(): string {
   return MACARON_COLORS[Math.floor(Math.random() * MACARON_COLORS.length)];
 }
-
 export function resolveEffectColor(
   colorMode: ClickEffectColorMode,
   customColor: string | undefined,
@@ -30,7 +27,6 @@ export function resolveEffectColor(
   if (colorMode === 'random') return getRandomColor();
   return themeColor;
 }
-
 export function resolveEffectColors(
   colorMode: ClickEffectColorMode,
   customColor: string | undefined,

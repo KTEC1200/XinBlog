@@ -22,8 +22,6 @@ import {
 } from '@/api/chat';
 import { useAuthStore } from '@/stores/authStore';
 import type { ChatSettings, CustomChatRoom } from '@/types/interaction';
-
-
 export default function Chat() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
@@ -31,7 +29,6 @@ export default function Chat() {
   const [settings, setSettings] = useState<ChatSettings | null>(null);
   const [customRooms, setCustomRooms] = useState<CustomChatRoom[]>([]);
   const [loading, setLoading] = useState(true);
-
   useEffect(() => {
     let cancelled = false;
     let loaded = false;
@@ -45,7 +42,6 @@ export default function Chat() {
       if (!cancelled && res.code === 0 && res.data) setSettings(res.data);
       finish();
     });
-    
     if (isLoggedIn) {
       getMyChatRooms().then((res) => {
         if (!cancelled && res.code === 0 && res.data?.list) setCustomRooms(res.data.list);
@@ -58,21 +54,17 @@ export default function Chat() {
       cancelled = true;
     };
   }, [isLoggedIn]);
-
   if (loading) {
     return (
       <Container maxWidth="lg" sx={{ py: { xs: 4, md: 6 } }}>
         <Skeleton variant="text" width={140} sx={{ fontSize: '1.5rem' }} />
         <Skeleton variant="rectangular" height={96} sx={{ mt: 2, borderRadius: 1 }} />
       </Container>
-
     );
   }
-
   const roomEnabled = Boolean(settings?.enabled);
   const publicOpen = roomEnabled && settings!.publicRoomEnabled !== false;
   const membersOpen = roomEnabled && settings!.allUsersRoomEnabled !== false;
-
   interface RoomRowInfo {
     key: string;
     name: string;
@@ -84,8 +76,6 @@ export default function Chat() {
     memberCount?: number;
     maxUsers?: number;
   }
-
-  
   const roomCard = (info: RoomRowInfo) => {
     const clickable = info.open;
     return (
@@ -140,17 +130,13 @@ export default function Chat() {
               >
                 {info.icon || <MeetingRoom sx={{ fontSize: 24, opacity: 0.85 }} />}
               </Box>
-
             )}
           </Box>
-
-
           <Box sx={{ flex: 1, minWidth: 0, ml: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
               <Typography variant="subtitle1" sx={{ fontWeight: 700, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {info.name}
               </Typography>
-
               {info.locked &&
                 (isLoggedIn ? (
                   <Chip size="small" label="仅登录" color="primary" variant="outlined" sx={{ height: 20, fontSize: 11 }} />
@@ -158,44 +144,32 @@ export default function Chat() {
                   <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.3, color: 'text.secondary' }}>
                     <LockOutlined sx={{ fontSize: 14 }} />
                     <Typography variant="caption">登录后进入</Typography>
-
                   </Box>
-
                 ))}
             </Box>
-
             {!clickable ? (
               <Typography variant="caption" color="text.secondary">
                 暂未开放
               </Typography>
-
             ) : (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', mt: 0.15 }}>
                 <Typography variant="caption" color="text.secondary" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0, flex: 1 }}>
                   {info.desc}
                 </Typography>
-
                 {(info.memberCount !== undefined || info.maxUsers !== undefined) && (
                   <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>
                     {info.memberCount !== undefined && `${info.memberCount} 人`}
                     {info.maxUsers! > 0 && ` / 上限 ${info.maxUsers}`}
                   </Typography>
-
                 )}
               </Box>
-
             )}
           </Box>
-
           <ChevronRight color="disabled" sx={{ flexShrink: 0, ml: 1 }} />
         </CardActionArea>
-
       </Card>
-
     );
   };
-
-  
   const allRooms: RoomRowInfo[] = [];
   for (const r of customRooms) {
     allRooms.push({
@@ -213,19 +187,15 @@ export default function Chat() {
     { key: PUBLIC_CHAT_ROOM_KEY, name: PUBLIC_CHAT_ROOM_NAME, desc: '所有访客均可进入的公共聊天房', open: publicOpen, locked: false, icon: <Groups sx={{ fontSize: 24 }} /> },
     { key: ALL_USERS_CHAT_ROOM_KEY, name: ALL_USERS_CHAT_ROOM_NAME, desc: '仅登录用户可进入的全体聊天房', open: membersOpen, locked: true, icon: <People sx={{ fontSize: 24 }} /> }
   );
-
   return (
     <Fade in timeout={400}>
       <Container maxWidth="lg" sx={{ py: { xs: 4, md: 6 }, pb: { xs: 8, md: 12 } }}>
         <Typography variant="h5" component="h1" sx={{ fontWeight: 800, mb: 1 }}>
           全部房间
         </Typography>
-
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>
           只有你被邀请加入的房间才会显示在这里
         </Typography>
-
-
         {!roomEnabled ? (
           <ChatEmptyState title="聊天室功能暂未开放" description="管理员尚未开启聊天室，请耐心等待~" />
         ) : (
@@ -235,19 +205,13 @@ export default function Chat() {
                 <Typography variant="body2" color="text.secondary">
                   {isLoggedIn ? '暂时没有你加入的聊天房' : '登录后可见你被邀请加入的聊天房'}
                 </Typography>
-
               </Box>
-
             ) : (
               allRooms.map((row) => <Box key={row.key}>{roomCard(row)}</Box>)
-
             )}
           </Box>
-
         )}
       </Container>
-
     </Fade>
-
   );
 }

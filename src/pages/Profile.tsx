@@ -23,19 +23,13 @@ import { Loading } from '@/components/Common/Loading';
 import type { UserProfile } from '@/api/user';
 import { useSnackbar } from 'notistack';
 import { useNavigate } from 'react-router-dom';
-
 const MAX_AVATAR_SIZE = 30 * 1024;
-
 import { getBase64Size, compressImage } from '@/utils/image';
-
-
-
 const roleLabels: Record<string, string> = {
   guest: '访客',
   admin: '管理员',
   super_admin: '超级管理员',
 };
-
 export function Profile() {
   const { user, isAuthenticated, updateUser, logout } = useAuthStore();
   const { enqueueSnackbar } = useSnackbar();
@@ -50,8 +44,6 @@ export function Profile() {
   });
   const [avatarLoading, setAvatarLoading] = useState(false);
   const userExists = !!user;
-
-  
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -60,7 +52,6 @@ export function Profile() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
   const [passwordError, setPasswordError] = useState('');
-
   const handleChangePassword = async () => {
     setPasswordError('');
     if (!currentPassword) {
@@ -96,7 +87,6 @@ export function Profile() {
       setChangingPassword(false);
     }
   };
-
   useEffect(() => {
     let mounted = true;
     const fallbackAvatar = user?.avatar || '';
@@ -118,7 +108,6 @@ export function Profile() {
       mounted = false;
     };
   }, [user?.avatar, userExists]);
-
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -135,7 +124,6 @@ export function Profile() {
       setMessage({ type: 'error', text: '头像处理失败' });
     }
   };
-
   const handleSave = async () => {
     setSaving(true);
     setMessage(null);
@@ -152,7 +140,6 @@ export function Profile() {
     }
     setSaving(false);
   };
-
   if (!isAuthenticated) {
     return (
       <Container maxWidth="sm" sx={{ py: { xs: 6, sm: 8 }, minHeight: { xs: '60dvh', sm: 'auto' }, display: 'flex', alignItems: 'center' }}>
@@ -172,22 +159,16 @@ export function Profile() {
           <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>
             请先登录
           </Typography>
-
           <Typography variant="body2" color="text.secondary">
             登录后即可查看和编辑个人资料
           </Typography>
-
         </Paper>
-
       </Container>
-
     );
   }
-
   if (loading) {
     return <Loading text="加载个人资料中..." />;
   }
-
   return (
     <Fade in timeout={400}>
       <Container maxWidth="lg" sx={{ py: { xs: 4, md: 6 } }}>
@@ -218,7 +199,6 @@ export function Profile() {
         >
           <AutoAwesome sx={{ fontSize: { xs: 28, sm: 40 } }} />
         </Box>
-
         <Box
           sx={{
             position: 'absolute',
@@ -229,8 +209,6 @@ export function Profile() {
         >
           <AutoAwesome sx={{ fontSize: { xs: 20, sm: 28 } }} />
         </Box>
-
-
         <Box sx={{ position: 'relative', display: 'inline-block', mb: 2 }}>
           {avatarLoading && !profile.avatar && (
             <Skeleton
@@ -261,7 +239,6 @@ export function Profile() {
           >
             {user?.username.charAt(0).toUpperCase()}
           </Avatar>
-
           <Button
             component="label"
             sx={{
@@ -281,19 +258,14 @@ export function Profile() {
             <CameraAlt sx={{ fontSize: { xs: 20, sm: 18 } }} />
             <input type="file" accept="image/*" style={{ position: 'absolute', width: 1, height: 1, padding: 0, margin: -1, overflow: 'hidden', clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap', border: 0 }} onChange={handleAvatarChange} />
           </Button>
-
         </Box>
-
-
         <Typography variant="h4" sx={{ fontWeight: 800, mb: 0.5, fontSize: { xs: '1.5rem', sm: '2rem', md: '2.125rem' }, overflowWrap: 'break-word' }}>
           {profile.nickname || user?.username}
         </Typography>
-
         {profile.bio && (
           <Typography variant="body1" color="text.secondary" sx={{ mb: 2, fontSize: { xs: '0.875rem', sm: '1rem' }, overflowWrap: 'break-word' }}>
             {profile.bio}
           </Typography>
-
         )}
         <Chip
           label={roleLabels[user?.role || 'guest']}
@@ -308,8 +280,6 @@ export function Profile() {
           }}
         />
       </Paper>
-
-
       {}
       <Paper
         elevation={0}
@@ -326,9 +296,7 @@ export function Profile() {
           <Alert severity={message.type} sx={{ mb: 3, borderRadius: (theme) => Math.max(8, theme.shape.borderRadius - 4) }}>
             {message.text}
           </Alert>
-
         )}
-
         <Box sx={{ display: 'grid', gap: 3 }}>
           <TextField
             label="用户名"
@@ -361,7 +329,6 @@ export function Profile() {
             rows={3}
             placeholder="写一句话，展示此刻的心情"
           />
-
           <Box sx={{ display: 'flex', justifyContent: { xs: 'stretch', sm: 'flex-end' } }}>
             <Button
               variant="contained"
@@ -380,14 +347,9 @@ export function Profile() {
             >
               {saving ? '保存中...' : '保存资料'}
             </Button>
-
           </Box>
-
         </Box>
-
       </Paper>
-
-
       {}
       <Paper
         elevation={0}
@@ -406,21 +368,15 @@ export function Profile() {
           <Typography variant="h6" sx={{ fontWeight: 700 }}>
             修改密码
           </Typography>
-
         </Box>
-
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
           定期修改密码可以更好地保护你的账号安全
         </Typography>
-
-
         {passwordError && (
           <Alert severity="error" sx={{ mb: 3, borderRadius: (theme) => Math.max(8, theme.shape.borderRadius - 4) }}>
             {passwordError}
           </Alert>
-
         )}
-
         <Box sx={{ display: 'grid', gap: 3 }}>
           <TextField
             label="当前密码"
@@ -435,9 +391,7 @@ export function Profile() {
                   <IconButton onClick={() => setShowCurrentPassword((v) => !v)} edge="end" aria-label="切换当前密码可见性">
                     {showCurrentPassword ? <VisibilityOff /> : <Visibility />}
                   </IconButton>
-
                 </InputAdornment>
-
               ),
             }}
           />
@@ -455,9 +409,7 @@ export function Profile() {
                   <IconButton onClick={() => setShowNewPassword((v) => !v)} edge="end" aria-label="切换新密码可见性">
                     {showNewPassword ? <VisibilityOff /> : <Visibility />}
                   </IconButton>
-
                 </InputAdornment>
-
               ),
             }}
           />
@@ -474,13 +426,10 @@ export function Profile() {
                   <IconButton onClick={() => setShowConfirmPassword((v) => !v)} edge="end" aria-label="切换确认密码可见性">
                     {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
                   </IconButton>
-
                 </InputAdornment>
-
               ),
             }}
           />
-
           <Box sx={{ display: 'flex', justifyContent: { xs: 'stretch', sm: 'flex-end' } }}>
             <Button
               variant="contained"
@@ -499,16 +448,10 @@ export function Profile() {
             >
               {changingPassword ? '正在修改...' : '修改密码'}
             </Button>
-
           </Box>
-
         </Box>
-
       </Paper>
-
       </Container>
-
     </Fade>
-
   );
 }

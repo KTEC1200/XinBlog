@@ -11,23 +11,18 @@ import { ClickEffectPanel } from './appearance/panels/ClickEffectPanel';
 import { BasicPanel } from './appearance/panels/BasicPanel';
 import { NavPanel } from './appearance/panels/NavPanel';
 import { SpacingPanel } from './appearance/panels/SpacingPanel';
-
 export function AdminAppearance() {
   const editor = useAppearanceEditor();
   const { tab, setTab, isMobileAdmin, isDirty, saving, applyAll } = editor;
-
   return (
     <Fade in timeout={400}>
       <Box>
         <Typography variant="h5" sx={{ fontWeight: 700, mb: 1 }}>
           外观设置
         </Typography>
-
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
           自定义站点配色、首页英雄区、关于页面、鼠标、点击特效、文章布局、导航栏和基础信息。
         </Typography>
-
-
         {isMobileAdmin ? (
           <FormControl size="small" sx={{ mb: 3, minWidth: 140, maxWidth: '100%' }}>
             <Select
@@ -49,12 +44,9 @@ export function AdminAppearance() {
                 <MenuItem key={item.value} value={item.value}>
                   {item.label}
                 </MenuItem>
-
               ))}
             </Select>
-
           </FormControl>
-
         ) : (
           <Box
             onWheel={(e) => {
@@ -124,14 +116,10 @@ export function AdminAppearance() {
                 >
                   {item.label}
                 </ButtonBase>
-
               ))}
             </Box>
-
           </Box>
-
         )}
-
         {tab === 'basic' && <BasicPanel editor={editor} />}
         {tab === 'hero' && <HeroPanel editor={editor} />}
         {tab === 'about' && <AboutPanel editor={editor} />}
@@ -142,11 +130,8 @@ export function AdminAppearance() {
         {tab === 'theme' && <ThemePanel editor={editor} />}
         {tab === 'font' && <FontPanel editor={editor} />}
         {tab === 'nav' && <NavPanel editor={editor} />}
-
         <FloatingSaveButton show={isDirty} saving={saving} onClick={applyAll} label="保存外观设置" />
       </Box>
-
     </Fade>
-
   );
 }

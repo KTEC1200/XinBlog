@@ -4,7 +4,6 @@ import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import CommentItem from './CommentItem';
 import type { Comment } from '@/types/interaction';
-
 interface CommentListProps {
   comments: Comment[];
   slug: string;
@@ -14,7 +13,6 @@ interface CommentListProps {
   onDeleted: () => void;
   onReplied: () => void;
 }
-
 export default function CommentList({
   comments,
   slug,
@@ -32,7 +30,6 @@ export default function CommentList({
       replies: children.filter((c) => c.parentId === parent.id),
     }));
   }, [comments]);
-
   if (comments.length === 0) {
     return (
       <Fade in timeout={400}>
@@ -56,18 +53,13 @@ export default function CommentList({
           <Typography variant="body1" sx={{ fontWeight: 600, mb: 0.5 }}>
             还没有评论
           </Typography>
-
           <Typography variant="body2" color="text.secondary">
             来说点什么，开启这段对话吧
           </Typography>
-
         </Paper>
-
       </Fade>
-
     );
   }
-
   return (
     <Box>
       {grouped.map((parent) => (
@@ -88,10 +80,8 @@ export default function CommentList({
                 <CommentItem key={reply.id} comment={reply} slug={slug} onDeleted={onDeleted} onReplied={onReplied} />
               ))}
             </Box>
-
           )}
         </Box>
-
       ))}
       {hasMore && (
         <Box sx={{ textAlign: 'center', mt: 2 }}>
@@ -110,11 +100,8 @@ export default function CommentList({
           >
             {loadingMore ? '加载中...' : '加载更多'}
           </Button>
-
         </Box>
-
       )}
     </Box>
-
   );
 }

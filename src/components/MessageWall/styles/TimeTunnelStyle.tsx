@@ -2,9 +2,7 @@ import { useRef, useEffect, useState, useMemo, useCallback } from 'react';
 import { Box, Typography, Chip, alpha, CircularProgress } from '@mui/material';
 import { getMessages } from '@/api/messages';
 import type { Message } from '@/types/interaction';
-
 const PAGE_SIZE = 50;
-
 function formatTime(iso: string) {
   const d = new Date(iso);
   return d.toLocaleString('zh-CN', {
@@ -14,7 +12,6 @@ function formatTime(iso: string) {
     minute: '2-digit',
   });
 }
-
 export default function TimeTunnelStyle() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [isScrolling, setIsScrolling] = useState(false);
@@ -23,7 +20,6 @@ export default function TimeTunnelStyle() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [allLoaded, setAllLoaded] = useState(false);
-
   const loadPage = useCallback(async (p: number, append: boolean) => {
     const res = await getMessages(p, PAGE_SIZE);
     const list = res.code === 0 && res.data ? res.data.list : [];
@@ -32,24 +28,17 @@ export default function TimeTunnelStyle() {
     setMessages((prev) => (append ? [...prev, ...list] : list));
     if (list.length < PAGE_SIZE || p * PAGE_SIZE >= t) setAllLoaded(true);
   }, []);
-
-  
   useEffect(() => {
     setAllLoaded(false);
     setLoading(true);
     loadPage(1, false).finally(() => setLoading(false));
   }, [loadPage]);
-
-  
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
-
     const state = { target: el.scrollLeft, current: el.scrollLeft, rafId: 0 };
-
     const clampTarget = (v: number) =>
       Math.max(0, Math.min(v, el.scrollWidth - el.clientWidth));
-
     const render = () => {
       const diff = state.target - state.current;
       if (Math.abs(diff) < 0.5) {
@@ -63,29 +52,23 @@ export default function TimeTunnelStyle() {
       el.scrollLeft = state.current;
       state.rafId = requestAnimationFrame(render);
     };
-
     const startRender = () => {
       if (!state.rafId) {
         setIsScrolling(true);
         state.rafId = requestAnimationFrame(render);
       }
     };
-
     const handleWheel = (e: WheelEvent) => {
-      
       e.preventDefault();
       e.stopPropagation();
       state.target += e.deltaY || e.deltaX;
       state.target = clampTarget(state.target);
       startRender();
     };
-
-    
     let touchStartX = 0;
     let touchStartY = 0;
     let touchAnchor = state.target;
     let draggingX = false;
-
     const handleTouchStart = (e: TouchEvent) => {
       const t = e.touches[0];
       touchStartX = t.clientX;
@@ -93,12 +76,10 @@ export default function TimeTunnelStyle() {
       touchAnchor = state.target;
       draggingX = false;
     };
-
     const handleTouchMove = (e: TouchEvent) => {
       const t = e.touches[0];
       const dx = t.clientX - touchStartX;
       const dy = t.clientY - touchStartY;
-      
       if (!draggingX) {
         if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) {
           draggingX = true;
@@ -113,11 +94,9 @@ export default function TimeTunnelStyle() {
       state.target = clampTarget(touchAnchor - dx);
       startRender();
     };
-
     const endDrag = () => {
       draggingX = false;
     };
-
     el.addEventListener('wheel', handleWheel, { passive: false });
     el.addEventListener('touchstart', handleTouchStart, { passive: true });
     el.addEventListener('touchmove', handleTouchMove, { passive: false });
@@ -132,8 +111,6 @@ export default function TimeTunnelStyle() {
       cancelAnimationFrame(state.rafId);
     };
   }, []);
-
-  
   const handleScroll = () => {
     const el = scrollRef.current;
     if (!el) return;
@@ -144,8 +121,6 @@ export default function TimeTunnelStyle() {
       }
     }
   };
-
-  
   const groups = useMemo(() => {
     const map = new Map<string, Message[]>();
     messages.forEach((m) => {
@@ -155,7 +130,6 @@ export default function TimeTunnelStyle() {
     });
     return [...map.entries()];
   }, [messages]);
-
   return (
     <Box
       sx={{
@@ -178,7 +152,6 @@ export default function TimeTunnelStyle() {
           zIndex: 1,
         }}
       />
-
       <Box
         ref={scrollRef}
         onScroll={handleScroll}
@@ -216,9 +189,7 @@ export default function TimeTunnelStyle() {
             <Typography variant="body2" color="text.secondary">
               加载中...
             </Typography>
-
           </Box>
-
         ) : groups.length === 0 ? (
           <Box
             sx={{
@@ -232,9 +203,7 @@ export default function TimeTunnelStyle() {
             <Typography variant="body2" color="text.secondary">
               暂无留言
             </Typography>
-
           </Box>
-
         ) : (
           groups.map(([date, msgs], i) => (
             <Box
@@ -242,7 +211,6 @@ export default function TimeTunnelStyle() {
               sx={{
                 flexShrink: 0,
                 width: 240,
-                
                 animation: 'msgwall-tunnel-in 0.5s cubic-bezier(0.4, 0, 0.2, 1) both',
                 animationDelay: `${Math.min(i, 8) * 70}ms`,
               }}
@@ -278,7 +246,6 @@ export default function TimeTunnelStyle() {
                 >
                   {date}
                 </Typography>
-
                 <Typography
                   variant="caption"
                   color="text.disabled"
@@ -286,10 +253,7 @@ export default function TimeTunnelStyle() {
                 >
                   {msgs.length} 条留言
                 </Typography>
-
               </Box>
-
-
               {}
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                 {msgs.map((msg) => (
@@ -312,7 +276,6 @@ export default function TimeTunnelStyle() {
                         <Typography variant="caption" sx={{ fontWeight: 700, color: 'primary.main' }}>
                           {msg.username || '用户'}
                         </Typography>
-
                       ) : (
                         <>
                           <Chip
@@ -331,10 +294,8 @@ export default function TimeTunnelStyle() {
                             <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary' }}>
                               {msg.nickname}
                             </Typography>
-
                           )}
                         </>
-
                       )}
                       <Typography
                         variant="caption"
@@ -343,9 +304,7 @@ export default function TimeTunnelStyle() {
                       >
                         {formatTime(msg.createdAt)}
                       </Typography>
-
                     </Box>
-
                     <Typography
                       variant="body2"
                       sx={{
@@ -361,17 +320,12 @@ export default function TimeTunnelStyle() {
                     >
                       {msg.content}
                     </Typography>
-
                   </Box>
-
                 ))}
               </Box>
-
             </Box>
-
           ))
         )}
-
         {}
         {!loading && groups.length > 0 && (
           <Box
@@ -390,19 +344,14 @@ export default function TimeTunnelStyle() {
               <Typography variant="caption" color="text.disabled">
                 已到尽头
               </Typography>
-
             ) : (
               <Typography variant="caption" color="text.disabled">
                 继续滚动...
               </Typography>
-
             )}
           </Box>
-
         )}
       </Box>
-
-
       <Box
         sx={{
           textAlign: 'center',
@@ -414,10 +363,7 @@ export default function TimeTunnelStyle() {
         <Typography variant="caption" color="text.disabled">
           滚动或滑动浏览时间轴
         </Typography>
-
       </Box>
-
     </Box>
-
   );
 }

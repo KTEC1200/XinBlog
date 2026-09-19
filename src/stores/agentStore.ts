@@ -1,14 +1,11 @@
 import { create } from 'zustand';
 import { fetchAgentEnabled } from '@/api/ai';
-
 interface AgentStore {
   agentEnabled: boolean;
   loaded: boolean;
   init: () => Promise<void>;
   setAgentEnabled: (v: boolean) => void;
 }
-
-
 export const useAgentStore = create<AgentStore>((set, get) => ({
   agentEnabled: false,
   loaded: false,

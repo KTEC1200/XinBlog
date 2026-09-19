@@ -1,6 +1,5 @@
 import type { ChatBubbleRenderer } from './base';
 import { resolveThemeColor, bubbleRadius, resolveImageRadius, type BubbleCorners } from './base';
-
 interface DarkParams extends Record<string, unknown> {
   mineBg: string;
   mineText: string;
@@ -11,8 +10,6 @@ interface DarkParams extends Record<string, unknown> {
   mineSharpCorner: BubbleCorners;
   otherSharpCorner: BubbleCorners;
 }
-
-
 export const darkBubbleRenderer: ChatBubbleRenderer<DarkParams> = {
   id: 'dark',
   name: '酷黑',
@@ -50,7 +47,6 @@ export const darkBubbleRenderer: ChatBubbleRenderer<DarkParams> = {
     const otherText = resolveThemeColor(params.otherText, '#e0e0e0');
     const mine = bubbleRadius(params.mineSharpCorner, radius);
     const other = bubbleRadius(params.otherSharpCorner, radius);
-
     return {
       mine: {
         backgroundColor: mineBg,

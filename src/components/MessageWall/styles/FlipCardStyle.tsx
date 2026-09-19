@@ -3,9 +3,7 @@ import { Box, Typography, Chip, alpha, Skeleton } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { getMessages } from '@/api/messages';
 import type { Message } from '@/types/interaction';
-
 const PAGE_SIZE = 50;
-
 function shuffleArray<T>(arr: T[]): T[] {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -14,12 +12,9 @@ function shuffleArray<T>(arr: T[]): T[] {
   }
   return a;
 }
-
 const PICK_COUNT = 9;
-
 function FlipCard({ message }: { message: Message }) {
   const [flipped, setFlipped] = useState(false);
-
   return (
     <Box
       onClick={() => setFlipped(!flipped)}
@@ -61,14 +56,10 @@ function FlipCard({ message }: { message: Message }) {
           <Typography variant="h4" sx={{ opacity: 0.4, userSelect: 'none' }}>
             ?
           </Typography>
-
           <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center' }}>
             点击翻开
           </Typography>
-
         </Box>
-
-
         {}
         <Box
           sx={{
@@ -90,7 +81,6 @@ function FlipCard({ message }: { message: Message }) {
               <Typography variant="caption" sx={{ fontWeight: 700, color: 'primary.main' }}>
                 {message.username || '用户'}
               </Typography>
-
             ) : (
               <>
                 <Chip
@@ -109,13 +99,10 @@ function FlipCard({ message }: { message: Message }) {
                   <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary' }}>
                     {message.nickname}
                   </Typography>
-
                 )}
               </>
-
             )}
           </Box>
-
           <Typography
             variant="body2"
             sx={{
@@ -129,35 +116,25 @@ function FlipCard({ message }: { message: Message }) {
           >
             {message.content}
           </Typography>
-
           <Typography variant="caption" color="text.disabled" sx={{ mt: 1, fontSize: '0.65rem' }}>
             {new Date(message.createdAt).toLocaleDateString('zh-CN')}
           </Typography>
-
         </Box>
-
       </Box>
-
     </Box>
-
   );
 }
-
 export default function FlipCardStyle() {
   const [pool, setPool] = useState<Message[]>([]);
   const [cards, setCards] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
-  
   const [batch, setBatch] = useState(0);
-
-  
   useEffect(() => {
     let cancelled = false;
     (async () => {
       let page = 1;
       let total = 0;
       const all: Message[] = [];
-      
       const first = await getMessages(1, PAGE_SIZE);
       if (cancelled) return;
       const firstList = first.code === 0 && first.data ? first.data.list : [];
@@ -167,7 +144,6 @@ export default function FlipCardStyle() {
       setCards(shuffleArray(all).slice(0, PICK_COUNT));
       setLoading(false);
       setBatch((b) => b + 1); 
-      
       page = 2;
       while (all.length < total) {
         const res = await getMessages(page, PAGE_SIZE);
@@ -183,15 +159,11 @@ export default function FlipCardStyle() {
       cancelled = true;
     };
   }, []);
-
-  
   const pickCards = useCallback(() => {
     setCards(shuffleArray(pool).slice(0, PICK_COUNT));
     setBatch((b) => b + 1);
   }, [pool]);
-
   const shuffled = useMemo(() => shuffleArray(cards), [cards]);
-
   return (
     <Box>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', mb: 2 }}>
@@ -215,9 +187,7 @@ export default function FlipCardStyle() {
           <RefreshIcon sx={{ fontSize: 16 }} />
           换一批
         </Box>
-
       </Box>
-
       <Box
         key={batch}
         sx={{
@@ -245,7 +215,6 @@ export default function FlipCardStyle() {
           <Typography variant="body2" color="text.secondary" sx={{ py: 4 }}>
             暂无留言
           </Typography>
-
         ) : (
           shuffled.map((msg, i) => (
             <Box
@@ -257,12 +226,9 @@ export default function FlipCardStyle() {
             >
               <FlipCard message={msg} />
             </Box>
-
           ))
         )}
       </Box>
-
     </Box>
-
   );
 }

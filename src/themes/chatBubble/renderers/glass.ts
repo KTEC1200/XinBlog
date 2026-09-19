@@ -1,6 +1,5 @@
 import type { ChatBubbleRenderer } from './base';
 import { resolveThemeColor, bubbleRadius, resolveImageRadius, type BubbleCorners } from './base';
-
 interface GlassParams extends Record<string, unknown> {
   mineTint: string;
   mineText: string;
@@ -10,8 +9,6 @@ interface GlassParams extends Record<string, unknown> {
   mineSharpCorner: BubbleCorners;
   otherSharpCorner: BubbleCorners;
 }
-
-
 export const glassBubbleRenderer: ChatBubbleRenderer<GlassParams> = {
   id: 'glass',
   name: '玻璃',
@@ -44,15 +41,12 @@ export const glassBubbleRenderer: ChatBubbleRenderer<GlassParams> = {
     const mine = bubbleRadius(params.mineSharpCorner, radius);
     const other = bubbleRadius(params.otherSharpCorner, radius);
     const mineBg = resolveThemeColor(params.mineTint, 'rgba(255,255,255,0.22)');
-
-    
     const frosted = {
       backgroundColor: mineBg,
       backdropFilter: 'blur(6px)',
       WebkitBackdropFilter: 'blur(6px)',
       border: '1px solid rgba(255,255,255,0.35)',
     };
-
     return {
       mine: {
         ...frosted,
@@ -61,7 +55,6 @@ export const glassBubbleRenderer: ChatBubbleRenderer<GlassParams> = {
         borderRadius: `${mine['top-left']}px ${mine['top-right']}px ${mine['bottom-right']}px ${mine['bottom-left']}px`,
       },
       other: {
-        
         ...frosted,
         color: resolveThemeColor(params.otherText, '#2f3542'),
         borderRadius: `${other['top-left']}px ${other['top-right']}px ${other['bottom-right']}px ${other['bottom-left']}px`,

@@ -1,7 +1,5 @@
 import type { MusicPlayMode, MusicPlayerConfig } from '@/types';
 import { useSiteStore } from '@/stores/siteStore';
-
-
 export const DEFAULT_MUSIC_CONFIG: MusicPlayerConfig = {
   enabled: false,
   apiUrl: 'https://api.xfyun.club',
@@ -16,8 +14,6 @@ export const DEFAULT_MUSIC_CONFIG: MusicPlayerConfig = {
   showPage: true,
   imageProxy: false,
 };
-
-
 export interface Song {
   id: number;
   name: string;
@@ -27,22 +23,17 @@ export interface Song {
   url: string;
   duration: number;
 }
-
 export interface LyricLine {
   time: number;
   text: string;
 }
-
 export interface MusicMemory {
   currentIndex: number;
   currentTime: number;
   volume: number;
   playMode: MusicPlayMode;
 }
-
 const STORAGE_KEY = 'xinblog-music-player';
-
-
 export const PRESET_PLAYLISTS: { id: string; name: string; desc: string }[] = [
   { id: '3778678', name: '精选热歌', desc: '网易云音乐官方热门歌单' },
   { id: '17990594711', name: '纯音乐｜专注放松', desc: '清新氛围纯音乐精选' },
@@ -65,14 +56,10 @@ export const PRESET_PLAYLISTS: { id: string; name: string; desc: string }[] = [
   { id: '18129092448', name: '摇滚回响', desc: '绿茵摇滚诗：英格兰世界杯回响' },
   { id: '17987417003', name: '歌手2026', desc: '三代歌者巅峰对决' },
 ];
-
-
 export function extractUrlFromText(text: string): string | null {
   const match = text.match(/https?:\/\/[^\s<>"'{}\[\]]+/);
   return match ? match[0].replace(/[`'"’‘“”]+$/, '') : null;
 }
-
-
 export async function resolveShortUrl(url: string): Promise<string | null> {
   try {
     const apiBase = (import.meta as any).env?.VITE_API_BASE_URL || '';
@@ -86,56 +73,35 @@ export async function resolveShortUrl(url: string): Promise<string | null> {
     return null;
   }
 }
-
-
 export function isValidPlaylistId(id: string): boolean {
   return /^\d{5,}$/.test(id.trim());
 }
-
-
 export function parsePlaylistId(input: string): string {
   const trimmed = input.trim();
   if (!trimmed) return trimmed;
-
-  
   const url = extractUrlFromText(trimmed);
   const target = url || trimmed;
-
-  
   const idParamMatch = target.match(/[?&]id=(\d+)/);
   if (idParamMatch) return idParamMatch[1];
-
-  
   const pathMatch = target.match(/\/playlist\/(\d+)/);
   if (pathMatch) return pathMatch[1];
-
-  
   const shareMatch = target.match(/\/share\/playlist\/(\d+)/);
   if (shareMatch) return shareMatch[1];
-
-  
   if (/163cn\.tv/i.test(target)) return target;
-
-  
   const pureNumberMatch = target.match(/^(\d{5,})$/);
   if (pureNumberMatch) return pureNumberMatch[1];
-
   return trimmed;
 }
-
 export function formatTime(seconds: number): string {
   if (Number.isNaN(seconds) || !isFinite(seconds) || seconds < 0) return '00:00';
   const mins = Math.floor(seconds / 60);
   const secs = Math.floor(seconds % 60);
   return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }
-
-
 export function parseLyric(lyricText: string): LyricLine[] {
   if (!lyricText) return [];
   const lines = lyricText.split('\n');
   const lyrics: LyricLine[] = [];
-
   lines.forEach((line) => {
     const match = line.match(/\[(\d{2}):(\d{2})\.(\d{2,3})\](.*)/);
     if (match) {
@@ -149,10 +115,8 @@ export function parseLyric(lyricText: string): LyricLine[] {
       }
     }
   });
-
   return lyrics.sort((a, b) => a.time - b.time);
 }
-
 export function loadMusicMemory(): MusicMemory | null {
   if (typeof window === 'undefined') return null;
   try {
@@ -163,24 +127,17 @@ export function loadMusicMemory(): MusicMemory | null {
     return null;
   }
 }
-
 export function saveMusicMemory(memory: MusicMemory) {
   if (typeof window === 'undefined') return;
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(memory));
   } catch {
-    
   }
 }
-
-
 export function getProxyImageUrl(url: string): string {
   if (!url) return '';
-  
   if (url.startsWith('/') || url.startsWith('./') || url.startsWith(window.location.origin)) return url;
-  
   const imageProxy = useSiteStore.getState().config.music?.imageProxy ?? false;
   if (!imageProxy) return url;
-  
   return `/api/v1/proxy-image?url=${encodeURIComponent(url)}`;
 }

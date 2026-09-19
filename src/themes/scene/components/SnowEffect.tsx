@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { Box } from '@mui/material';
-
 interface Snowflake {
   id: number;
   left: string;
@@ -9,7 +8,6 @@ interface Snowflake {
   delay: number;
   opacity: number;
 }
-
 export interface SnowEffectParams {
   [key: string]: unknown;
   count?: number;
@@ -19,7 +17,6 @@ export interface SnowEffectParams {
   minDuration?: number;
   maxDuration?: number;
 }
-
 export function SnowEffect({ params }: { params: SnowEffectParams }) {
   const {
     count = 60,
@@ -29,9 +26,7 @@ export function SnowEffect({ params }: { params: SnowEffectParams }) {
     minDuration = 5,
     maxDuration = 12,
   } = params;
-
   const [flakes, setFlakes] = useState<Snowflake[]>([]);
-
   useEffect(() => {
     const generated = Array.from({ length: Math.max(1, Math.min(count, 120)) }).map((_, i) => ({
       id: i,
@@ -43,7 +38,6 @@ export function SnowEffect({ params }: { params: SnowEffectParams }) {
     }));
     setFlakes(generated);
   }, [count, minSize, maxSize, minDuration, maxDuration]);
-
   return (
     <Box
       sx={{
@@ -91,6 +85,5 @@ export function SnowEffect({ params }: { params: SnowEffectParams }) {
         />
       ))}
     </Box>
-
   );
 }

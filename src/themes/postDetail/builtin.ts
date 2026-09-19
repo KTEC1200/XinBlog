@@ -1,6 +1,4 @@
 import type { ThemePackage } from '@/types';
-
-
 export const BUILTIN_POST_DETAIL_THEMES: ThemePackage[] = [
   {
     id: 'post-detail-glass',

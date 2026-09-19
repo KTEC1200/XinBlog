@@ -18,38 +18,26 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import { formatTime, getProxyImageUrl } from './musicUtils';
 import type { MusicPlayerApi } from './useMusicPlayer';
-
 interface MusicPlayerWidgetProps {
   player: MusicPlayerApi;
   position: 'left' | 'right';
-  
   defaultExpanded?: boolean;
-  
   disableScrollIntercept?: boolean;
-  
   showLyric?: boolean;
 }
-
 const MODE_ICONS: Record<string, React.ReactNode> = {
   list: <Repeat fontSize="small" />,
   single: <RepeatOne fontSize="small" />,
   random: <Shuffle fontSize="small" />,
 };
-
-
 const PANEL_WIDTH = 300;
-
 const TAB_WIDTH = 20;
-
 const PLAYLIST_MAX_HEIGHT = 320;
-
-
 export function MusicPlayerWidget({ player, position, defaultExpanded = false, disableScrollIntercept = false, showLyric = true }: MusicPlayerWidgetProps) {
   const [expanded, setExpanded] = useState(defaultExpanded);
   const [showPlaylist, setShowPlaylist] = useState(false);
   const panelRef = useRef<HTMLDivElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
-
   const {
     isPlaying,
     loading,
@@ -70,11 +58,8 @@ export function MusicPlayerWidget({ player, position, defaultExpanded = false, d
     toggleMute,
     togglePlayMode,
   } = player;
-
   const isLeft = position === 'left';
   const progressPercent = duration > 0 ? Math.min(1, Math.max(0, currentTime / duration)) : 0;
-
-  
   useEffect(() => {
     if (disableScrollIntercept) return;
     const panel = panelRef.current;
@@ -99,12 +84,9 @@ export function MusicPlayerWidget({ player, position, defaultExpanded = false, d
     panel.addEventListener('wheel', onWheel, { passive: false });
     return () => panel.removeEventListener('wheel', onWheel);
   }, [expanded, showPlaylist, disableScrollIntercept]);
-
-  
   const collapsedTranslate = isLeft
     ? `translateX(calc(-100% + ${TAB_WIDTH}px))`
     : `translateX(calc(100% - ${TAB_WIDTH}px))`;
-
   return (
     <Box
       ref={panelRef}
@@ -176,12 +158,8 @@ export function MusicPlayerWidget({ player, position, defaultExpanded = false, d
                 <ChevronLeft fontSize="small" />
               )}
             </IconButton>
-
           </Box>
-
         </Tooltip>
-
-
         {}
         <Box
           sx={{
@@ -234,33 +212,25 @@ export function MusicPlayerWidget({ player, position, defaultExpanded = false, d
                 <MusicNote sx={{ fontSize: 28, color: 'text.secondary' }} />
               )}
             </Box>
-
-
             {}
             <Box sx={{ flex: 1, minWidth: 0 }}>
               <Typography variant="body2" noWrap sx={{ fontWeight: 700 }}>
                 {loading ? '加载中...' : currentSong?.name || '未播放'}
               </Typography>
-
               <Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block', mt: 0.25 }}>
                 {currentSong?.artist || '暂无歌曲'}
               </Typography>
-
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, mt: 0.5 }}>
                 <Tooltip title="播放模式">
                   <IconButton size="small" onClick={togglePlayMode}>
                     {MODE_ICONS[playMode]}
                   </IconButton>
-
                 </Tooltip>
-
                 <Tooltip title="上一首">
                   <IconButton size="small" onClick={prev}>
                     <SkipPrevious fontSize="small" />
                   </IconButton>
-
                 </Tooltip>
-
                 <IconButton
                   onClick={togglePlay}
                   size="small"
@@ -274,14 +244,11 @@ export function MusicPlayerWidget({ player, position, defaultExpanded = false, d
                 >
                   {isPlaying ? <Pause fontSize="small" /> : <PlayArrow fontSize="small" />}
                 </IconButton>
-
                 <Tooltip title="下一首">
                   <IconButton size="small" onClick={next}>
                     <SkipNext fontSize="small" />
                   </IconButton>
-
                 </Tooltip>
-
                 <Tooltip title={isMuted || volume === 0 ? '取消静音' : '静音'}>
                   <IconButton size="small" onClick={toggleMute}>
                     {isMuted || volume === 0 ? (
@@ -292,16 +259,10 @@ export function MusicPlayerWidget({ player, position, defaultExpanded = false, d
                       <VolumeUp fontSize="small" />
                     )}
                   </IconButton>
-
                 </Tooltip>
-
               </Box>
-
             </Box>
-
           </Box>
-
-
           {}
           <Box
             sx={{
@@ -318,7 +279,6 @@ export function MusicPlayerWidget({ player, position, defaultExpanded = false, d
             >
               {formatTime(currentTime)}
             </Typography>
-
             <Slider
               size="small"
               min={0}
@@ -333,12 +293,8 @@ export function MusicPlayerWidget({ player, position, defaultExpanded = false, d
               <IconButton size="small" onClick={() => setShowPlaylist((s) => !s)} sx={{ p: 0.5 }}>
                 <QueueMusic fontSize="small" />
               </IconButton>
-
             </Tooltip>
-
           </Box>
-
-
           {showLyric && (
           <>
           {}
@@ -379,7 +335,6 @@ export function MusicPlayerWidget({ player, position, defaultExpanded = false, d
                   >
                     {line.text}
                   </Typography>
-
                 );
               })
             ) : (
@@ -390,18 +345,12 @@ export function MusicPlayerWidget({ player, position, defaultExpanded = false, d
               >
                 暂无歌词
               </Typography>
-
             )}
           </Box>
-
           </>
-
         )}
         </Box>
-
       </Box>
-
-
       {}
       <Box
         sx={{
@@ -414,7 +363,6 @@ export function MusicPlayerWidget({ player, position, defaultExpanded = false, d
               easing: t.transitions.easing.easeInOut,
               duration: 500,
             }),
-          
           ...(isLeft
             ? { borderBottomRightRadius: 1 }
             : { borderBottomLeftRadius: 1 }),
@@ -429,7 +377,6 @@ export function MusicPlayerWidget({ player, position, defaultExpanded = false, d
             <Typography variant="body2" color="text.secondary" sx={{ p: 1.5, textAlign: 'center' }}>
               暂无歌曲
             </Typography>
-
           ) : (
             playlist.map((song, index) => {
               const active = index === player.currentIndex;
@@ -475,7 +422,6 @@ export function MusicPlayerWidget({ player, position, defaultExpanded = false, d
                       <MusicNote sx={{ fontSize: 16, color: 'text.secondary' }} />
                     )}
                   </Box>
-
                   {}
                   <Box sx={{ flex: 1, minWidth: 0 }}>
                     <Typography
@@ -485,12 +431,10 @@ export function MusicPlayerWidget({ player, position, defaultExpanded = false, d
                     >
                       {song.name}
                     </Typography>
-
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1 }}>
                       <Typography variant="caption" color="text.secondary" noWrap>
                         {song.artist}
                       </Typography>
-
                       <Typography
                         variant="caption"
                         color="text.secondary"
@@ -498,21 +442,14 @@ export function MusicPlayerWidget({ player, position, defaultExpanded = false, d
                       >
                         {formatTime(song.duration)}
                       </Typography>
-
                     </Box>
-
                   </Box>
-
                 </Box>
-
               );
             })
           )}
         </Box>
-
       </Box>
-
     </Box>
-
   );
 }
