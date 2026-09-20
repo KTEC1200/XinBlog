@@ -19,19 +19,16 @@ import { useSnackbar } from 'notistack';
 import { getMyMessages, deleteMessage } from '@/api/messages';
 import { ConfirmDialog } from '@/components/Common/ConfirmDialog';
 import type { Message } from '@/types/interaction';
-
 interface MessageWallManagerProps {
   open: boolean;
   onClose: () => void;
   onChanged: () => void;
 }
-
 const STATUS_META: Record<string, { label: string; color: 'default' | 'primary' | 'success' | 'warning' | 'error' }> = {
   pending: { label: '待审核', color: 'warning' },
   approved: { label: '已发布', color: 'success' },
   rejected: { label: '已拒绝', color: 'error' },
 };
-
 function formatTime(iso: string) {
   const d = new Date(iso);
   return d.toLocaleString('zh-CN', {
@@ -42,14 +39,12 @@ function formatTime(iso: string) {
     minute: '2-digit',
   });
 }
-
 export default function MessageWallManager({ open, onClose, onChanged }: MessageWallManagerProps) {
   const { enqueueSnackbar } = useSnackbar();
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Message | null>(null);
   const [deleting, setDeleting] = useState(false);
-
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -65,11 +60,9 @@ export default function MessageWallManager({ open, onClose, onChanged }: Message
       setLoading(false);
     }
   }, [enqueueSnackbar]);
-
   useEffect(() => {
     if (open) load();
   }, [open, load]);
-
   const handleDelete = async () => {
     if (!deleteTarget) return;
     setDeleting(true);
@@ -77,12 +70,10 @@ export default function MessageWallManager({ open, onClose, onChanged }: Message
       const res = await deleteMessage(deleteTarget.id);
       if (res.code === 0) {
         enqueueSnackbar('删除成功', { variant: 'success' });
-        
         setMessages((prev) => prev.filter((m) => m.id !== deleteTarget.id));
         onChanged();
         load();
       } else if (res.code === 404) {
-        
         setMessages((prev) => prev.filter((m) => m.id !== deleteTarget.id));
         enqueueSnackbar('该留言已不存在，已从列表移除', { variant: 'warning' });
       } else {
@@ -93,7 +84,6 @@ export default function MessageWallManager({ open, onClose, onChanged }: Message
       setDeleteTarget(null);
     }
   };
-
   return (
     <Dialog
       open={open}
@@ -134,9 +124,7 @@ export default function MessageWallManager({ open, onClose, onChanged }: Message
         >
           {messages.length}
         </Box>
-
       </DialogTitle>
-
       <DialogContent sx={{ pt: 2, minHeight: 200, maxHeight: 480 }}>
         {loading ? (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, py: 1 }}>
@@ -144,7 +132,6 @@ export default function MessageWallManager({ open, onClose, onChanged }: Message
               <Skeleton key={i} variant="rectangular" height={64} sx={{ borderRadius: 1 }} />
             ))}
           </Box>
-
         ) : messages.length === 0 ? (
           <Box
             sx={{
@@ -160,9 +147,7 @@ export default function MessageWallManager({ open, onClose, onChanged }: Message
             <Typography variant="body2" color="text.secondary">
               你还没有发布过留言
             </Typography>
-
           </Box>
-
         ) : (
           <Box sx={{ display: 'flex', flexDirection: 'column' }}>
             {messages.map((msg, idx) => {
@@ -190,9 +175,7 @@ export default function MessageWallManager({ open, onClose, onChanged }: Message
                         <Typography variant="caption" color="text.disabled">
                           {formatTime(msg.createdAt)}
                         </Typography>
-
                       </Box>
-
                       <Typography
                         variant="body2"
                         sx={{
@@ -203,9 +186,7 @@ export default function MessageWallManager({ open, onClose, onChanged }: Message
                       >
                         {msg.nickname || msg.content}
                       </Typography>
-
                     </Box>
-
                     <IconButton
                       size="small"
                       onClick={() => setDeleteTarget(msg)}
@@ -218,18 +199,13 @@ export default function MessageWallManager({ open, onClose, onChanged }: Message
                     >
                       <DeleteOutlineIcon sx={{ fontSize: 18 }} />
                     </IconButton>
-
                   </Box>
-
                 </Box>
-
               );
             })}
           </Box>
-
         )}
       </DialogContent>
-
       <DialogActions sx={{ px: 3, pb: 2 }}>
         <Button
           onClick={onClose}
@@ -241,10 +217,7 @@ export default function MessageWallManager({ open, onClose, onChanged }: Message
         >
           关闭
         </Button>
-
       </DialogActions>
-
-
       <ConfirmDialog
         open={!!deleteTarget}
         title="确认删除留言？"
@@ -256,6 +229,5 @@ export default function MessageWallManager({ open, onClose, onChanged }: Message
         onConfirm={handleDelete}
       />
     </Dialog>
-
   );
 }

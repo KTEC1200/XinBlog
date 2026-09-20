@@ -1,9 +1,7 @@
 import { Paper, Stack, alpha, TextField } from '@mui/material';
 import type { AppearanceEditor } from '../useAppearanceEditor';
-
 export function AboutPanel({ editor }: { editor: AppearanceEditor }) {
   const { aboutSubtitle, setAboutSubtitle, aboutBio, setAboutBio, aboutTags, setAboutTags } = editor;
-
   return (
     <Paper
       elevation={0}
@@ -35,8 +33,6 @@ export function AboutPanel({ editor }: { editor: AppearanceEditor }) {
           placeholder="热爱生活、喜欢设计、追求技术"
         />
       </Stack>
-
     </Paper>
-
   );
 }

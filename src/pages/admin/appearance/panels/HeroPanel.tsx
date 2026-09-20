@@ -2,7 +2,6 @@ import { Box, Typography, Paper, Stack, alpha, TextField } from '@mui/material';
 import { ColorPicker } from '@/components/Common/ColorPicker';
 import { ImageField } from '../ImageField';
 import type { AppearanceEditor } from '../useAppearanceEditor';
-
 export function HeroPanel({ editor }: { editor: AppearanceEditor }) {
   const {
     heroTitle,
@@ -19,7 +18,6 @@ export function HeroPanel({ editor }: { editor: AppearanceEditor }) {
     isMobileAdmin,
     handleImageUpload,
   } = editor;
-
   return (
     <Paper
       elevation={0}
@@ -56,10 +54,8 @@ export function HeroPanel({ editor }: { editor: AppearanceEditor }) {
           <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
             背景色
           </Typography>
-
           <ColorPicker value={heroBgColor} onChange={setHeroBgColor} />
         </Box>
-
         <ImageField
           label="背景图片"
           value={heroBgImage}
@@ -71,8 +67,6 @@ export function HeroPanel({ editor }: { editor: AppearanceEditor }) {
           hint="建议上传后自动压缩到 500KB 以内，也可引用自定义 URL"
         />
       </Stack>
-
     </Paper>
-
   );
 }

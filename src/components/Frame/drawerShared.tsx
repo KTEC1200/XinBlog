@@ -2,10 +2,7 @@ import { ButtonBase, styled } from '@mui/material';
 import type { ButtonBaseProps } from '@mui/material';
 import { darken, lighten } from '@mui/material';
 import type { ReactNode } from 'react';
-
-
 export const DRAWER_TRANSITION_MS = 225;
-
 export const DrawerHeaderContainer = styled('div')(({ theme }) => ({
   display: 'flex',
   alignItems: 'center',
@@ -14,20 +11,16 @@ export const DrawerHeaderContainer = styled('div')(({ theme }) => ({
   justifyContent: 'space-between',
   flexShrink: 0,
 }));
-
 export interface NavItem {
   title: string;
   path: string;
   icon: ReactNode;
-  
   superOnly?: boolean;
 }
-
 interface StyledNavButtonProps extends ButtonBaseProps {
   active?: boolean;
   to?: string;
 }
-
 export const StyledNavButton = styled(ButtonBase, {
   shouldForwardProp: (prop) => prop !== 'active',
 })<StyledNavButtonProps>(({ theme, active }) => ({

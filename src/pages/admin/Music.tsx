@@ -14,12 +14,10 @@ import { useMusicEditor, tabList } from './music/useMusicEditor';
 import { MusicBasicPanel } from './music/MusicBasicPanel';
 import { MusicPreviewPanel } from './music/MusicPreviewPanel';
 import { FloatingSaveButton } from '@/components/Common/FloatingSaveButton';
-
 export function AdminMusic() {
   const theme = useTheme();
   const isMobileAdmin = useMediaQuery(theme.breakpoints.down('lg'));
   const editor = useMusicEditor();
-
   return (
     <Fade in timeout={400}>
       <Box>
@@ -27,10 +25,7 @@ export function AdminMusic() {
           <Typography variant="h4" sx={{ fontWeight: 800, overflowWrap: 'break-word' }}>
             音乐播放器
           </Typography>
-
         </Box>
-
-
         {isMobileAdmin ? (
           <FormControl size="small" sx={{ mb: 3, minWidth: 140, maxWidth: '100%' }}>
             <Select
@@ -52,12 +47,9 @@ export function AdminMusic() {
                 <MenuItem key={t.value} value={t.value}>
                   {t.label}
                 </MenuItem>
-
               ))}
             </Select>
-
           </FormControl>
-
         ) : (
           <Box
             onWheel={(e) => {
@@ -126,24 +118,17 @@ export function AdminMusic() {
                   >
                     {t.label}
                   </Button>
-
                 );
               })}
             </Box>
-
           </Box>
-
         )}
-
         <Fade in timeout={300} key={editor.tab}>
           <Box>
             {editor.tab === 'basic' && <MusicBasicPanel editor={editor} />}
             {editor.tab === 'preview' && <MusicPreviewPanel editor={editor} />}
           </Box>
-
         </Fade>
-
-
         <FloatingSaveButton
           show={editor.isDirty}
           saving={editor.saving}
@@ -151,8 +136,6 @@ export function AdminMusic() {
           label="保存设置"
         />
       </Box>
-
     </Fade>
-
   );
 }

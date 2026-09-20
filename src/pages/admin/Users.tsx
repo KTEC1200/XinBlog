@@ -39,7 +39,6 @@ import { useAuthStore } from '@/stores/authStore';
 import { Loading } from '@/components/Common/Loading';
 import { ConfirmDialog } from '@/components/Common/ConfirmDialog';
 import { useSnackbar } from 'notistack';
-
 export function Users() {
   const theme = useTheme();
   const isMobileAdmin = useMediaQuery(theme.breakpoints.down('lg'));
@@ -56,7 +55,6 @@ export function Users() {
   const [editSaving, setEditSaving] = useState(false);
   const [deleteUser, setDeleteUser] = useState<AdminUser | null>(null);
   const [deleteSaving, setDeleteSaving] = useState(false);
-
   const load = async () => {
     setLoading(true);
     const data = await fetchAdminUsers(page + 1, rowsPerPage);
@@ -66,21 +64,17 @@ export function Users() {
     }
     setLoading(false);
   };
-
   useEffect(() => {
     load();
-    
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, rowsPerPage]);
-
   const handleChangePage = (_: unknown, newPage: number) => {
     setPage(newPage);
   };
-
   const handleChangeRowsPerPage = (e: React.ChangeEvent<HTMLInputElement>) => {
     setRowsPerPage(parseInt(e.target.value, 10));
     setPage(0);
   };
-
   const handleOpenEdit = (user: AdminUser) => {
     if (!isSuperAdmin) return;
     setEditUser(user);
@@ -91,20 +85,16 @@ export function Users() {
       status: user.status,
     });
   };
-
   const handleCloseEdit = () => {
     setEditUser(null);
     setEditForm({});
   };
-
   const handleOpenDelete = (user: AdminUser) => {
     setDeleteUser(user);
   };
-
   const handleCloseDelete = () => {
     setDeleteUser(null);
   };
-
   const handleConfirmDelete = async () => {
     if (!deleteUser) return;
     setDeleteSaving(true);
@@ -120,7 +110,6 @@ export function Users() {
       handleCloseEdit();
     }
   };
-
   const handleSaveEdit = async () => {
     if (!editUser) return;
     setEditSaving(true);
@@ -137,18 +126,15 @@ export function Users() {
     if (editForm.status !== undefined && editForm.status !== editUser.status) {
       patch.status = editForm.status ? 1 : 0;
     }
-
     if (Object.keys(patch).length === 0) {
       setEditSaving(false);
       handleCloseEdit();
       return;
     }
-
     const ok = await updateAdminUser(editUser.id, patch);
     setEditSaving(false);
     if (ok) {
       enqueueSnackbar('用户信息已保存', { variant: 'success' });
-      
       setUsers((prev) =>
         prev.map((u) => (u.id === editUser.id ? { ...u, ...patch } : u))
       );
@@ -157,9 +143,7 @@ export function Users() {
       enqueueSnackbar('保存失败，请稍后再试', { variant: 'error' });
     }
   };
-
   if (loading && users.length === 0) return <Loading />;
-
   return (
     <Fade in timeout={400}>
     <Paper
@@ -205,57 +189,39 @@ export function Users() {
                       <Typography variant="subtitle1" fontWeight={700} sx={{ overflowWrap: 'break-word', minWidth: 0 }}>
                         {user.username}
                       </Typography>
-
                       {isSuperAdmin && <Edit fontSize="small" color="action" />}
                     </Box>
-
                     <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5, overflowWrap: 'break-word' }}>
                       {user.email || '-'}
                     </Typography>
-
                     <Typography variant="caption" color="text.secondary" sx={{ display: 'block', overflowWrap: 'break-word' }}>
                       注册于 {new Date(user.created_at).toLocaleString('zh-CN')}
                     </Typography>
-
                   </CardContent>
-
                 </CardActionArea>
-
               </Card>
-
             </Grid>
-
           ))}
           {users.length === 0 && (
             <Grid item xs={12}>
               <Box sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
                 暂无用户
               </Box>
-
             </Grid>
-
           )}
         </Grid>
-
       ) : (
         <TableContainer>
           <Table size="small">
             <TableHead>
               <TableRow>
                 <TableCell>用户名</TableCell>
-
                 <TableCell>邮箱</TableCell>
-
                 <TableCell>角色</TableCell>
-
                 <TableCell>状态</TableCell>
-
                 <TableCell>注册时间</TableCell>
-
               </TableRow>
-
             </TableHead>
-
             <TableBody>
               {users.map((user) => (
                 <TableRow
@@ -268,20 +234,13 @@ export function Users() {
                       <Typography variant="body2" sx={{ overflowWrap: 'break-word', minWidth: 0 }}>
                         {user.username}
                       </Typography>
-
                       {isSuperAdmin && <Edit fontSize="small" color="action" />}
                     </Box>
-
                   </TableCell>
-
                   <TableCell>{user.email || '-'}</TableCell>
-
                   <TableCell>{user.role === 'super_admin' ? '超级管理员' : user.role === 'admin' ? '管理员' : '访客'}</TableCell>
-
                   <TableCell>{user.status === 1 ? '正常' : '禁用'}</TableCell>
-
                   <TableCell>{new Date(user.created_at).toLocaleString()}</TableCell>
-
                   {isSuperAdmin && (
                     <ButtonBase
                       onClick={() => handleOpenEdit(user)}
@@ -298,7 +257,6 @@ export function Users() {
                     />
                   )}
                 </TableRow>
-
               ))}
               {users.length === 0 && (
                 <TableRow>
@@ -306,18 +264,12 @@ export function Users() {
                     <Typography color="text.secondary" sx={{ py: 4 }}>
                       暂无用户
                     </Typography>
-
                   </TableCell>
-
                 </TableRow>
-
               )}
             </TableBody>
-
           </Table>
-
         </TableContainer>
-
       )}
       <TablePagination
         component="div"
@@ -337,10 +289,8 @@ export function Users() {
           },
         }}
       />
-
       <Dialog open={!!editUser} onClose={handleCloseEdit} fullWidth maxWidth="sm" TransitionComponent={Grow} BackdropProps={{ 'aria-hidden': false }}>
         <DialogTitle>编辑用户信息</DialogTitle>
-
         <DialogContent>
           <Box sx={{ display: 'grid', gap: 3, pt: 1 }}>
             <TextField
@@ -358,35 +308,25 @@ export function Users() {
             />
             <FormControl fullWidth>
               <InputLabel>角色</InputLabel>
-
               <Select
                 value={editForm.role || 'guest'}
                 label="角色"
                 onChange={(e) => setEditForm((prev) => ({ ...prev, role: e.target.value as string }))}
               >
                 <MenuItem value="guest">访客</MenuItem>
-
                 <MenuItem value="admin">管理员</MenuItem>
-
                 <MenuItem value="super_admin">超级管理员</MenuItem>
-
               </Select>
-
             </FormControl>
-
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, minWidth: 0 }}>
               <Switch
                 checked={!!editForm.status}
                 onChange={(e) => setEditForm((prev) => ({ ...prev, status: e.target.checked ? 1 : 0 }))}
               />
               <Typography variant="body2" sx={{ overflowWrap: 'break-word' }}>{editForm.status ? '账户正常' : '账户禁用'}</Typography>
-
             </Box>
-
           </Box>
-
         </DialogContent>
-
         <DialogActions sx={{ px: 3, pb: 2, justifyContent: 'space-between' }}>
           <Button
             color="error"
@@ -396,33 +336,24 @@ export function Users() {
           >
             删除
           </Button>
-
           <Box sx={{ display: 'flex', gap: 1 }}>
             <Button onClick={handleCloseEdit} disabled={editSaving}>
               取消
             </Button>
-
             <Button variant="contained" startIcon={editSaving ? <CircularProgress size={16} color="inherit" /> : <Save />} onClick={handleSaveEdit} disabled={editSaving}>
               {editSaving ? '保存中...' : '保存'}
             </Button>
-
           </Box>
-
         </DialogActions>
-
       </Dialog>
-
-
       <ConfirmDialog
         open={!!deleteUser}
         title="确认删除用户"
         content={
           <>
             确定要删除用户 <strong>{deleteUser?.username}</strong> 吗？
-
             该用户的点赞、评论、登录令牌等关联数据将一并删除，此操作不可恢复。
           </>
-
         }
         confirmText="确认删除"
         confirmColor="error"
@@ -431,8 +362,6 @@ export function Users() {
         onConfirm={handleConfirmDelete}
       />
     </Paper>
-
     </Fade>
-
   );
 }

@@ -24,7 +24,6 @@ import {
 import type { AppearanceEditor } from '../useAppearanceEditor';
 import type { ClickEffectType, ClickEffectColorMode, ClickEffectIntensity } from '@/types';
 import { ClickEffectPreview } from '@/components/ClickEffect/ClickEffectPreview';
-
 const EFFECT_OPTIONS: { value: ClickEffectType; label: string; icon: React.ReactNode; desc: string }[] = [
   { value: 'heart', label: '爱心', icon: <Favorite />, desc: '点击处升起漂浮爱心' },
   { value: 'ripple', label: '涟漪', icon: <Waves />, desc: '扩散的圆环水波纹' },
@@ -34,19 +33,16 @@ const EFFECT_OPTIONS: { value: ClickEffectType; label: string; icon: React.React
   { value: 'star', label: '星星', icon: <Star />, desc: '旋转的小星星四散' },
   { value: 'confetti', label: '彩纸', icon: <AutoAwesome />, desc: '彩色纸屑飞舞飘落' },
 ];
-
 const COLOR_OPTIONS: { value: ClickEffectColorMode; label: string }[] = [
   { value: 'theme', label: '主题色' },
   { value: 'random', label: '随机马卡龙' },
   { value: 'custom', label: '自定义' },
 ];
-
 const INTENSITY_OPTIONS: { value: ClickEffectIntensity; label: string }[] = [
   { value: 'low', label: '稀疏' },
   { value: 'medium', label: '适中' },
   { value: 'high', label: '密集' },
 ];
-
 export function ClickEffectPanel({ editor }: { editor: AppearanceEditor }) {
   const theme = useTheme();
   const {
@@ -63,7 +59,6 @@ export function ClickEffectPanel({ editor }: { editor: AppearanceEditor }) {
     clickEffectIntensity,
     setClickEffectIntensity,
   } = editor;
-
   return (
     <Stack spacing={3}>
       <Paper
@@ -81,13 +76,10 @@ export function ClickEffectPanel({ editor }: { editor: AppearanceEditor }) {
             <Typography variant="h6" sx={{ fontWeight: 700 }}>
               点击特效
             </Typography>
-
             <Typography variant="body2" color="text.secondary">
               在页面任意位置点击时触发趣味动画
             </Typography>
-
           </Box>
-
           <FormControlLabel
             control={
               <Switch
@@ -98,15 +90,11 @@ export function ClickEffectPanel({ editor }: { editor: AppearanceEditor }) {
             label={clickEffectEnabled ? '已开启' : '已关闭'}
           />
         </Stack>
-
       </Paper>
-
-
       <Paper elevation={0} sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
         <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>
           效果样式
         </Typography>
-
         <Box
           sx={{
             display: 'grid',
@@ -138,34 +126,24 @@ export function ClickEffectPanel({ editor }: { editor: AppearanceEditor }) {
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     {opt.icon}
                   </Box>
-
                   <Box sx={{ textAlign: 'left' }}>
                     <Typography variant="body2" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
                       {opt.label}
                     </Typography>
-
                     <Typography variant="caption" sx={{ opacity: 0.8, lineHeight: 1.2 }}>
                       {opt.desc}
                     </Typography>
-
                   </Box>
-
                 </Stack>
-
               </Button>
-
             );
           })}
         </Box>
-
       </Paper>
-
-
       <Paper elevation={0} sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
         <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>
           颜色模式
         </Typography>
-
         <ToggleButtonGroup
           value={clickEffectColorMode}
           exclusive
@@ -190,11 +168,8 @@ export function ClickEffectPanel({ editor }: { editor: AppearanceEditor }) {
             <ToggleButton key={opt.value} value={opt.value}>
               {opt.label}
             </ToggleButton>
-
           ))}
         </ToggleButtonGroup>
-
-
         {clickEffectColorMode === 'custom' && (
           <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
             <TextField
@@ -216,21 +191,16 @@ export function ClickEffectPanel({ editor }: { editor: AppearanceEditor }) {
               }}
             />
           </Box>
-
         )}
       </Paper>
-
-
       {clickEffectType === 'text' && (
         <Paper elevation={0} sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
           <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
             漂浮文字
           </Typography>
-
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
             每行一个，点击时按顺序循环显示
           </Typography>
-
           <TextField
             multiline
             rows={5}
@@ -240,14 +210,11 @@ export function ClickEffectPanel({ editor }: { editor: AppearanceEditor }) {
             placeholder="富强&#10;民主&#10;文明"
           />
         </Paper>
-
       )}
-
       <Paper elevation={0} sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
         <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>
           粒子密度
         </Typography>
-
         <ToggleButtonGroup
           value={clickEffectIntensity}
           exclusive
@@ -272,13 +239,9 @@ export function ClickEffectPanel({ editor }: { editor: AppearanceEditor }) {
             <ToggleButton key={opt.value} value={opt.value}>
               {opt.label}
             </ToggleButton>
-
           ))}
         </ToggleButtonGroup>
-
       </Paper>
-
-
       <Paper
         elevation={0}
         sx={{
@@ -294,11 +257,9 @@ export function ClickEffectPanel({ editor }: { editor: AppearanceEditor }) {
         <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
           实时预览
         </Typography>
-
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
           点击下方区域即可按当前设置预览（保存后全站生效）
         </Typography>
-
         <ClickEffectPreview
           config={{
             enabled: clickEffectEnabled,
@@ -311,8 +272,6 @@ export function ClickEffectPanel({ editor }: { editor: AppearanceEditor }) {
           themeColor={theme.palette.primary.main}
         />
       </Paper>
-
     </Stack>
-
   );
 }

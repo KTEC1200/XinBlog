@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import { Box, IconButton, Slider, Typography, alpha, keyframes, CircularProgress } from '@mui/material';
 import { PlayArrow, Pause, MusicNote, SkipPrevious, SkipNext } from '@mui/icons-material';
 import type { HeroWidgetConfig } from '@/types';
-
 interface NeteaseTrack {
   id: string | number;
   title: string;
@@ -11,7 +10,6 @@ interface NeteaseTrack {
   src: string;
   lrcUrl?: string;
 }
-
 interface MusicWidgetPropsFromConfig {
   mode?: 'single' | 'netease';
   src?: string;
@@ -21,17 +19,14 @@ interface MusicWidgetPropsFromConfig {
   songIds?: string;
   autoplay?: boolean;
 }
-
 interface LyricLine {
   time: number;
   text: string;
 }
-
 const spin = keyframes`
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 `;
-
 function parseLrc(lrcText: string): LyricLine[] {
   if (!lrcText || lrcText.length > 20000) return [];
   const lines = lrcText.split('\n');
@@ -53,14 +48,12 @@ function parseLrc(lrcText: string): LyricLine[] {
   }
   return result.sort((a, b) => a.time - b.time);
 }
-
 function formatTime(t: number) {
   if (!isFinite(t) || isNaN(t)) return '0:00';
   const m = Math.floor(t / 60);
   const s = Math.floor(t % 60);
   return `${m}:${String(s).padStart(2, '0')}`;
 }
-
 function parseSongIds(raw?: string): string[] {
   if (!raw) return [];
   return raw
@@ -68,11 +61,9 @@ function parseSongIds(raw?: string): string[] {
     .map((s) => s.trim())
     .filter(Boolean);
 }
-
 export function MusicWidget({ config }: { config: HeroWidgetConfig }) {
   const props = (config.props || {}) as MusicWidgetPropsFromConfig;
   const mode = props.mode || 'single';
-
   const [playlist, setPlaylist] = useState<NeteaseTrack[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -82,8 +73,6 @@ export function MusicWidget({ config }: { config: HeroWidgetConfig }) {
   const [lyrics, setLyrics] = useState<LyricLine[]>([]);
   const [currentLyric, setCurrentLyric] = useState('');
   const audioRef = useRef<HTMLAudioElement | null>(null);
-
-  
   useEffect(() => {
     if (mode !== 'single') return;
     const single: NeteaseTrack = {
@@ -98,8 +87,6 @@ export function MusicWidget({ config }: { config: HeroWidgetConfig }) {
     setCurrentLyric('');
     setLyrics([]);
   }, [mode, props.src, props.title, props.artist, props.cover]);
-
-  
   useEffect(() => {
     if (mode !== 'netease') return;
     const ids = parseSongIds(props.songIds);
@@ -152,10 +139,7 @@ export function MusicWidget({ config }: { config: HeroWidgetConfig }) {
       cancelled = true;
     };
   }, [mode, props.songIds]);
-
   const currentSong = playlist[currentIndex];
-
-  
   useEffect(() => {
     if (!currentSong) {
       setLyrics([]);
@@ -166,7 +150,6 @@ export function MusicWidget({ config }: { config: HeroWidgetConfig }) {
     setDuration(0);
     setLyrics([]);
     setCurrentLyric('♪ 纯享音乐 ♪');
-
     if (!currentSong.lrcUrl) return;
     let cancelled = false;
     fetch(currentSong.lrcUrl)
@@ -184,8 +167,6 @@ export function MusicWidget({ config }: { config: HeroWidgetConfig }) {
       cancelled = true;
     };
   }, [currentSong]);
-
-  
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio || !currentSong) return;
@@ -194,9 +175,8 @@ export function MusicWidget({ config }: { config: HeroWidgetConfig }) {
     if (isPlaying) {
       audio.play().catch(() => setIsPlaying(false));
     }
-    
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentSong?.src]);
-
   const togglePlay = () => {
     const audio = audioRef.current;
     if (!audio || !currentSong) return;
@@ -207,24 +187,20 @@ export function MusicWidget({ config }: { config: HeroWidgetConfig }) {
       audio.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
     }
   };
-
   const prevSong = () => {
     if (playlist.length <= 1) return;
     setCurrentIndex((prev) => (prev - 1 + playlist.length) % playlist.length);
   };
-
   const nextSong = () => {
     if (playlist.length <= 1) return;
     setCurrentIndex((prev) => (prev + 1) % playlist.length);
   };
-
   const handleSeek = (_: Event, value: number | number[]) => {
     const audio = audioRef.current;
     if (!audio || !duration) return;
     const progress = Array.isArray(value) ? value[0] : value;
     audio.currentTime = (progress / 100) * duration;
   };
-
   const handleTimeUpdate = () => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -236,11 +212,8 @@ export function MusicWidget({ config }: { config: HeroWidgetConfig }) {
       if (active) setCurrentLyric(active.text);
     }
   };
-
   const coverUrl = currentSong?.cover || '';
   const hasMultiple = playlist.length > 1;
-
-  
   const { w, h } = config;
   const isTiny = w === 1 && h === 1;
   const isTall = w === 1 && h >= 2;
@@ -250,7 +223,6 @@ export function MusicWidget({ config }: { config: HeroWidgetConfig }) {
   const coverSize = isTiny ? 32 : isCompact ? 40 : isLarge ? 64 : 52;
   const playButtonSize = isTiny ? 32 : isCompact ? 36 : isLarge ? 52 : 44;
   const showLyric = !isTiny && !isWide;
-
   return (
     <Box
       sx={{
@@ -283,7 +255,6 @@ export function MusicWidget({ config }: { config: HeroWidgetConfig }) {
           zIndex: 0,
         }}
       />
-
       <Box
         sx={{
           display: 'flex',
@@ -326,7 +297,6 @@ export function MusicWidget({ config }: { config: HeroWidgetConfig }) {
             >
               <MusicNote />
             </Box>
-
           )}
           <Box
             sx={{
@@ -342,28 +312,20 @@ export function MusicWidget({ config }: { config: HeroWidgetConfig }) {
             }}
           />
         </Box>
-
-
         <Box sx={{ minWidth: 0, flex: 1 }}>
           <Typography variant="subtitle2" fontWeight={700} noWrap>
             {currentSong?.title || '未配置音乐'}
           </Typography>
-
           <Typography variant="caption" color="text.secondary" noWrap>
             {currentSong?.artist || (mode === 'netease' ? '请填写网易云音乐 ID' : '请在编辑中填写音频地址')}
           </Typography>
-
           {hasMultiple && (
             <Typography variant="caption" color="primary" sx={{ display: 'block' }}>
               {currentIndex + 1} / {playlist.length}
             </Typography>
-
           )}
         </Box>
-
       </Box>
-
-
       {}
       {showLyric && (
         <Typography
@@ -381,15 +343,12 @@ export function MusicWidget({ config }: { config: HeroWidgetConfig }) {
         >
           {loading ? '加载歌单中...' : currentLyric}
         </Typography>
-
       )}
-
       {}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, position: 'relative', zIndex: 1 }}>
         <IconButton size="small" onClick={prevSong} disabled={!hasMultiple || loading} sx={{ color: 'text.primary' }}>
           <SkipPrevious fontSize="small" />
         </IconButton>
-
         <IconButton
           size="medium"
           onClick={togglePlay}
@@ -406,20 +365,15 @@ export function MusicWidget({ config }: { config: HeroWidgetConfig }) {
         >
           {isPlaying ? <Pause fontSize={isCompact ? 'small' : 'medium'} /> : <PlayArrow fontSize={isCompact ? 'small' : 'medium'} />}
         </IconButton>
-
         <IconButton size="small" onClick={nextSong} disabled={!hasMultiple || loading} sx={{ color: 'text.primary' }}>
           <SkipNext fontSize="small" />
         </IconButton>
-
       </Box>
-
-
       {}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, position: 'relative', zIndex: 1 }}>
         <Typography variant="caption" color="text.secondary" sx={{ minWidth: 32, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
           {formatTime(currentTime)}
         </Typography>
-
         <Slider
           size="small"
           value={duration ? (currentTime / duration) * 100 : 0}
@@ -438,10 +392,7 @@ export function MusicWidget({ config }: { config: HeroWidgetConfig }) {
         <Typography variant="caption" color="text.secondary" sx={{ minWidth: 32, fontVariantNumeric: 'tabular-nums' }}>
           {formatTime(duration)}
         </Typography>
-
       </Box>
-
-
       {loading && (
         <Box
           sx={{
@@ -457,9 +408,7 @@ export function MusicWidget({ config }: { config: HeroWidgetConfig }) {
         >
           <CircularProgress size={24} />
         </Box>
-
       )}
-
       <audio
         ref={audioRef}
         onTimeUpdate={handleTimeUpdate}
@@ -467,6 +416,5 @@ export function MusicWidget({ config }: { config: HeroWidgetConfig }) {
         onEnded={nextSong}
       />
     </Box>
-
   );
 }

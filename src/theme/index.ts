@@ -3,7 +3,6 @@ import { createTheme, type ThemeOptions, alpha } from '@mui/material/styles';
 import { getActiveColors, useThemeConfigStore, type CustomThemeConfig } from '@/stores/themeConfigStore';
 import { useThemeStore } from '@/stores/themeStore';
 import { themePresets } from '@/types/theme';
-
 declare module '@mui/material/styles' {
   interface Palette {
     gradient: {
@@ -18,7 +17,6 @@ declare module '@mui/material/styles' {
     };
   }
 }
-
 export const getThemeOptions = (
   mode: 'light' | 'dark',
   config?: Partial<CustomThemeConfig>
@@ -29,7 +27,6 @@ export const getThemeOptions = (
   const { borderRadius } = activeConfig;
   const preset = themePresets.find((p) => p.id === activeConfig.presetId);
   const isSolid = Boolean(preset?.solid);
-
   return {
     palette: {
       mode,
@@ -156,18 +153,14 @@ export const getThemeOptions = (
     },
   };
 };
-
 export const createAppTheme = (mode: 'light' | 'dark', config?: Partial<CustomThemeConfig>) =>
   createTheme(getThemeOptions(mode, config));
-
 export function useAppTheme() {
   const { mode } = useThemeStore();
-  
   const presetId = useThemeConfigStore((state) => state.presetId);
   const useCustomColors = useThemeConfigStore((state) => state.useCustomColors);
   const customColors = useThemeConfigStore((state) => state.customColors);
   const borderRadius = useThemeConfigStore((state) => state.borderRadius);
-  
   return useMemo(
     () => createAppTheme(mode, { presetId, useCustomColors, customColors, borderRadius }),
     [mode, presetId, useCustomColors, customColors, borderRadius]

@@ -3,18 +3,15 @@ import dayjs from 'dayjs';
 import type { Post } from '@/types';
 import { PostDetailBackButton } from './PostDetailBackButton';
 import { TagChip } from '@/components/Common/TagChip';
-
 interface PostDetailHeaderProps {
   post: Post;
   showBackButton?: boolean;
   titleColor?: string;
 }
-
 export function PostDetailHeader({ post, showBackButton = true, titleColor }: PostDetailHeaderProps) {
   return (
     <Box component="header" sx={{ mb: { xs: 3, md: 4 } }}>
       {showBackButton && <PostDetailBackButton />}
-
       {post.cover && (
         <Box
           sx={{
@@ -39,9 +36,7 @@ export function PostDetailHeader({ post, showBackButton = true, titleColor }: Po
         >
           <Box component="img" src={post.cover} alt={post.title} loading="eager" />
         </Box>
-
       )}
-
       <Box
         sx={{
           display: 'flex',
@@ -80,17 +75,12 @@ export function PostDetailHeader({ post, showBackButton = true, titleColor }: Po
             <circle cx="12" cy="12" r="10" />
             <polyline points="12 6 12 12 16 14" />
           </Box>
-
           写作时间：{dayjs(post.createdAt).format('YYYY-MM-DD')}
         </Box>
-
-
         {post.tags.map((tag) => (
           <TagChip key={tag.id} tag={tag} />
         ))}
       </Box>
-
-
       <Typography
         variant="h1"
         sx={{
@@ -106,8 +96,6 @@ export function PostDetailHeader({ post, showBackButton = true, titleColor }: Po
       >
         {post.title}
       </Typography>
-
     </Box>
-
   );
 }

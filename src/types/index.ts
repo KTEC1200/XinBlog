@@ -1,11 +1,9 @@
 import type { ThemeColorConfig } from './theme';
 import type { SxProps, Theme } from '@mui/material/styles';
-
 export interface ThemeParamOption {
   value: string;
   label: string;
 }
-
 export interface ThemeParamSchema {
   key: string;
   label: string;
@@ -15,7 +13,6 @@ export interface ThemeParamSchema {
   step?: number;
   options?: ThemeParamOption[];
 }
-
 export interface Tag {
   id: string;
   name: string;
@@ -23,7 +20,6 @@ export interface Tag {
   color?: string;
   count?: number;
 }
-
 export interface Post {
   id: string;
   title: string;
@@ -39,12 +35,10 @@ export interface Post {
   readingTime: number;
   views?: number;
 }
-
 export interface UserFontFile {
   url: string;
   format: 'woff2' | 'woff' | 'truetype' | 'opentype';
 }
-
 export interface UserFont {
   id: string;
   name: string;
@@ -52,13 +46,11 @@ export interface UserFont {
   preview: string;
   files: UserFontFile[];
 }
-
 export interface SiteFontConfig {
   activeFontId?: string;
   fonts?: UserFont[];
   fallback?: string;
 }
-
 export interface UserCursorFile {
   url: string;
   format: 'cur' | 'ani';
@@ -66,24 +58,20 @@ export interface UserCursorFile {
   hotspotX?: number;
   hotspotY?: number;
 }
-
 export interface UserCursor {
   id: string;
   name: string;
   preview: string;
   files: UserCursorFile[];
 }
-
 export interface SiteCursorConfig {
   activeCursorId?: string;
   cursors?: UserCursor[];
   size?: number;
 }
-
 export type ClickEffectType = 'heart' | 'bubble' | 'ripple' | 'text' | 'firework' | 'star' | 'confetti';
 export type ClickEffectColorMode = 'theme' | 'random' | 'custom';
 export type ClickEffectIntensity = 'low' | 'medium' | 'high';
-
 export interface ClickEffectConfig {
   enabled: boolean;
   type: ClickEffectType;
@@ -92,7 +80,6 @@ export interface ClickEffectConfig {
   textList?: string[];
   intensity?: ClickEffectIntensity;
 }
-
 export interface PostCardThemeConfig {
   variant: string;
   layout?: 'overlay' | 'clean' | string;
@@ -111,20 +98,16 @@ export interface PostCardThemeConfig {
   params?: Record<string, unknown>;
   schema?: ThemeParamSchema[];
 }
-
 export interface SceneThemeConfig {
   variant: string;
   params?: Record<string, unknown>;
   schema?: ThemeParamSchema[];
 }
-
-
 export interface ChatBubbleThemeConfig {
   variant: string;
   params?: Record<string, unknown>;
   schema?: ThemeParamSchema[];
 }
-
 export interface PostDetailThemeConfig {
   variant: string;
   params?: Record<string, unknown>;
@@ -136,14 +119,12 @@ export interface PostDetailThemeConfig {
   glassOpacity?: number;
   contentMaxWidth?: number;
 }
-
 export interface ThemeComponents {
   postCard: PostCardThemeConfig;
   scene?: SceneThemeConfig;
   postDetail?: PostDetailThemeConfig;
   chatBubble?: ChatBubbleThemeConfig;
 }
-
 export interface ThemePackage {
   id: string;
   name: string;
@@ -154,7 +135,6 @@ export interface ThemePackage {
   minAppVersion?: string;
   components: ThemeComponents;
 }
-
 export interface Live2dConfig {
   enabled: boolean;
   mobileEnabled: boolean;
@@ -174,67 +154,38 @@ export interface Live2dConfig {
   cubism2Path: string;
   cubism5Path: string;
 }
-
 export type MusicPlayMode = 'list' | 'single' | 'random';
-
 export interface MusicPlayerConfig {
   enabled: boolean;
-  
   apiUrl: string;
-  
   playlistId: string;
-  
   volume: number;
-  
   playMode: MusicPlayMode;
-  
   autoplay: boolean;
-  
   showLyric: boolean;
-  
   memory: boolean;
-  
   position: 'left' | 'right';
-  
   showInAdmin: boolean;
-  
   showPage: boolean;
-  
   imageProxy: boolean;
 }
-
-
 export interface SpacingValue {
   mobile: number;
   desktop: number;
 }
-
-
 export interface SpacingConfig {
-  
   mainPaddingX: SpacingValue;
-  
   navPaddingX: SpacingValue;
-  
   navGap: SpacingValue;
-  
   footerPaddingY: SpacingValue;
-  
   footerLinkGap: SpacingValue;
-  
   articleHeadingGap: SpacingValue;
-  
   articleParagraphGap: SpacingValue;
-  
   postListGap: SpacingValue;
-  
   heroPaddingY: SpacingValue;
-  
   heroBottomGap: SpacingValue;
-  
   cardPaddingY: SpacingValue;
 }
-
 export interface SiteConfig {
   title?: string;
   subtitle?: string;
@@ -262,11 +213,8 @@ export interface SiteConfig {
   lazyLoadMedia?: boolean;
   enableLatex?: boolean;
   disableSmoothScroll?: boolean;
-  
   agentEnabled?: boolean;
-  
   imageDisplayMode?: 'fixed' | 'natural';
-  
   enableDashboardStats?: boolean;
   backgroundImage?: string;
   backgroundOpacity?: number;
@@ -282,7 +230,6 @@ export interface SiteConfig {
   termsPrivacy?: string;
   spacing?: SpacingConfig;
 }
-
 export interface FriendLink {
   id: number;
   name: string;
@@ -293,7 +240,6 @@ export interface FriendLink {
   createdAt?: string;
   updatedAt?: string;
 }
-
 export interface FriendsConfig {
   enabled: boolean;
   title: string;
@@ -302,12 +248,9 @@ export interface FriendsConfig {
   cardColor: string;
   avatarShape: 'circle' | 'rounded';
   showDescription: boolean;
-  
   applyEnabled?: boolean;
-  
   applyNeedsAudit?: boolean;
 }
-
 export interface FriendApplication {
   id: number;
   name: string;
@@ -320,7 +263,6 @@ export interface FriendApplication {
   createdAt?: string;
   updatedAt?: string;
 }
-
 export interface NavItemConfig {
   id: string;
   title: string;
@@ -328,7 +270,6 @@ export interface NavItemConfig {
   color?: string;
   openInNewTab?: boolean;
 }
-
 export interface NavThemeConfig {
   variant: 'default' | 'glass';
   glassOpacity?: number;
@@ -340,19 +281,17 @@ export interface NavThemeConfig {
   logoText?: string;
   hideOnScroll?: boolean;
 }
-
 export interface NavConfig {
+  layout?: 'sidebar' | 'top';
   items: NavItemConfig[];
   theme?: NavThemeConfig;
 }
-
 export interface SiteThemeConfig {
   presetId?: string;
   customColors?: ThemeColorConfig;
   useCustomColors?: boolean;
   borderRadius?: number;
 }
-
 export interface HeroWidgetConfig {
   id: string;
   type: string;
@@ -363,13 +302,11 @@ export interface HeroWidgetConfig {
   props?: Record<string, unknown>;
   hideOnMobile?: boolean;
 }
-
 export interface HeroLayout {
   cols: number;
   gap: number;
   widgets: HeroWidgetConfig[];
 }
-
 export interface HeroConfig {
   enabled?: boolean;
   mode?: 'classic' | 'bento';
@@ -381,18 +318,15 @@ export interface HeroConfig {
   badge?: string;
   layout?: HeroLayout;
 }
-
 export interface AboutConfig {
   avatar?: string;
   subtitle?: string;
   bio?: string;
   tags?: string[];
 }
-
 export interface NavItem {
   title: string;
   path: string;
   icon: string;
 }
-
 export type PaginationMode = 'load-more' | 'page-number';

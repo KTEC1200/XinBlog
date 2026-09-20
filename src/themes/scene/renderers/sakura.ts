@@ -1,6 +1,5 @@
 import { SakuraEffect, type SakuraEffectParams } from '@/themes/scene/components/SakuraEffect';
 import type { SceneThemeRenderer } from './base';
-
 export const sakuraSceneRenderer: SceneThemeRenderer<SakuraEffectParams> = {
   id: 'sakura',
   name: '樱花飘落',

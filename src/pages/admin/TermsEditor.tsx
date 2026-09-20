@@ -17,20 +17,16 @@ import { useSiteStore } from '@/stores/siteStore';
 import { Loading } from '@/components/Common/Loading';
 import { FloatingSaveButton } from '@/components/Common/FloatingSaveButton';
 import { useSnackbar } from 'notistack';
-
 type TermsTab = 'agreement' | 'privacy';
-
 const tabs: { id: TermsTab; label: string }[] = [
   { id: 'agreement', label: '用户协议' },
   { id: 'privacy', label: '隐私政策' },
 ];
-
 export function TermsEditor() {
   const theme = useTheme();
   const { enqueueSnackbar } = useSnackbar();
   const site = useSiteStore();
   const isMobileAdmin = useMediaQuery(theme.breakpoints.down('lg'));
-
   const [tab, setTab] = useState<TermsTab>('agreement');
   const [agreement, setAgreement] = useState('');
   const [privacy, setPrivacy] = useState('');
@@ -38,7 +34,6 @@ export function TermsEditor() {
   const [initialPrivacy, setInitialPrivacy] = useState('');
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(!site.loaded);
-
   useEffect(() => {
     if (site.loaded) {
       setLoading(false);
@@ -48,7 +43,6 @@ export function TermsEditor() {
       setInitialPrivacy(site.config.termsPrivacy ?? '');
     }
   }, [site.loaded, site.config.termsAgreement, site.config.termsPrivacy]);
-
   const currentContent = tab === 'agreement' ? agreement : privacy;
   const setCurrentContent = (v: string) => {
     if (tab === 'agreement') setAgreement(v);
@@ -56,7 +50,6 @@ export function TermsEditor() {
   };
   const initialContent = tab === 'agreement' ? initialAgreement : initialPrivacy;
   const isDirty = currentContent !== initialContent;
-
   const handleSave = async () => {
     setSaving(true);
     const ok = await site.saveConfig({
@@ -72,21 +65,16 @@ export function TermsEditor() {
       enqueueSnackbar('保存失败，请稍后再试', { variant: 'error' });
     }
   };
-
   if (loading) return <Loading />;
-
   return (
     <Fade in timeout={400}>
       <Box>
         <Typography variant="h5" sx={{ fontWeight: 700, mb: 1 }}>
           协议管理
         </Typography>
-
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
           编辑用户协议和隐私政策内容，支持 Markdown 格式。留空则使用默认内容。
         </Typography>
-
-
         {isMobileAdmin ? (
           <FormControl size="small" sx={{ mb: 3, minWidth: 140, maxWidth: '100%' }}>
             <Select<TermsTab>
@@ -108,12 +96,9 @@ export function TermsEditor() {
                 <MenuItem key={item.id} value={item.id}>
                   {item.label}
                 </MenuItem>
-
               ))}
             </Select>
-
           </FormControl>
-
         ) : (
           <Box
             onWheel={(e) => {
@@ -182,15 +167,11 @@ export function TermsEditor() {
                   >
                     {t.label}
                   </Button>
-
                 );
               })}
             </Box>
-
           </Box>
-
         )}
-
         <Paper
           elevation={0}
           sx={{
@@ -205,11 +186,9 @@ export function TermsEditor() {
           <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>
             {tab === 'agreement' ? '用户协议' : '隐私政策'}
           </Typography>
-
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
             使用 Markdown 格式编写内容。保存后前台页面将自动展示编辑后的内容。
           </Typography>
-
           <TextField
             value={currentContent}
             onChange={(e) => setCurrentContent(e.target.value)}
@@ -228,8 +207,6 @@ export function TermsEditor() {
             }}
           />
         </Paper>
-
-
         <FloatingSaveButton
           show={isDirty}
           saving={saving}
@@ -237,8 +214,6 @@ export function TermsEditor() {
           label="保存协议内容"
         />
       </Box>
-
     </Fade>
-
   );
 }

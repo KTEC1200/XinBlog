@@ -9,39 +9,27 @@ import PhoneInTalkIcon from '@mui/icons-material/PhoneInTalk';
 import VideocamIcon from '@mui/icons-material/Videocam';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { uploadChatImage } from '@/api/chat';
-
-
 const EmojiPicker = lazy(() => import('./EmojiPicker'));
-
 export interface ChatQuote {
   name: string;
   content: string;
-  
   timestamp?: number;
 }
-
 interface ChatInputProps {
   disabled?: boolean;
   quote?: ChatQuote | null;
   onClearQuote?: () => void;
   onSend: (text: string) => boolean;
-  
   focusSignal?: number;
-  
   roomKey: string;
-  
   onTyping?: () => void;
-  
   onVoiceCall?: () => void;
-  
   onVideoCall?: () => void;
 }
-
 function truncate(text: string, max: number): string {
   const s = text.replace(/\s+/g, ' ').trim();
   return s.length > max ? s.slice(0, max) + '…' : s;
 }
-
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -50,20 +38,13 @@ function fileToBase64(file: File): Promise<string> {
     reader.readAsDataURL(file);
   });
 }
-
-
-
 const MAX_UPLOAD_BASE64 = 105_000; 
-
-
 async function compressToUploadable(file: File): Promise<{ mime: string; base64: string }> {
   const rawDataUrl = await fileToBase64(file);
   const rawBase64 = rawDataUrl.slice(rawDataUrl.indexOf(',') + 1);
-  
   if (rawBase64.length <= MAX_UPLOAD_BASE64) {
     return { mime: file.type, base64: rawBase64 };
   }
-  
   if (typeof createImageBitmap !== 'function') {
     return file.type.startsWith('image/') ? { mime: file.type, base64: rawBase64 } : { mime: 'image/jpeg', base64: rawBase64 };
   }
@@ -98,26 +79,17 @@ async function compressToUploadable(file: File): Promise<{ mime: string; base64:
   source.close?.();
   return { mime: 'image/jpeg', base64 };
 }
-
 export default function ChatInput({ disabled, quote, onClearQuote, onSend, focusSignal, roomKey, onTyping, onVoiceCall, onVideoCall }: ChatInputProps) {
   const [value, setValue] = useState('');
-  
   const [inputFocused, setInputFocused] = useState(false);
-  
   const [open, setOpen] = useState(false);
-  
   const [activeView, setActiveView] = useState<'menu' | 'emoji'>('menu');
-  
   const [panelHeight, setPanelHeight] = useState(0);
   const [uploading, setUploading] = useState(false);
-  
   const [postError, setPostError] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
-
-  
-  
   useLayoutEffect(() => {
     const el = innerRef.current;
     if (!open) {
@@ -134,11 +106,7 @@ export default function ChatInput({ disabled, quote, onClearQuote, onSend, focus
     }
     return undefined;
   }, [open]);
-
-  
   const close = () => setOpen(false);
-
-  
   useEffect(() => {
     if (!open) return;
     const handler = (e: MouseEvent) => {
@@ -146,17 +114,12 @@ export default function ChatInput({ disabled, quote, onClearQuote, onSend, focus
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
-    
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
-
-  
   useEffect(() => {
     if (focusSignal && focusSignal > 0) inputRef.current?.focus();
   }, [focusSignal]);
-
   const doSend = () => {
-    
-    
     const quoted = quote
       ? quote.timestamp
         ? `> [@${quote.name}：${truncate(quote.content, 100)}](cite:${quote.timestamp})\n\n`
@@ -168,12 +131,10 @@ export default function ChatInput({ disabled, quote, onClearQuote, onSend, focus
       onClearQuote?.();
     }
   };
-
   const insertEmoji = (emoji: string) => {
     setValue((v) => v + emoji);
     inputRef.current?.focus();
   };
-
   const handleImageFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = '';
@@ -202,12 +163,10 @@ export default function ChatInput({ disabled, quote, onClearQuote, onSend, focus
       setUploading(false);
     }
   };
-
   const showPostError = (msg: string) => {
     setPostError(msg);
     window.setTimeout(() => setPostError((cur) => (cur === msg ? '' : cur)), 3000);
   };
-
   return (
     <Box
       ref={rootRef}
@@ -241,18 +200,13 @@ export default function ChatInput({ disabled, quote, onClearQuote, onSend, focus
             <Box component="span" sx={{ color: 'primary.main', fontWeight: 700 }}>
               引用
             </Box>
-
             {' '}@{quote.name}：{quote.content}
           </Typography>
-
           <IconButton size="small" onClick={() => onClearQuote?.()} aria-label="取消引用" sx={{ flexShrink: 0 }}>
             <CloseIcon sx={{ fontSize: 16 }} />
           </IconButton>
-
         </Box>
-
       )}
-
       <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 1 }}>
         <InputBase
           inputRef={inputRef}
@@ -263,7 +217,6 @@ export default function ChatInput({ disabled, quote, onClearQuote, onSend, focus
           onChange={(e) => {
             const next = e.target.value;
             setValue(next);
-            
             if (inputFocused && next.trim()) onTyping?.();
           }}
           placeholder={disabled ? '正在连接聊天室…' : '说点什么…'}
@@ -285,7 +238,6 @@ export default function ChatInput({ disabled, quote, onClearQuote, onSend, focus
             borderColor: (t) => alpha(t.palette.divider, 0.7),
             transition: 'border-color .2s ease, box-shadow .2s ease, background-color .2s ease',
             fontSize: '0.95rem',
-            
             '&.Mui-focused': {
               borderColor: (t) => t.palette.primary.main,
               boxShadow: (t) => `0 0 0 3px ${alpha(t.palette.primary.main, 0.14)}`,
@@ -305,7 +257,6 @@ export default function ChatInput({ disabled, quote, onClearQuote, onSend, focus
         >
           <SendIcon sx={{ fontSize: 22 }} />
         </IconButton>
-
         {}
         <IconButton
           color={open ? 'primary' : 'default'}
@@ -325,10 +276,7 @@ export default function ChatInput({ disabled, quote, onClearQuote, onSend, focus
         >
           <AddCircleOutlineIcon sx={{ fontSize: 26 }} />
         </IconButton>
-
       </Box>
-
-
       {}
       <Box
         sx={{
@@ -356,9 +304,7 @@ export default function ChatInput({ disabled, quote, onClearQuote, onSend, focus
           >
             {postError}
           </Typography>
-
         )}
-
         {}
         {(open || panelHeight > 0) && activeView === 'menu' && (
           <Box sx={{ display: 'flex', gap: 1.5, p: 1.5 }}>
@@ -394,13 +340,10 @@ export default function ChatInput({ disabled, quote, onClearQuote, onSend, focus
                 >
                   <SentimentSatisfiedAltIcon sx={{ fontSize: 28 }} />
                 </Box>
-
                 <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                   表情
                 </Typography>
-
               </Box>
-
               {}
               <Box
                 component="label"
@@ -433,13 +376,10 @@ export default function ChatInput({ disabled, quote, onClearQuote, onSend, focus
                 >
                   {uploading ? <CircularProgress size={22} /> : <ImageIcon sx={{ fontSize: 28 }} />}
                 </Box>
-
                 <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                   图片
                 </Typography>
-
               </Box>
-
               {}
               <Box
                 component="button"
@@ -476,13 +416,10 @@ export default function ChatInput({ disabled, quote, onClearQuote, onSend, focus
                 >
                   <PhoneInTalkIcon sx={{ fontSize: 28 }} />
                 </Box>
-
                 <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                   语音通话
                 </Typography>
-
               </Box>
-
               {}
               <Box
                 component="button"
@@ -519,17 +456,12 @@ export default function ChatInput({ disabled, quote, onClearQuote, onSend, focus
                 >
                   <VideocamIcon sx={{ fontSize: 28 }} />
                 </Box>
-
                 <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                   视频通话
                 </Typography>
-
               </Box>
-
             </Box>
-
           )}
-
           {}
           {(open || panelHeight > 0) && activeView === 'emoji' && (
             <Box>
@@ -537,29 +469,19 @@ export default function ChatInput({ disabled, quote, onClearQuote, onSend, focus
                 <IconButton size="small" onClick={() => setActiveView('menu')} aria-label="返回菜单">
                   <ArrowBackIcon sx={{ fontSize: 20 }} />
                 </IconButton>
-
                 <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
                   表情
                 </Typography>
-
               </Box>
-
               <Suspense fallback={<Box sx={{ height: 240, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><CircularProgress size={28} /></Box>}>
-
                 <Box sx={{ p: 0.5 }}>
                   <EmojiPicker onEmoji={insertEmoji} />
                 </Box>
-
               </Suspense>
-
             </Box>
-
           )}
         </Box>
-
       </Box>
-
     </Box>
-
   );
 }

@@ -4,7 +4,6 @@ import { Edit, DeleteOutline, OpenWith, PhoneAndroid } from '@mui/icons-material
 import type { HeroConfig, HeroWidgetConfig } from '@/types';
 import { fillHeroWidgetProps, getHeroWidgetDefinition } from './heroWidgetRegistry';
 import { HeroEditContext } from './HeroEditContext';
-
 interface HeroBentoProps {
   hero: HeroConfig;
   editable?: boolean;
@@ -12,7 +11,6 @@ interface HeroBentoProps {
   onEdit?: (widget: HeroWidgetConfig) => void;
   onDelete?: (widget: HeroWidgetConfig) => void;
 }
-
 interface DragState {
   id: string;
   startX: number;
@@ -24,11 +22,9 @@ interface DragState {
   offsetX: number;
   offsetY: number;
 }
-
 const FIXED_COLS = 6;
 const GAP = 16;
 const MIN_ROWS = 4;
-
 function WidgetGlassCard({
   children,
   opacity,
@@ -106,9 +102,7 @@ function WidgetGlassCard({
             <Box component="span" sx={{ fontSize: 12, fontWeight: 700, color: 'text.primary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {title}
             </Box>
-
           </Box>
-
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
             {hideOnMobile && (
               <Box
@@ -127,32 +121,23 @@ function WidgetGlassCard({
                 <Box component="span" sx={{ fontSize: 10, fontWeight: 700 }}>
                   移动端隐藏
                 </Box>
-
               </Box>
-
             )}
             <IconButton size="small" onClick={(e) => { e.stopPropagation(); onEdit?.(); }} sx={{ width: 22, height: 22 }}>
               <Edit sx={{ fontSize: 12 }} />
             </IconButton>
-
             <IconButton size="small" color="error" onClick={(e) => { e.stopPropagation(); onDelete?.(); }} sx={{ width: 22, height: 22 }}>
               <DeleteOutline sx={{ fontSize: 12 }} />
             </IconButton>
-
           </Box>
-
         </Box>
-
       )}
       <Box sx={{ width: '100%', height: '100%', pt: editable ? '28px' : 0, boxSizing: 'border-box' }}>
         {children}
       </Box>
-
     </Box>
-
   );
 }
-
 export function HeroBento({ hero, editable = false, onChange, onEdit, onDelete }: HeroBentoProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -161,15 +146,12 @@ export function HeroBento({ hero, editable = false, onChange, onEdit, onDelete }
   const [drag, setDrag] = useState<DragState | null>(null);
   const [liveWidgets, setLiveWidgets] = useState<HeroWidgetConfig[]>(hero.layout?.widgets || []);
   const liveWidgetsRef = useRef(liveWidgets);
-
   useEffect(() => {
     liveWidgetsRef.current = liveWidgets;
   }, [liveWidgets]);
-
   useEffect(() => {
     setLiveWidgets(hero.layout?.widgets || []);
   }, [hero.layout?.widgets]);
-
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -179,9 +161,7 @@ export function HeroBento({ hero, editable = false, onChange, onEdit, onDelete }
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
-
   const cellSize = containerWidth > 0 ? containerWidth / FIXED_COLS : 0;
-
   useEffect(() => {
     if (!drag || !editable) return;
     const handleMove = (e: MouseEvent) => {
@@ -208,7 +188,6 @@ export function HeroBento({ hero, editable = false, onChange, onEdit, onDelete }
       window.removeEventListener('mouseup', handleUp);
     };
   }, [drag, editable, cellSize, onChange]);
-
   const startDrag = (e: React.MouseEvent, widget: HeroWidgetConfig) => {
     if (!editable || isMobile) return;
     e.preventDefault();
@@ -224,17 +203,13 @@ export function HeroBento({ hero, editable = false, onChange, onEdit, onDelete }
       offsetY: 0,
     });
   };
-
   const backgroundImage = hero.backgroundImage;
   const backgroundColor = hero.backgroundColor;
-
   const filledWidgets = useMemo(() => liveWidgets.map(fillHeroWidgetProps), [liveWidgets]);
-
   const visibleWidgets = useMemo(() => {
     if (editable || !isMobile) return filledWidgets;
     return filledWidgets.filter((w) => !w.hideOnMobile);
   }, [filledWidgets, editable, isMobile]);
-
   const renderWidget = (config: ReturnType<typeof fillHeroWidgetProps>) => {
     const def = getHeroWidgetDefinition(config.type);
     const opacity = Number((config.props || {}).opacity ?? 0.75);
@@ -254,9 +229,7 @@ export function HeroBento({ hero, editable = false, onChange, onEdit, onDelete }
           >
             未知组件: {config.type}
           </Box>
-
         </WidgetGlassCard>
-
       );
     }
     return (
@@ -272,14 +245,11 @@ export function HeroBento({ hero, editable = false, onChange, onEdit, onDelete }
       >
         {def.render(config)}
       </WidgetGlassCard>
-
     );
   };
-
   const maxRow = Math.max(MIN_ROWS, ...filledWidgets.map((w) => w.y + w.h));
   const gridHeight = isMobile ? 'auto' : maxRow * cellSize + GAP;
   const emptyDesktopHeight = isMobile ? 'auto' : MIN_ROWS * cellSize + GAP;
-
   return (
     <HeroEditContext.Provider value={{ editable: !!editable }}>
       <Box
@@ -328,7 +298,6 @@ export function HeroBento({ hero, editable = false, onChange, onEdit, onDelete }
             >
               暂无组件，请在后台添加积木组件
             </Box>
-
           ) : isMobile ? (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: '12px', alignItems: 'center' }}>
               {visibleWidgets
@@ -348,11 +317,9 @@ export function HeroBento({ hero, editable = false, onChange, onEdit, onDelete }
                     >
                       {renderWidget(config)}
                     </Box>
-
                   );
                 })}
             </Box>
-
           ) : (
             <Box
               sx={{
@@ -398,17 +365,12 @@ export function HeroBento({ hero, editable = false, onChange, onEdit, onDelete }
                 >
                   {renderWidget(config)}
                 </Box>
-
               );
             })}
           </Box>
-
         )}
       </Box>
-
       </Box>
-
     </HeroEditContext.Provider>
-
   );
 }

@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { Box } from '@mui/material';
-
 interface Firefly {
   id: number;
   top: string;
@@ -12,7 +11,6 @@ interface Firefly {
   floatDelay: number;
   floatPath: string;
 }
-
 export interface FireflyEffectParams {
   [key: string]: unknown;
   count?: number;
@@ -20,12 +18,9 @@ export interface FireflyEffectParams {
   minSize?: number;
   maxSize?: number;
 }
-
 export function FireflyEffect({ params }: { params: FireflyEffectParams }) {
   const { count = 50, color = '#c8ffc8', minSize = 3, maxSize = 6 } = params;
-
   const [flies, setFlies] = useState<Firefly[]>([]);
-
   useEffect(() => {
     const generated: Firefly[] = Array.from({ length: Math.max(1, Math.min(count, 100)) }).map((_, i) => ({
       id: i,
@@ -40,7 +35,6 @@ export function FireflyEffect({ params }: { params: FireflyEffectParams }) {
     }));
     setFlies(generated);
   }, [count, minSize, maxSize]);
-
   return (
     <Box
       sx={{
@@ -107,9 +101,7 @@ export function FireflyEffect({ params }: { params: FireflyEffectParams }) {
             }}
           />
         </Box>
-
       ))}
     </Box>
-
   );
 }

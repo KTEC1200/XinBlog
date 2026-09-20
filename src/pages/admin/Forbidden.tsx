@@ -2,16 +2,13 @@ import { Box, Button, Paper, Typography, alpha, Fade } from '@mui/material';
 import { Home, Lock, Login } from '@mui/icons-material';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
-
 export function AdminForbidden() {
   const navigate = useNavigate();
   const { logout, isAuthenticated } = useAuthStore();
-
   const handleSwitchAccount = () => {
     logout();
     navigate('/admin/login', { replace: true });
   };
-
   return (
     <Fade in timeout={400}>
     <Box
@@ -54,16 +51,12 @@ export function AdminForbidden() {
         >
           <Lock sx={{ fontSize: 36 }} />
         </Box>
-
         <Typography variant="h4" component="h1" sx={{ fontWeight: 800, mb: 1 }}>
           无权访问
         </Typography>
-
         <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
           当前账号没有管理后台访问权限。如需管理站点，请使用超级管理员账号登录。
         </Typography>
-
-
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
           <Button
             component={Link}
@@ -80,7 +73,6 @@ export function AdminForbidden() {
           >
             返回博客首页
           </Button>
-
           {isAuthenticated && (
             <Button
               variant="outlined"
@@ -91,15 +83,10 @@ export function AdminForbidden() {
             >
               切换管理员账号
             </Button>
-
           )}
         </Box>
-
       </Paper>
-
     </Box>
-
     </Fade>
-
   );
 }

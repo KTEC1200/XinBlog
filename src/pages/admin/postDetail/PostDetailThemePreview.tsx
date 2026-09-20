@@ -1,12 +1,10 @@
 import { Box, Typography, alpha } from '@mui/material';
 import dayjs from 'dayjs';
 import type { Post, PostDetailThemeConfig } from '@/types';
-
 interface PostDetailThemePreviewProps {
   post: Post | null;
   theme: PostDetailThemeConfig;
 }
-
 function PreviewLine({
   width,
   height = 10,
@@ -20,7 +18,6 @@ function PreviewLine({
 }) {
   return <Box sx={{ height, width, bgcolor: bg, borderRadius: 0.5, mb }} />;
 }
-
 function PreviewSectionTitle({ text }: { text: string }) {
   return (
     <Typography
@@ -38,10 +35,8 @@ function PreviewSectionTitle({ text }: { text: string }) {
     >
       {text}
     </Typography>
-
   );
 }
-
 function PreviewProse() {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column' }}>
@@ -55,10 +50,8 @@ function PreviewProse() {
       <Box sx={{ height: 12 }} />
       <PreviewLine width="76%" />
     </Box>
-
   );
 }
-
 export function PostDetailThemePreview({ post, theme }: PostDetailThemePreviewProps) {
   const params = theme.params || {};
   const isGlass = theme.variant === 'glass';
@@ -67,7 +60,6 @@ export function PostDetailThemePreview({ post, theme }: PostDetailThemePreviewPr
   const showAuthorCard = params.showAuthorCard ?? theme.showAuthorCard ?? true;
   const showRecentPosts = params.showRecentPosts ?? theme.showRecentPosts ?? true;
   const showTOC = params.showTOC ?? theme.showTOC ?? true;
-
   const samplePost = post || {
     id: 'preview',
     title: '示例文章标题',
@@ -82,7 +74,6 @@ export function PostDetailThemePreview({ post, theme }: PostDetailThemePreviewPr
     readingTime: 3,
     views: 128,
   };
-
   const coverBlock = (
     <Box
       sx={{
@@ -94,25 +85,18 @@ export function PostDetailThemePreview({ post, theme }: PostDetailThemePreviewPr
       }}
     />
   );
-
   const metaBlock = (
     <Box sx={{ display: 'flex', gap: 1, mb: 1.5, flexWrap: 'wrap' }}>
       <Box sx={{ px: 1.5, py: 0.5, borderRadius: '999px', bgcolor: (t) => alpha(t.palette.primary.main, 0.1) }}>
         <Typography variant="caption" color="primary.main" fontWeight={700}>
           写作时间：{dayjs(samplePost.createdAt).format('YYYY-MM-DD')}
         </Typography>
-
       </Box>
-
       <Box sx={{ px: 1.5, py: 0.5, borderRadius: '999px', bgcolor: (t) => alpha(t.palette.secondary.main, 0.1) }}>
         <Typography variant="caption" color="secondary.main" fontWeight={700}># 示例标签</Typography>
-
       </Box>
-
     </Box>
-
   );
-
   const tocPreview = (
     <Box sx={{ p: 2, borderRadius: 1, bgcolor: 'background.paper' }}>
       <PreviewSectionTitle text="TABLE OF CONTENTS" />
@@ -122,21 +106,15 @@ export function PostDetailThemePreview({ post, theme }: PostDetailThemePreviewPr
         <PreviewLine width="60%" height={6} mb={0.75} />
         <PreviewLine width="48%" height={6} mb={0} />
       </Box>
-
     </Box>
-
   );
-
   const authorPreview = (
     <Box sx={{ p: 2, borderRadius: 1, bgcolor: 'background.paper', textAlign: 'center' }}>
       <Box sx={{ width: 48, height: 48, borderRadius: '50%', bgcolor: 'action.hover', mx: 'auto', mb: 1 }} />
       <Typography variant="body2" fontWeight={700}>作者</Typography>
-
       <PreviewLine width="80%" height={5} mb={0} bg="action.hover" />
     </Box>
-
   );
-
   const recentPreview = (
     <Box sx={{ p: 2, borderRadius: 1, bgcolor: 'background.paper' }}>
       <PreviewSectionTitle text="RECOMMENDED" />
@@ -145,20 +123,15 @@ export function PostDetailThemePreview({ post, theme }: PostDetailThemePreviewPr
         <PreviewLine width="65%" height={7} mb={0} />
         <PreviewLine width="72%" height={7} mb={0} />
       </Box>
-
     </Box>
-
   );
-
   const sidebar = (
     <Box sx={{ width: { xs: '100%', md: 180, lg: 200 }, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
       {showAuthorCard && authorPreview}
       {showRecentPosts && recentPreview}
       {showTOC && tocPreview}
     </Box>
-
   );
-
   return (
     <Box
       sx={{
@@ -197,13 +170,10 @@ export function PostDetailThemePreview({ post, theme }: PostDetailThemePreviewPr
             <Typography variant="h6" fontWeight={800} sx={{ mb: 2 }}>
               {samplePost.title}
             </Typography>
-
             <PreviewProse />
           </Box>
-
           {showSidebar && sidebar}
         </Box>
-
       ) : (
         <Box sx={{ maxWidth: 720, mx: 'auto', p: { xs: 2, sm: 3 } }}>
           {coverBlock}
@@ -211,12 +181,9 @@ export function PostDetailThemePreview({ post, theme }: PostDetailThemePreviewPr
           <Typography variant="h5" fontWeight={800} sx={{ mb: 2 }}>
             {samplePost.title}
           </Typography>
-
           <PreviewProse />
         </Box>
-
       )}
     </Box>
-
   );
 }

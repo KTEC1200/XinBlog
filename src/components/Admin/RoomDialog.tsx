@@ -30,10 +30,7 @@ import {
   updateChatRoom,
 } from '@/api/chat';
 import type { CustomChatRoom, RoomUserOption } from '@/types/interaction';
-
-
 const MAX_COVER_SIZE = 300 * 1024;
-
 export interface RoomEditorValue {
   name: string;
   description: string;
@@ -42,15 +39,12 @@ export interface RoomEditorValue {
   members: number[];
   enabled: boolean;
 }
-
 export interface RoomDialogProps {
   open: boolean;
-  
   editing?: CustomChatRoom | null;
   onClose: () => void;
   onSaved: () => void;
 }
-
 const emptyValue: RoomEditorValue = {
   name: '',
   description: '',
@@ -59,17 +53,13 @@ const emptyValue: RoomEditorValue = {
   members: [],
   enabled: true,
 };
-
 export function RoomDialog({ open, editing = null, onClose, onSaved }: RoomDialogProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { enqueueSnackbar } = useSnackbar();
-
   const [value, setValue] = useState<RoomEditorValue>(emptyValue);
   const [saving, setSaving] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
-
-  
   const [keyword, setKeyword] = useState('');
   const [users, setUsers] = useState<RoomUserOption[]>([]);
   const [total, setTotal] = useState(0);
@@ -78,7 +68,6 @@ export function RoomDialog({ open, editing = null, onClose, onSaved }: RoomDialo
   const [searching, setSearching] = useState(false);
   const searchRef = useRef(0);
   const [membersLoaded, setMembersLoaded] = useState(false);
-
   const loadUsers = useCallback(
     async (kw: string, pg: number, append = false) => {
       const tag = ++searchRef.current;
@@ -98,8 +87,6 @@ export function RoomDialog({ open, editing = null, onClose, onSaved }: RoomDialo
     },
     [enqueueSnackbar]
   );
-
-  
   useEffect(() => {
     if (!open) return;
     setValue(
@@ -121,7 +108,6 @@ export function RoomDialog({ open, editing = null, onClose, onSaved }: RoomDialo
     setMembersLoaded(false);
     searchRef.current += 1;
     if (editing) {
-      
       getAdminChatRoomMembers(editing.room_key)
         .then((res) => {
           if (res.code === 0 && res.data?.list) {
@@ -135,28 +121,22 @@ export function RoomDialog({ open, editing = null, onClose, onSaved }: RoomDialo
     }
     loadUsers('', 1);
   }, [open, editing, loadUsers]);
-
-  
   const loadMore = () => {
     const next = page + 1;
     setPage(next);
     loadUsers(keyword, next, true);
   };
-
-  
   const handleSearchChange = (kw: string) => {
     setKeyword(kw);
     setPage(1);
     loadUsers(kw, 1);
   };
-
   const toggleMember = (id: number) => {
     setValue((v) => ({
       ...v,
       members: v.members.includes(id) ? v.members.filter((m) => m !== id) : [...v.members, id],
     }));
   };
-
   const handleCoverUpload = async (file: File) => {
     try {
       const base64 = await compressImage(file, MAX_COVER_SIZE, 1280);
@@ -174,7 +154,6 @@ export function RoomDialog({ open, editing = null, onClose, onSaved }: RoomDialo
       setUploadingCover(false);
     }
   };
-
   const handleSave = async () => {
     const name = value.name.trim();
     if (!name) {
@@ -203,7 +182,6 @@ export function RoomDialog({ open, editing = null, onClose, onSaved }: RoomDialo
       setSaving(false);
     }
   };
-
   return (
     <Dialog
       open={open}
@@ -214,7 +192,6 @@ export function RoomDialog({ open, editing = null, onClose, onSaved }: RoomDialo
       PaperProps={{ sx: { borderRadius: { xs: 2, sm: '12px' } } }}
     >
       <DialogTitle sx={{ fontWeight: 700 }}>{editing ? '编辑房间' : '创建房间'}</DialogTitle>
-
       <DialogContent dividers sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         <TextField
           label="房间名称"
@@ -235,13 +212,11 @@ export function RoomDialog({ open, editing = null, onClose, onSaved }: RoomDialo
           onChange={(e) => setValue((v) => ({ ...v, description: e.target.value.slice(0, 200) }))}
           inputProps={{ maxLength: 200 }}
         />
-
         {}
         <Box>
           <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
             封面图
           </Typography>
-
           <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-start' }}>
             <Box
               sx={{
@@ -276,10 +251,8 @@ export function RoomDialog({ open, editing = null, onClose, onSaved }: RoomDialo
                 >
                   未设置
                 </Box>
-
               )}
             </Box>
-
             <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
               <Button
                 variant="outlined"
@@ -301,7 +274,6 @@ export function RoomDialog({ open, editing = null, onClose, onSaved }: RoomDialo
                   }}
                 />
               </Button>
-
               <TextField
                 size="small"
                 placeholder="或输入图片 URL（留空则使用默认封面）"
@@ -309,16 +281,11 @@ export function RoomDialog({ open, editing = null, onClose, onSaved }: RoomDialo
                 onChange={(e) => setValue((v) => ({ ...v, cover: e.target.value }))}
               />
             </Box>
-
           </Box>
-
           <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
             不设置封面时将自动使用默认封面兜底
           </Typography>
-
         </Box>
-
-
         <TextField
           label="最大进入人数（0 表示不限制）"
           size="small"
@@ -331,22 +298,18 @@ export function RoomDialog({ open, editing = null, onClose, onSaved }: RoomDialo
           }}
           InputProps={{ inputProps: { min: 0, max: 500 } }}
         />
-
         {}
         <Box>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
             <Typography variant="body2" sx={{ fontWeight: 500 }}>
               成员（已选 {value.members.length} 人）
             </Typography>
-
             {value.members.length > 0 && (
               <Button size="small" color="inherit" onClick={() => setValue((v) => ({ ...v, members: [] }))} sx={{ textTransform: 'none' }}>
                 清空
               </Button>
-
             )}
           </Box>
-
           <TextField
             size="small"
             fullWidth
@@ -358,16 +321,13 @@ export function RoomDialog({ open, editing = null, onClose, onSaved }: RoomDialo
                 <InputAdornment position="start">
                   <Search fontSize="small" />
                 </InputAdornment>
-
               ),
               endAdornment: keyword ? (
                 <InputAdornment position="end">
                   <IconButton size="small" onClick={() => handleSearchChange('')}>
                     <Close fontSize="small" />
                   </IconButton>
-
                 </InputAdornment>
-
               ) : null,
             }}
           />
@@ -388,37 +348,28 @@ export function RoomDialog({ open, editing = null, onClose, onSaved }: RoomDialo
                     <Typography variant="body2" sx={{ flex: 1, minWidth: 0, pr: 1 }}>
                       {u.username}
                     </Typography>
-
                     <Checkbox edge="end" checked={checked} onChange={() => toggleMember(u.id)} onClick={(e) => e.stopPropagation()} />
                   </ListItemButton>
-
                 );
               })}
             </List>
-
             {searching && page === 1 && (
               <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
                 <CircularProgress size={20} />
               </Box>
-
             )}
             {!searching && users.length === 0 && (
               <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 3 }}>
                 没有匹配的用户
               </Typography>
-
             )}
           </Box>
-
           {!searching && total > users.length && (
             <Button size="small" onClick={loadMore} sx={{ mt: 1, textTransform: 'none' }}>
               加载更多（{users.length}/{total}）
             </Button>
-
           )}
         </Box>
-
-
         {editing && (
           <Box
             sx={{
@@ -431,24 +382,18 @@ export function RoomDialog({ open, editing = null, onClose, onSaved }: RoomDialo
             <Typography variant="body2" sx={{ fontWeight: 500 }}>
               启用该房间
             </Typography>
-
             {value.enabled ? <Typography variant="caption" color="success.main">已启用</Typography> : <Typography variant="caption" color="error">已停用</Typography>}
             <Button size="small" variant="outlined" color={value.enabled ? 'error' : 'success'} onClick={() => setValue((v) => ({ ...v, enabled: !v.enabled }))} sx={{ textTransform: 'none' }}>
               {value.enabled ? '停用' : '启用'}
             </Button>
-
           </Box>
-
         )}
-
         {membersLoaded && value.members.length === 0 && (
           <Alert severity="info" sx={{ py: 0.5 }}>
             尚未选择成员，创建后仅你自己可进入该房间。
           </Alert>
-
         )}
       </DialogContent>
-
       <DialogActions sx={{ px: 3, pb: 2 }}>
         <Box
           sx={{
@@ -462,16 +407,11 @@ export function RoomDialog({ open, editing = null, onClose, onSaved }: RoomDialo
           <Button onClick={onClose} color="inherit" disabled={saving} fullWidth={isMobile} sx={{ textTransform: 'none', borderRadius: 2 }}>
             取消
           </Button>
-
           <Button onClick={handleSave} variant="contained" disabled={saving} fullWidth={isMobile} startIcon={saving ? <CircularProgress size={16} /> : undefined} sx={{ textTransform: 'none', borderRadius: 2 }}>
             {saving ? '保存中...' : editing ? '保存修改' : '创建房间'}
           </Button>
-
         </Box>
-
       </DialogActions>
-
     </Dialog>
-
   );
 }

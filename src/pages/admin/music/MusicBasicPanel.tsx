@@ -19,15 +19,12 @@ import { useState } from 'react';
 import type { MusicEditor } from './useMusicEditor';
 import type { MusicPlayMode } from '@/types';
 import { PRESET_PLAYLISTS, parsePlaylistId, resolveShortUrl, isValidPlaylistId } from '@/components/MusicPlayer/musicUtils';
-
 const PLAY_MODE_OPTIONS: { value: MusicPlayMode; label: string }[] = [
   { value: 'list', label: '列表循环' },
   { value: 'single', label: '单曲循环' },
   { value: 'random', label: '随机播放' },
 ];
-
 type SourceMode = 'preset' | 'custom';
-
 export function MusicBasicPanel({ editor }: { editor: MusicEditor }) {
   const {
     enabled,
@@ -55,21 +52,17 @@ export function MusicBasicPanel({ editor }: { editor: MusicEditor }) {
     inputError,
     setInputError,
   } = editor;
-
   const [sourceMode, setSourceMode] = useState<SourceMode>(playlistId && !PRESET_PLAYLISTS.some(p => p.id === playlistId) ? 'custom' : 'preset');
   const [customInput, setCustomInput] = useState(playlistId && !PRESET_PLAYLISTS.some(p => p.id === playlistId) ? playlistId : '');
   const [resolving, setResolving] = useState(false);
-
   const playModeIndex = PLAY_MODE_OPTIONS.findIndex((o) => o.value === playMode);
   const hasUrl = /https?:\/\//i.test(customInput);
   const isShortUrl = /163cn\.tv/i.test(customInput);
-
   const handleResolve = async () => {
     if (!customInput.trim()) return;
     setResolving(true);
     try {
       const parsed = parsePlaylistId(customInput);
-      
       if (/163cn\.tv/i.test(parsed)) {
         const resolvedUrl = await resolveShortUrl(customInput);
         if (resolvedUrl) {
@@ -81,7 +74,6 @@ export function MusicBasicPanel({ editor }: { editor: MusicEditor }) {
             return;
           }
         }
-        
         setInputError?.('无法自动解析短链接，请在浏览器中打开此链接，将页面地址粘贴到此处');
         return;
       }
@@ -96,24 +88,19 @@ export function MusicBasicPanel({ editor }: { editor: MusicEditor }) {
       setResolving(false);
     }
   };
-
   const handleCustomChange = (value: string) => {
     setCustomInput(value);
     setInputError?.('');
-    
     if (/^\d{5,}$/.test(value.trim())) {
       setPlaylistId(value.trim());
     }
   };
-
   const handlePresetSelect = (id: string) => {
     setPlaylistId(id);
     setCustomInput(id);
     setInputError?.('');
   };
-
   const sourceModeIndex = sourceMode === 'preset' ? 0 : 1;
-
   return (
     <Stack spacing={3}>
       {}
@@ -123,18 +110,13 @@ export function MusicBasicPanel({ editor }: { editor: MusicEditor }) {
             <Typography variant="h6" sx={{ fontWeight: 700 }}>
               音乐播放器
             </Typography>
-
           </Box>
-
           <FormControlLabel
             control={<Switch checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />}
             label={enabled ? '已开启' : '已关闭'}
           />
         </Stack>
-
       </Paper>
-
-
       {}
       <Paper elevation={0} sx={{ p: 3, borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
         <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
@@ -142,10 +124,7 @@ export function MusicBasicPanel({ editor }: { editor: MusicEditor }) {
           <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
             网易云歌单
           </Typography>
-
         </Stack>
-
-
         {}
         <Box
           sx={{
@@ -198,14 +177,10 @@ export function MusicBasicPanel({ editor }: { editor: MusicEditor }) {
               >
                 {mode === 'preset' ? '预设歌单' : '自定义歌单'}
               </ButtonBase>
-
             );
           })}
         </Box>
-
-
         {sourceMode === 'preset' ? (
-          
           <Box
             sx={{
               display: 'grid',
@@ -262,17 +237,12 @@ export function MusicBasicPanel({ editor }: { editor: MusicEditor }) {
                     >
                       {preset.name}
                     </Typography>
-
                   </ButtonBase>
-
                 </Tooltip>
-
               );
             })}
           </Box>
-
         ) : (
-          
           <Stack spacing={1.5}>
             <TextField
               fullWidth
@@ -288,7 +258,6 @@ export function MusicBasicPanel({ editor }: { editor: MusicEditor }) {
                     <br />
                     获取方法：打开网易云歌单 → 分享 → 复制链接 → 粘贴到此处
                   </Box>
-
                 )
               }
               slotProps={{
@@ -306,9 +275,7 @@ export function MusicBasicPanel({ editor }: { editor: MusicEditor }) {
                           >
                             {resolving ? <CircularProgress size={14} /> : '解析'}
                           </Button>
-
                         </Tooltip>
-
                       ) : (
                         <Tooltip title="解析链接中的歌单 ID">
                           <Button
@@ -319,12 +286,9 @@ export function MusicBasicPanel({ editor }: { editor: MusicEditor }) {
                           >
                             解析
                           </Button>
-
                         </Tooltip>
-
                       )}
                     </InputAdornment>
-
                   ) : undefined,
                 },
               }}
@@ -333,14 +297,10 @@ export function MusicBasicPanel({ editor }: { editor: MusicEditor }) {
               <Typography variant="caption" color="success.main" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                 已识别歌单 ID：{playlistId}
               </Typography>
-
             )}
           </Stack>
-
         )}
       </Paper>
-
-
       {}
       <Paper elevation={0} sx={{ p: 3, borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
         <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
@@ -348,14 +308,10 @@ export function MusicBasicPanel({ editor }: { editor: MusicEditor }) {
           <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
             播放器配置
           </Typography>
-
         </Stack>
-
-
         <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
           默认音量（{Math.round((isFinite(volume) ? volume : 0) * 100)}%）
         </Typography>
-
         <Slider
           size="small"
           min={0}
@@ -366,11 +322,9 @@ export function MusicBasicPanel({ editor }: { editor: MusicEditor }) {
           aria-label="默认音量"
           sx={{ maxWidth: 400 }}
         />
-
         <Typography variant="body2" color="text.secondary" sx={{ mt: 2, mb: 0.5 }}>
           播放模式
         </Typography>
-
         <Box
           sx={{
             position: 'relative',
@@ -421,17 +375,13 @@ export function MusicBasicPanel({ editor }: { editor: MusicEditor }) {
               >
                 {opt.label}
               </ButtonBase>
-
             );
           })}
         </Box>
-
-
         {}
         <Typography variant="body2" color="text.secondary" sx={{ mt: 2, mb: 0.5 }}>
           悬浮小工具位置
         </Typography>
-
         <Box
           sx={{
             position: 'relative',
@@ -482,12 +432,9 @@ export function MusicBasicPanel({ editor }: { editor: MusicEditor }) {
               >
                 贴在{pos === 'left' ? '左侧' : '右侧'}
               </ButtonBase>
-
             );
           })}
         </Box>
-
-
         <Stack spacing={1} sx={{ mt: 2 }}>
           <FormControlLabel
             control={<Switch checked={autoplay} onChange={(e) => setAutoplay(e.target.checked)} />}
@@ -510,10 +457,7 @@ export function MusicBasicPanel({ editor }: { editor: MusicEditor }) {
             label="启用独立音乐播放页面"
           />
         </Stack>
-
       </Paper>
-
-
       {}
       <Paper elevation={0} sx={{ p: 3, borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
         <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
@@ -521,10 +465,7 @@ export function MusicBasicPanel({ editor }: { editor: MusicEditor }) {
           <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
             图片代理
           </Typography>
-
         </Stack>
-
-
         <Stack spacing={1.5}>
           <FormControlLabel
             control={<Switch checked={imageProxy} onChange={(e) => setImageProxy(e.target.checked)} />}
@@ -545,47 +486,30 @@ export function MusicBasicPanel({ editor }: { editor: MusicEditor }) {
                   <Typography variant="caption" sx={{ fontWeight: 700, color: 'warning.main', display: 'block', mb: 0.5 }}>
                     ? 当前已开启中转代理
                   </Typography>
-
                   <Box component="span" sx={{ display: 'block' }}>
                     <b>好处：</b>封面图片走同域名加载，手机 PWA 顶部不会显示网易云 CDN 地址（如 p1.music.126.net）
-
                   </Box>
-
                   <Box component="span" sx={{ display: 'block' }}>
                     <b>缺点：</b>图片加载速度可能变慢（取决于 Cloudflare Worker 响应速度），且消耗 Worker 免费额度
-
                   </Box>
-
                 </>
-
               ) : (
                 <>
                   <Typography variant="caption" sx={{ fontWeight: 700, color: 'info.main', display: 'block', mb: 0.5 }}>
                     ? 当前关闭中转代理（默认推荐）
                   </Typography>
-
                   <Box component="span" sx={{ display: 'block' }}>
                     <b>好处：</b>封面图片直接从网易云 CDN 加载，速度最快，不消耗额外额度
-
                   </Box>
-
                   <Box component="span" sx={{ display: 'block' }}>
                     <b>缺点：</b>手机 PWA 顶部可能会显示外部 CDN 地址（如 p1.music.126.net），仅影响美观不影响使用
-
                   </Box>
-
                 </>
-
               )}
             </Typography>
-
           </Box>
-
         </Stack>
-
       </Paper>
-
     </Stack>
-
   );
 }

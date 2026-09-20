@@ -1,6 +1,4 @@
-
 import type { ThemePackage } from '@/types';
-
 export const BUILTIN_THEMES: ThemePackage[] = [
   {
     id: 'border-image-card',

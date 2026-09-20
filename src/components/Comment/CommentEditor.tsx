@@ -3,7 +3,6 @@ import { Box, Button, TextField, Typography, Paper, alpha, Fade } from '@mui/mat
 import SendIcon from '@mui/icons-material/Send';
 import { useSnackbar } from 'notistack';
 import { createComment } from '@/api/comments';
-
 interface CommentEditorProps {
   slug: string;
   onSuccess: () => void;
@@ -12,15 +11,12 @@ interface CommentEditorProps {
   autoFocus?: boolean;
   compact?: boolean;
 }
-
 const MAX_LENGTH = 2000;
-
 export default function CommentEditor({ slug, onSuccess, parentId, placeholder, autoFocus, compact }: CommentEditorProps) {
   const { enqueueSnackbar } = useSnackbar();
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(false);
   const [focused, setFocused] = useState(false);
-
   const handleSubmit = async () => {
     const text = content.trim();
     if (!text) {
@@ -42,7 +38,6 @@ export default function CommentEditor({ slug, onSuccess, parentId, placeholder, 
         });
         const notifyErrors = res.data?.notifyErrors;
         if (notifyErrors && notifyErrors.length) {
-          
           const failures = notifyErrors.filter(
             (e) => e && !e.startsWith('通知') && !e.startsWith('无通知邮件')
           );
@@ -61,10 +56,8 @@ export default function CommentEditor({ slug, onSuccess, parentId, placeholder, 
       setLoading(false);
     }
   };
-
   const nearLimit = content.length > MAX_LENGTH * 0.9;
   const overLimit = content.length > MAX_LENGTH;
-
   return (
     <Fade in timeout={300}>
       <Paper
@@ -125,7 +118,6 @@ export default function CommentEditor({ slug, onSuccess, parentId, placeholder, 
         >
           {content.length}/{MAX_LENGTH}
         </Typography>
-
         <Button
           variant="contained"
           size="small"
@@ -142,12 +134,8 @@ export default function CommentEditor({ slug, onSuccess, parentId, placeholder, 
         >
           {loading ? '发布中' : '发布'}
         </Button>
-
       </Box>
-
     </Paper>
-
     </Fade>
-
   );
 }

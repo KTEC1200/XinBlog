@@ -1,5 +1,4 @@
 import type { PostCardThemeConfig } from '@/types';
-
 export const defaultCardTheme: PostCardThemeConfig = {
   variant: 'default',
   layout: 'clean',
@@ -7,12 +6,10 @@ export const defaultCardTheme: PostCardThemeConfig = {
   showTags: true,
   showMeta: true,
 };
-
 export function mergeCardTheme(base?: Partial<PostCardThemeConfig>): PostCardThemeConfig {
   if (!base) return { ...defaultCardTheme };
   return { ...defaultCardTheme, ...base };
 }
-
 export function normalizeCardTheme(theme: PostCardThemeConfig): PostCardThemeConfig {
   const merged = mergeCardTheme(theme);
   if (theme.params) {

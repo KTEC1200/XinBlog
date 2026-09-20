@@ -29,14 +29,10 @@ import { ConfirmDialog } from '@/components/Common/ConfirmDialog';
 import { useSiteStore } from '@/stores/siteStore';
 import { useAuthStore } from '@/stores/authStore';
 import type { AgentMessage, AgentStep, AgentConfirmAction } from '@/hooks/useAgentChat';
-
-
 const stepIn = keyframes`
   from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
 `;
-
-
 function CodePreview({ label, text }: { label: string; text: string }) {
   return (
     <Box
@@ -58,14 +54,10 @@ function CodePreview({ label, text }: { label: string; text: string }) {
       <Typography variant="caption" sx={{ display: 'block', color: 'text.disabled', fontSize: '0.65rem', mb: 0.2 }}>
         {label}
       </Typography>
-
       {text}
     </Box>
-
   );
 }
-
-
 function SegmentFlow({
   steps,
   busy,
@@ -83,7 +75,6 @@ function SegmentFlow({
 }) {
   const running = busy || steps.some((s) => s.kind === 'tool' && s.status === 'running');
   void running;
-  
   const allSteps: AgentStep[] = action
     ? [...steps, { kind: 'action', id: `act-${action.token}`, action }]
     : steps;
@@ -100,11 +91,8 @@ function SegmentFlow({
         />
       ))}
     </Box>
-
   );
 }
-
-
 function SegmentRow({
   step,
   isLast,
@@ -118,7 +106,6 @@ function SegmentRow({
   onConfirmAction?: (token: string, approved: boolean) => void | Promise<boolean>;
   onUndoAction?: (undoId: string, token?: string) => Promise<{ ok: boolean; msg?: string }>;
 }) {
-  
   const [open, setOpen] = useState(() => !autoCollapse);
   const running = step.status === 'running';
   const hasDetail = !!(step.params || step.output);
@@ -126,7 +113,6 @@ function SegmentRow({
   const isTool = step.kind === 'tool';
   const isContent = step.kind === 'content';
   const isAction = step.kind === 'action';
-
   return (
     <Box sx={{ display: 'flex', alignItems: 'stretch', gap: 0.75, px: 1, py: 0.4 }}>
       {}
@@ -146,14 +132,11 @@ function SegmentRow({
           <Box sx={{ width: 2, flex: 1, minHeight: 8, bgcolor: (t) => alpha(t.palette.text.primary, 0.12), borderRadius: 1 }} />
         )}
       </Box>
-
-
       {}
       <Box sx={{ minWidth: 0, flex: 1, pb: 0.25 }}>
         {isAction && step.action ? (
           <ActionCardStep action={step.action} onConfirmAction={onConfirmAction} onUndoAction={onUndoAction} />
         ) : isContent ? (
-          
           <Box
             sx={{
               px: 1.5,
@@ -171,9 +154,7 @@ function SegmentRow({
               <CircularProgress size={14} sx={{ display: 'block' }} />
             )}
           </Box>
-
         ) : isThink ? (
-          
           <Box
             sx={{
               border: (t) => `1px solid ${alpha(t.palette.divider, 0.3)}`,
@@ -206,7 +187,6 @@ function SegmentRow({
               <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.72rem' }}>
                 深度思考
               </Typography>
-
               <ExpandMoreIcon
                 sx={{
                   ml: 'auto',
@@ -217,7 +197,6 @@ function SegmentRow({
                 }}
               />
             </Box>
-
             <Collapse in={open} timeout={220}>
               <Box sx={{ px: 1.25, pb: 1 }}>
                 <Typography
@@ -232,15 +211,10 @@ function SegmentRow({
                 >
                   {step.text}
                 </Typography>
-
               </Box>
-
             </Collapse>
-
           </Box>
-
         ) : (
-          
           <Box
             sx={{
               border: (t) => `1px solid ${alpha(t.palette.primary.main, 0.35)}`,
@@ -281,12 +255,10 @@ function SegmentRow({
               <Typography variant="caption" sx={{ fontWeight: 700, color: 'primary.main' }}>
                 {step.name}
               </Typography>
-
               {step.summary && (
                 <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                   · {step.summary}
                 </Typography>
-
               )}
               {hasDetail && !running && (
                 <ExpandMoreIcon
@@ -300,45 +272,31 @@ function SegmentRow({
                 />
               )}
             </Box>
-
             {hasDetail && (
               <Collapse in={open} timeout={200}>
                 <Box sx={{ px: 1.25, pb: 1, display: 'flex', flexDirection: 'column', gap: 0.25 }}>
                   {step.params && <CodePreview label="参数" text={step.params} />}
                   {step.output && <CodePreview label="返回" text={step.output} />}
                 </Box>
-
               </Collapse>
-
             )}
           </Box>
-
         )}
       </Box>
-
     </Box>
-
   );
 }
-
 interface AgentMessageListProps {
   messages: AgentMessage[];
   loading?: boolean;
-  
   autoCollapse?: boolean;
-  
   agentAvatar?: string;
-  
   onConfirmAction?: (token: string, approved: boolean) => void | Promise<boolean>;
-  
   onUndoAction?: (undoId: string, token?: string) => Promise<{ ok: boolean; msg?: string }>;
 }
-
 function formatTime(ts: number): string {
   return new Date(ts).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
 }
-
-
 function ActionCardStep({
   action,
   onConfirmAction,
@@ -359,7 +317,6 @@ function ActionCardStep({
   const isRolledBack = status === 'rolled_back';
   const disabled = isRejected || isRolledBack || isFailed;
   const doing = status === 'resolved' || status === 'rolling_back' || rolling;
-
   const title = isDone
     ? '操作已完成'
     : isFailed
@@ -371,7 +328,6 @@ function ActionCardStep({
           : doing
             ? '正在执行…'
             : '需要你确认的操作';
-
   return (
     <Box
       onClick={() => {
@@ -425,7 +381,6 @@ function ActionCardStep({
         >
           {title}
         </Typography>
-
         {!doing && !disabled && (
           <ExpandMoreIcon
             sx={{
@@ -438,8 +393,6 @@ function ActionCardStep({
           />
         )}
       </Box>
-
-
       {}
       <Box sx={{ px: 1.25, py: 0.25 }}>
         <Typography
@@ -452,10 +405,7 @@ function ActionCardStep({
         >
           {isDone && action.message ? action.message : isFailed && action.message ? action.message : `我准备执行：${action.target}`}
         </Typography>
-
       </Box>
-
-
       {}
       <Box
         onClick={(e) => e.stopPropagation()}
@@ -473,7 +423,6 @@ function ActionCardStep({
             >
               取消
             </Button>
-
             <Button
               size="small"
               color="primary"
@@ -484,9 +433,7 @@ function ActionCardStep({
             >
               确认执行
             </Button>
-
           </>
-
         )}
         {isDone && action.undoId && (
           <Button
@@ -500,11 +447,8 @@ function ActionCardStep({
           >
             回滚
           </Button>
-
         )}
       </Box>
-
-
       {}
       <Collapse in={open} timeout={200}>
         <Box
@@ -527,28 +471,20 @@ function ActionCardStep({
                   <Typography variant="caption" sx={{ color: 'text.secondary', lineHeight: 1.5 }}>
                     {action.undoPreview}
                   </Typography>
-
                 </Box>
-
               )}
               <Typography variant="caption" sx={{ color: 'text.disabled' }}>
                 操作后 24 小时内可回滚
               </Typography>
-
             </>
-
           )}
           {disabled && isRolledBack && (
             <Typography variant="caption" sx={{ color: 'text.disabled' }}>
               该操作已回滚，无法再次回滚
             </Typography>
-
           )}
         </Box>
-
       </Collapse>
-
-
       {}
       <ConfirmDialog
         open={undoConfirmOpen}
@@ -560,14 +496,11 @@ function ActionCardStep({
               <Box component="span" sx={{ display: 'block', mt: 0.5, color: 'text.secondary' }}>
                 {action.undoPreview}
               </Box>
-
             )}
             <Box component="span" sx={{ display: 'block', mt: 0.5, color: 'text.disabled' }}>
               回滚后该操作将恢复到操作前状态，且仅可执行一次。
             </Box>
-
           </>
-
         }
         confirmText="确认回滚"
         confirmColor="primary"
@@ -584,18 +517,13 @@ function ActionCardStep({
         }}
       />
     </Box>
-
   );
 }
-
 export default function AgentMessageList({ messages, loading, autoCollapse, agentAvatar, onConfirmAction, onUndoAction }: AgentMessageListProps) {
   const theme = useTheme();
   const scrollRef = useRef<HTMLDivElement>(null);
   const radius = theme.shape.borderRadius;
-  
   const authUser = useAuthStore((s) => s.user);
-
-  
   const site = useSiteStore();
   const bubbleTheme = site.config.chatBubbleTheme || { variant: 'default' };
   const bubbleRenderer = getChatBubbleRenderer(bubbleTheme.variant);
@@ -607,34 +535,23 @@ export default function AgentMessageList({ messages, loading, autoCollapse, agen
       borderRadius: theme.shape.borderRadius ?? 16,
     });
   }, [bubbleRenderer, bubbleTheme.params, theme.palette.primary.main, theme.shape.borderRadius]);
-
-  
   const [stickToBottom, setStickToBottom] = useState(true);
-
-  
   const handleScroll = () => {
     const el = scrollRef.current;
     if (!el) return;
     const distance = el.scrollHeight - el.scrollTop - el.clientHeight;
     setStickToBottom(distance < 120);
   };
-
-  
-  
-  
   useEffect(() => {
     const el = scrollRef.current;
     if (el && stickToBottom) el.scrollTop = el.scrollHeight;
   }, [messages, loading, stickToBottom]);
-
-  
   const jumpToBottom = () => {
     const el = scrollRef.current;
     if (!el) return;
     el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
     setStickToBottom(true);
   };
-
   return (
     <Box sx={{ position: 'relative', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
       <Box
@@ -672,11 +589,8 @@ export default function AgentMessageList({ messages, loading, autoCollapse, agen
           <Typography variant="body2" color="text.secondary">
             向 AI 助手提问，开始对话吧
           </Typography>
-
         </Box>
-
       )}
-
       {messages.map((msg) => {
         const isUser = msg.role === 'user';
         return (
@@ -705,7 +619,6 @@ export default function AgentMessageList({ messages, loading, autoCollapse, agen
               >
                 {authUser?.username ? authUser.username.charAt(0).toUpperCase() : <PersonIcon sx={{ fontSize: 20 }} />}
               </Avatar>
-
             ) : (
               <Avatar
                 src={agentAvatar || undefined}
@@ -719,9 +632,7 @@ export default function AgentMessageList({ messages, loading, autoCollapse, agen
               >
                 <SmartToyIcon sx={{ fontSize: 20 }} />
               </Avatar>
-
             )}
-
             {}
             <Box sx={{ maxWidth: '75%', display: 'flex', flexDirection: 'column', gap: 0.5 }}>
               <Box
@@ -730,11 +641,9 @@ export default function AgentMessageList({ messages, loading, autoCollapse, agen
                   wordBreak: 'break-word',
                   fontSize: '0.95rem',
                   lineHeight: 1.6,
-                  
                   ...(bubbleRenderer
                     ? (isUser ? bubbleStyles?.mine : bubbleStyles?.other) ?? {}
                     : {}),
-                  
                   ...(!bubbleRenderer && {
                     bgcolor: isUser
                       ? (t) => alpha(t.palette.primary.main, 0.12)
@@ -747,7 +656,6 @@ export default function AgentMessageList({ messages, loading, autoCollapse, agen
                 }}
               >
                 {!isUser && (msg.steps?.length || msg.action) ? (
-                  
                   <SegmentFlow
                     steps={msg.steps || []}
                     busy={!!loading}
@@ -760,15 +668,12 @@ export default function AgentMessageList({ messages, loading, autoCollapse, agen
                   <Box sx={{ px: 1.5, py: 1 }}>
                     <AgentMessageContent content={msg.content} />
                   </Box>
-
                 ) : (
                   <Box sx={{ p: 1.5 }}>
                     <CircularProgress size={16} sx={{ display: 'block' }} />
                   </Box>
-
                 )}
               </Box>
-
               <Typography
                 variant="caption"
                 sx={{
@@ -787,19 +692,13 @@ export default function AgentMessageList({ messages, loading, autoCollapse, agen
                   <Box component="span" sx={{ color: 'text.disabled' }}>
                     · 调用 {msg.rounds ?? 0} 轮 · {msg.usage?.total ?? 0} tokens
                   </Box>
-
                 )}
               </Typography>
-
             </Box>
-
           </Box>
-
         );
       })}
       </Box>
-
-
       {}
       <Fade in={!stickToBottom && messages.length > 0}>
         <IconButton
@@ -821,10 +720,7 @@ export default function AgentMessageList({ messages, loading, autoCollapse, agen
         >
           <ArrowDownwardIcon sx={{ fontSize: 20 }} />
         </IconButton>
-
       </Fade>
-
     </Box>
-
   );
 }

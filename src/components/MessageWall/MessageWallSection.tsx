@@ -15,31 +15,26 @@ import TimeTunnelStyle from './styles/TimeTunnelStyle';
 import { getMessageWallSettings } from '@/api/messages';
 import { useAuthStore } from '@/stores/authStore';
 import type { MessageWallSettings, MessageWallStyle } from '@/types/interaction';
-
 const STYLE_ICONS: Record<MessageWallStyle, React.ReactNode> = {
   danmaku: <SubscriptionsIcon sx={{ fontSize: 18 }} />,
   flipcard: <StyleIcon sx={{ fontSize: 18 }} />,
   timetunnel: <TimelineIcon sx={{ fontSize: 18 }} />,
 };
-
 const STYLE_LABELS: Record<MessageWallStyle, string> = {
   danmaku: '弹幕',
   flipcard: '翻牌',
   timetunnel: '时空隧道',
 };
-
 export default function MessageWallSection() {
   const theme = useTheme();
   const { isAuthenticated } = useAuthStore();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-
   const [settings, setSettings] = useState<MessageWallSettings | null>(null);
   const [loadingSettings, setLoadingSettings] = useState(true);
   const [style, setStyle] = useState<MessageWallStyle>('danmaku');
   const [editorOpen, setEditorOpen] = useState(false);
   const [managerOpen, setManagerOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
-
   const loadSettings = useCallback(async () => {
     const res = await getMessageWallSettings();
     if (res.code === 0 && res.data) {
@@ -48,33 +43,26 @@ export default function MessageWallSection() {
     }
     setLoadingSettings(false);
   }, []);
-
   useEffect(() => {
     loadSettings();
   }, [loadSettings]);
-
   const handleRefresh = () => {
     setRefreshKey((k) => k + 1);
   };
-
   const handleStyleChange = (_: React.MouseEvent<HTMLElement>, newStyle: MessageWallStyle | null) => {
     if (newStyle) setStyle(newStyle);
   };
-
   if (loadingSettings) {
     return (
       <Box sx={{ mt: 4 }}>
         <Skeleton variant="text" width="30%" height={32} />
         <Skeleton variant="rectangular" height={200} sx={{ mt: 2, borderRadius: 1 }} />
       </Box>
-
     );
   }
-
   if (!settings || !settings.enabled) {
     return null;
   }
-
   return (
     <Fade in timeout={400}>
       <Box>
@@ -120,7 +108,6 @@ export default function MessageWallSection() {
               pointerEvents: 'none',
             }}
           />
-
           <Box sx={{ position: 'relative', zIndex: 1 }}>
             {}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
@@ -128,10 +115,7 @@ export default function MessageWallSection() {
               <Typography variant="h6" sx={{ fontWeight: 700 }}>
                 留言墙
               </Typography>
-
             </Box>
-
-
             {}
             <Box
               sx={{
@@ -174,13 +158,9 @@ export default function MessageWallSection() {
                     {STYLE_ICONS[key]}
                     {!isMobile && label}
                   </ToggleButton>
-
                 ))}
               </ToggleButtonGroup>
-
             </Box>
-
-
             {}
             <Fade in timeout={300} key={style}>
               <Box>
@@ -198,10 +178,7 @@ export default function MessageWallSection() {
                 {style === 'flipcard' && <FlipCardStyle key={`flipcard-${refreshKey}`} />}
                 {style === 'timetunnel' && <TimeTunnelStyle key={`timetunnel-${refreshKey}`} />}
               </Box>
-
             </Fade>
-
-
             {}
             <Box
               sx={{
@@ -230,7 +207,6 @@ export default function MessageWallSection() {
                 >
                   我的留言
                 </Button>
-
               )}
               <Button
                 variant="contained"
@@ -246,14 +222,9 @@ export default function MessageWallSection() {
               >
                 新增留言
               </Button>
-
             </Box>
-
           </Box>
-
         </Box>
-
-
         {}
         <MessageWallEditor
           open={editorOpen}
@@ -262,7 +233,6 @@ export default function MessageWallSection() {
           onClose={() => setEditorOpen(false)}
           onSuccess={handleRefresh}
         />
-
         {}
         {isAuthenticated && (
           <MessageWallManager
@@ -272,8 +242,6 @@ export default function MessageWallSection() {
           />
         )}
       </Box>
-
     </Fade>
-
   );
 }

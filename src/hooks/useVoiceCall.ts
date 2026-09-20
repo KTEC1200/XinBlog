@@ -1,83 +1,47 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-
-
-
 const RING_TIMEOUT_MS = 20000; 
 const ENDING_CLEANUP_MS = 2500; 
 const DISCONNECT_GRACE_MS = 6000; 
 const CONNECT_TIMEOUT_MS = 15000; 
-
-
-
-
-
-
-
 const STUN_SERVERS = [
   'stun:stun.miwifi.com:3478',
   'stun:stun.chat.bilibili.com:3478',
   'stun:stun.l.google.com:19302',
   'stun:stun.cloudflare.com:3478',
 ];
-
 export type CallState = 'idle' | 'dialing' | 'ringing' | 'connecting' | 'connected' | 'ending';
-
 export type CallKind = 'audio' | 'video';
-
 function genCallId(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
-
-
 function mediaConstraints(kind: CallKind): MediaStreamConstraints {
   return kind === 'video'
     ? { audio: true, video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' } }
     : { audio: true };
 }
-
 export interface VoiceCallHandlers {
   state: CallState;
-  
   kind: CallKind;
-  
   peerName: string;
-  
   muted: boolean;
-  
   cameraMuted: boolean;
-  
   durationSec: number;
-  
   endedNote: string;
-  
   remoteStream: MediaStream | null;
-  
   localStream: MediaStream | null;
-  
   startCall: (peerName: string, kind?: CallKind) => void;
-  
   accept: () => void;
-  
   reject: () => void;
-  
   hangup: () => void;
-  
   toggleMute: () => void;
-  
   toggleCamera: () => void;
-  
   handleSignal: (data: Record<string, unknown>) => void;
 }
-
 interface UseVoiceCallOptions {
-  
   selfName: string;
-  
   sendSignal: (payload: Record<string, unknown>) => boolean;
-  
   connected: boolean;
 }
-
 export function useVoiceCall({ selfName, sendSignal, connected }: UseVoiceCallOptions): VoiceCallHandlers {
   const [state, setState] = useState<CallState>('idle');
   const [kind, setKind] = useState<CallKind>('audio');
@@ -88,8 +52,6 @@ export function useVoiceCall({ selfName, sendSignal, connected }: UseVoiceCallOp
   const [endedNote, setEndedNote] = useState('');
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
-
-  
   const stateRef = useRef<CallState>('idle');
   const roleRef = useRef<'caller' | 'callee' | null>(null);
   const callIdRef = useRef<string | null>(null);
@@ -107,22 +69,17 @@ export function useVoiceCall({ selfName, sendSignal, connected }: UseVoiceCallOp
   const selfNameRef = useRef(selfName);
   const sendSignalRef = useRef(sendSignal);
   const duringEndingRef = useRef(false);
-  
   const pendingIceRef = useRef<RTCIceCandidateInit[]>([]);
-
   useEffect(() => {
     selfNameRef.current = selfName;
   }, [selfName]);
   useEffect(() => {
     sendSignalRef.current = sendSignal;
   }, [sendSignal]);
-
   const setCallState = useCallback((s: CallState) => {
     stateRef.current = s;
     setState(s);
   }, []);
-
-  
   const flushPendingIce = useCallback(() => {
     const pc = pcRef.current;
     if (!pc || !pc.remoteDescription) return;
@@ -133,19 +90,15 @@ export function useVoiceCall({ selfName, sendSignal, connected }: UseVoiceCallOp
       try { void pc.addIceCandidate(new RTCIceCandidate(c)); } catch {  }
     });
   }, []);
-
-  
   const signal = useCallback((type: string, payload: Record<string, unknown> = {}) => {
     const to = peerRef.current;
     if (!to) return;
     sendSignalRef.current({ type, to, callId: callIdRef.current ?? '', ...payload });
   }, []);
-
   const stopLocalStream = useCallback(() => {
     localStreamRef.current?.getTracks().forEach((t) => t.stop());
     localStreamRef.current = null;
   }, []);
-
   const destroyPeer = useCallback(() => {
     const pc = pcRef.current;
     if (pc) {
@@ -157,7 +110,6 @@ export function useVoiceCall({ selfName, sendSignal, connected }: UseVoiceCallOp
       pendingIceRef.current = []; 
     }
   }, []);
-
   const clearCallTimers = useCallback(() => {
     if (ringTimerRef.current) {
       clearTimeout(ringTimerRef.current);
@@ -176,8 +128,6 @@ export function useVoiceCall({ selfName, sendSignal, connected }: UseVoiceCallOp
       durationTimerRef.current = null;
     }
   }, []);
-
-  
   const endCall = useCallback(
     (note: string | null = null) => {
       duringEndingRef.current = true;
@@ -213,8 +163,6 @@ export function useVoiceCall({ selfName, sendSignal, connected }: UseVoiceCallOp
     },
     [clearCallTimers, destroyPeer, stopLocalStream, setCallState, duringEndingRef]
   );
-
-  
   const armConnectTimeout = useCallback(() => {
     if (connectTimerRef.current) clearTimeout(connectTimerRef.current);
     connectTimerRef.current = setTimeout(() => {
@@ -223,7 +171,6 @@ export function useVoiceCall({ selfName, sendSignal, connected }: UseVoiceCallOp
       }
     }, CONNECT_TIMEOUT_MS);
   }, [endCall]);
-
   const beginConnected = useCallback(() => {
     clearCallTimers();
     connectedAtRef.current = Date.now();
@@ -233,8 +180,6 @@ export function useVoiceCall({ selfName, sendSignal, connected }: UseVoiceCallOp
       setDurationSec(Math.floor((Date.now() - connectedAtRef.current) / 1000));
     }, 1000);
   }, [clearCallTimers, setCallState]);
-
-  
   const createPeer = useCallback(() => {
     const pc = new RTCPeerConnection({ iceServers: [{ urls: STUN_SERVERS }] });
     pc.onicecandidate = (e) => {
@@ -250,7 +195,6 @@ export function useVoiceCall({ selfName, sendSignal, connected }: UseVoiceCallOp
       if (cs === 'connected') {
         if (pcRef.current === pc) beginConnected();
       } else if (cs === 'disconnected') {
-        
         if (pcRef.current !== pc) return;
         if (discTimerRef.current) clearTimeout(discTimerRef.current);
         discTimerRef.current = setTimeout(() => {
@@ -268,8 +212,6 @@ export function useVoiceCall({ selfName, sendSignal, connected }: UseVoiceCallOp
     pcRef.current = pc;
     return pc;
   }, [signal, beginConnected, endCall]);
-
-  
   const startOutgoingMedia = useCallback(async () => {
     setCallState('connecting'); 
     armConnectTimeout();
@@ -295,8 +237,6 @@ export function useVoiceCall({ selfName, sendSignal, connected }: UseVoiceCallOp
       endCall('无法访问麦克风或摄像头，通话已取消');
     }
   }, [createPeer, signal, endCall, armConnectTimeout, setCallState]);
-
-  
   const handleAnswer = useCallback(async (sdp: unknown) => {
     const pc = pcRef.current;
     if (!pc) return;
@@ -304,12 +244,9 @@ export function useVoiceCall({ selfName, sendSignal, connected }: UseVoiceCallOp
       await pc.setRemoteDescription(new RTCSessionDescription(sdp as RTCSessionDescriptionInit));
       flushPendingIce(); 
     } catch {
-      
       endCall('协商失败');
     }
   }, [flushPendingIce, endCall]);
-
-  
   const handleOffer = useCallback(async (sdp: unknown) => {
     const pc = pcRef.current;
     if (!pc) return;
@@ -323,8 +260,6 @@ export function useVoiceCall({ selfName, sendSignal, connected }: UseVoiceCallOp
       endCall('协商失败');
     }
   }, [signal, endCall, flushPendingIce]);
-
-  
   const handleIce = useCallback((candidate: unknown) => {
     const pc = pcRef.current;
     if (!pc || !candidate) return;
@@ -335,11 +270,8 @@ export function useVoiceCall({ selfName, sendSignal, connected }: UseVoiceCallOp
         pendingIceRef.current.push(candidate as RTCIceCandidateInit); 
       }
     } catch {
-      
     }
   }, []);
-
-  
   useEffect(() => {
     if (!connected && stateRef.current !== 'idle' && stateRef.current !== 'ending') {
       clearCallTimers();
@@ -354,8 +286,6 @@ export function useVoiceCall({ selfName, sendSignal, connected }: UseVoiceCallOp
       setCallState('idle');
     }
   }, [connected, clearCallTimers, destroyPeer, stopLocalStream, setCallState]);
-
-  
   useEffect(
     () => () => {
       clearCallTimers();
@@ -364,8 +294,6 @@ export function useVoiceCall({ selfName, sendSignal, connected }: UseVoiceCallOp
     },
     [clearCallTimers, destroyPeer, stopLocalStream]
   );
-
-  
   const handleSignal = useCallback(
     (data: Record<string, unknown>) => {
       const type = String(data.type ?? '');
@@ -375,7 +303,6 @@ export function useVoiceCall({ selfName, sendSignal, connected }: UseVoiceCallOp
       if (from && from === self) return; 
       if (data.to && String(data.to) !== self) return; 
       if (!from) return;
-
       switch (type) {
         case 'call.invite': {
           if (stateRef.current !== 'idle') {
@@ -446,7 +373,6 @@ export function useVoiceCall({ selfName, sendSignal, connected }: UseVoiceCallOp
     },
     [signal, startOutgoingMedia, handleOffer, handleAnswer, handleIce, endCall, setPeerName, setCallState]
   );
-
   const startCall = useCallback(
     (name: string, kind: CallKind = 'audio') => {
       if (stateRef.current !== 'idle') return;
@@ -469,13 +395,11 @@ export function useVoiceCall({ selfName, sendSignal, connected }: UseVoiceCallOp
     },
     [signal, endCall, setPeerName, setCallState]
   );
-
   const accept = useCallback(async () => {
     if (stateRef.current !== 'ringing') return;
     if (ringTimerRef.current) clearTimeout(ringTimerRef.current);
     setCallState('connecting'); 
     armConnectTimeout();
-    
     try {
       const stream = await navigator.mediaDevices.getUserMedia(mediaConstraints(kindRef.current));
       localStreamRef.current = stream;
@@ -492,20 +416,17 @@ export function useVoiceCall({ selfName, sendSignal, connected }: UseVoiceCallOp
       endCall('无法访问麦克风或摄像头，已自动拒绝');
     }
   }, [signal, createPeer, endCall, armConnectTimeout, setCallState]);
-
   const reject = useCallback(() => {
     if (stateRef.current !== 'ringing') return;
     if (ringTimerRef.current) clearTimeout(ringTimerRef.current);
     signal('call.reject');
     endCall();
   }, [signal, endCall]);
-
   const hangup = useCallback(() => {
     if (stateRef.current === 'idle' || stateRef.current === 'ending') return;
     signal('call.hangup');
     endCall();
   }, [signal, endCall]);
-
   const toggleMute = useCallback(() => {
     const next = !mutedRef.current;
     mutedRef.current = next;
@@ -514,7 +435,6 @@ export function useVoiceCall({ selfName, sendSignal, connected }: UseVoiceCallOp
       t.enabled = !next;
     });
   }, []);
-
   const toggleCamera = useCallback(() => {
     if (kindRef.current !== 'video') return;
     const next = !cameraMutedRef.current;
@@ -524,7 +444,6 @@ export function useVoiceCall({ selfName, sendSignal, connected }: UseVoiceCallOp
       t.enabled = !next;
     });
   }, []);
-
   return {
     state,
     kind,

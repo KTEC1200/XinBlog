@@ -1,14 +1,12 @@
 import { alpha } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
 import type { Post, SiteConfig, PostCardThemeConfig, ThemeParamSchema, ThemeParamOption } from '@/types';
-
 export interface PostCardRenderContext {
   post: Post;
   config: SiteConfig;
   themeColor: string;
   borderRadius: number;
 }
-
 export interface PostCardRenderOutput {
   layout: 'overlay' | 'clean';
   mediaAsBackground?: boolean;
@@ -27,7 +25,6 @@ export interface PostCardRenderOutput {
     cover?: SxProps<Theme>;
   };
 }
-
 export interface PostCardRenderer<P = Record<string, unknown>> {
   id: string;
   name: string;
@@ -37,45 +34,36 @@ export interface PostCardRenderer<P = Record<string, unknown>> {
   schema: ThemeParamSchema[];
   render: (params: P, context: PostCardRenderContext) => PostCardRenderOutput;
 }
-
 const textPositionOptions: ThemeParamOption[] = [
   { value: 'bottom-left', label: '左下角' },
   { value: 'bottom-center', label: '底部居中' },
   { value: 'bottom-right', label: '右下角' },
 ];
-
 const titleSizeOptions: ThemeParamOption[] = [
   { value: 'small', label: '小' },
   { value: 'medium', label: '中' },
   { value: 'large', label: '大' },
 ];
-
 function titleSizeValue(size?: string): string {
   if (!size || size === 'medium') return '1.25rem';
   if (size === 'small') return '1rem';
   if (size === 'large') return '1.5rem';
   return size;
 }
-
 function isEmptyColor(v?: string): boolean {
   if (!v) return true;
   const s = v.trim().toLowerCase();
   return ['#000', '#000000', '000000', '000', 'rgb(0,0,0)', 'rgba(0,0,0,0)', 'transparent'].includes(s);
 }
-
 function resolveColor(value: string | undefined, fallback: string): string {
-  
   return isEmptyColor(value) ? fallback : (value as string);
 }
-
 function resolveBorderColor(params: { borderColor?: string }, themeColor: string): string {
   return resolveColor(params.borderColor, themeColor || '#5b7cfa');
 }
-
 function resolveBorderRadius(params: { borderRadius?: number }, siteRadius: number): number {
   return params.borderRadius ?? siteRadius ?? 16;
 }
-
 function applyParamsToStyles<T>(styles: T, params: Record<string, unknown>): T {
   if (typeof styles === 'string') {
     return styles.replace(/\{\{\s*([^{}\s]+)\s*\}\}/g, (_, key) => {
@@ -95,7 +83,6 @@ function applyParamsToStyles<T>(styles: T, params: Record<string, unknown>): T {
   }
   return styles;
 }
-
 export function renderCloudCardStyles(
   theme: PostCardThemeConfig,
   context: PostCardRenderContext
@@ -124,7 +111,6 @@ export function renderCloudCardStyles(
   }
   return output;
 }
-
 export function buildPostCardOutput(
   theme: PostCardThemeConfig,
   context: PostCardRenderContext
@@ -137,7 +123,6 @@ export function buildPostCardOutput(
   };
   let output: PostCardRenderOutput;
   if (renderer) {
-    
     const params = { ...renderer.defaultParams, ...(theme.params || {}), ...theme };
     output = renderer.render(params, context);
     if (theme.styles) {
@@ -153,7 +138,6 @@ export function buildPostCardOutput(
   }
   return output;
 }
-
 export const overlayCardRenderer: PostCardRenderer<{
   borderWidth: number;
   borderRadius: number;
@@ -208,7 +192,6 @@ export const overlayCardRenderer: PostCardRenderer<{
         : params.textPosition === 'bottom-right'
           ? 'right'
           : 'left';
-    
     const hasCover = !!post.cover;
     const fillSolidBg = params.fillSolidBg !== false;
     const rootBg = hasCover
@@ -216,7 +199,6 @@ export const overlayCardRenderer: PostCardRenderer<{
       : fillSolidBg
         ? themeColor
         : resolveColor(params.backgroundColor, alpha(themeColor, 0.1));
-
     return {
       layout: 'overlay',
       mediaAsBackground: true,
@@ -306,7 +288,6 @@ export const overlayCardRenderer: PostCardRenderer<{
     };
   },
 };
-
 export const cleanCardRenderer: PostCardRenderer<{
   borderWidth: number;
   borderRadius: number;
@@ -339,7 +320,6 @@ export const cleanCardRenderer: PostCardRenderer<{
   ],
   render: (params, { config, themeColor }) => {
     const borderRadius = resolveBorderRadius(params, config.theme?.borderRadius ?? 16);
-
     return {
       layout: 'clean',
       mediaAsBackground: false,
@@ -443,7 +423,6 @@ export const cleanCardRenderer: PostCardRenderer<{
     };
   },
 };
-
 export const bookCardRenderer: PostCardRenderer<{
   coverColor: string;
   textColor: string;
@@ -479,7 +458,6 @@ export const bookCardRenderer: PostCardRenderer<{
         height: { xs: 300, sm: 340, md: 380 },
         minWidth: 0,
         position: 'relative',
-        
         overflow: 'visible',
         borderRadius: `${borderRadius}px`,
         backgroundColor: 'background.paper',
@@ -487,7 +465,6 @@ export const bookCardRenderer: PostCardRenderer<{
           theme.palette.mode === 'light'
             ? '0 10px 28px rgba(0,0,0,0.14)'
             : '0 10px 28px rgba(0,0,0,0.45)',
-        
         '&:hover': { zIndex: 2 },
       },
       book: {
@@ -497,15 +474,12 @@ export const bookCardRenderer: PostCardRenderer<{
           height: '100%',
           perspective: '2000px',
           perspectiveOrigin: '50% 50%',
-          
           transformStyle: 'preserve-3d',
-          
           '&:hover .bc-cover': {
             transform: 'rotateY(-80deg)',
             boxShadow: '-12px 6px 28px rgba(0,0,0,0.35)',
           },
         },
-        
         base: {
           position: 'absolute',
           inset: 0,
@@ -525,7 +499,6 @@ export const bookCardRenderer: PostCardRenderer<{
           px: 1.5,
           color: params.textColor,
         },
-        
         cover: {
           position: 'absolute',
           inset: 0,
@@ -566,7 +539,6 @@ export const bookCardRenderer: PostCardRenderer<{
     };
   },
 };
-
 export const newsletterCardRenderer: PostCardRenderer<{
   borderWidth: number;
   borderColor: string;
@@ -597,9 +569,7 @@ export const newsletterCardRenderer: PostCardRenderer<{
   ],
   render: (params, { themeColor }) => {
     const borderColor = resolveColor(params.borderColor, themeColor || '#111111');
-    
     const radius = params.cardRadius ?? 0;
-    
     const offset = Math.max(6, params.borderWidth * 2);
     return {
       layout: 'clean',
@@ -616,7 +586,6 @@ export const newsletterCardRenderer: PostCardRenderer<{
         boxShadow: `${offset}px ${offset}px 0 ${borderColor}`,
         backgroundColor: 'background.paper',
         transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-        
         '&:hover': {
           transform: 'translate(-5px, -5px)',
           boxShadow: `${offset + 5}px ${offset + 5}px 0 ${borderColor}`,
@@ -656,7 +625,6 @@ export const newsletterCardRenderer: PostCardRenderer<{
         fontSize: { xs: '1.25rem', sm: '1.35rem' },
         color: 'text.primary',
         overflowWrap: 'break-word',
-        
         '&::after': {
           content: '""',
           position: 'absolute',
@@ -692,7 +660,6 @@ export const newsletterCardRenderer: PostCardRenderer<{
     };
   },
 };
-
 export const glassCardRenderer: PostCardRenderer<{
   borderWidth: number;
   borderRadius: number;
@@ -750,7 +717,6 @@ export const glassCardRenderer: PostCardRenderer<{
         : params.textPosition === 'bottom-right'
           ? 'right'
           : 'left';
-
     return {
       layout: 'overlay',
       mediaAsBackground: true,
@@ -862,7 +828,6 @@ export const glassCardRenderer: PostCardRenderer<{
     };
   },
 };
-
 const renderers: PostCardRenderer[] = [
   overlayCardRenderer as unknown as PostCardRenderer,
   cleanCardRenderer as unknown as PostCardRenderer,
@@ -870,15 +835,11 @@ const renderers: PostCardRenderer[] = [
   newsletterCardRenderer as unknown as PostCardRenderer,
   glassCardRenderer as unknown as PostCardRenderer,
 ];
-
 export function getPostCardRenderer(variant?: string): PostCardRenderer | undefined {
   if (!variant) return undefined;
-  
-  
   if (variant === 'default') variant = 'clean-card';
   return renderers.find((r) => r.id === variant || r.aliases?.includes(variant));
 }
-
 export function listPostCardRenderers(): PostCardRenderer[] {
   return renderers.slice();
 }

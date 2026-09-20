@@ -15,12 +15,10 @@ import { BasicPanel } from './live2d/panels/BasicPanel';
 import { ToolsPanel } from './live2d/panels/ToolsPanel';
 import { AdvancedPanel } from './live2d/panels/AdvancedPanel';
 import { FloatingSaveButton } from '@/components/Common/FloatingSaveButton';
-
 export function AdminLive2d() {
   const theme = useTheme();
   const isMobileAdmin = useMediaQuery(theme.breakpoints.down('lg'));
   const editor = useLive2dEditor();
-
   return (
     <Fade in timeout={400}>
       <Box>
@@ -28,10 +26,7 @@ export function AdminLive2d() {
           <Typography variant="h4" sx={{ fontWeight: 800, overflowWrap: 'break-word' }}>
             看板娘设置
           </Typography>
-
         </Box>
-
-
         {isMobileAdmin ? (
           <FormControl size="small" sx={{ mb: 3, minWidth: 140, maxWidth: '100%' }}>
             <Select
@@ -53,12 +48,9 @@ export function AdminLive2d() {
                 <MenuItem key={t.value} value={t.value}>
                   {t.label}
                 </MenuItem>
-
               ))}
             </Select>
-
           </FormControl>
-
         ) : (
           <Box
             onWheel={(e) => {
@@ -127,32 +119,24 @@ export function AdminLive2d() {
                   >
                     {t.label}
                   </Button>
-
                 );
               })}
             </Box>
-
           </Box>
-
         )}
-
         <Fade in timeout={300} key={editor.tab}>
           <Box>
             {editor.tab === 'basic' && <BasicPanel editor={editor} />}
             {editor.tab === 'tools' && <ToolsPanel editor={editor} />}
             {editor.tab === 'advanced' && <AdvancedPanel editor={editor} />}
           </Box>
-
         </Fade>
-
-
         <FloatingSaveButton
           show={editor.isDirty}
           saving={editor.saving}
           onClick={editor.save}
           label="保存设置"
         />
-
         <Box
           sx={{
             mt: 4,
@@ -172,15 +156,10 @@ export function AdminLive2d() {
             >
               stevenjoezhang/live2d-widget
             </a>
-
             ）与模型接口 fghrsh/live2d_api 实现。Live2D 模型、纹理及相关资源版权归各自作者所有，本站仅做集成与展示。
           </Typography>
-
         </Box>
-
       </Box>
-
     </Fade>
-
   );
 }

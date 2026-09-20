@@ -8,7 +8,6 @@ import {
   type Song,
   type LyricLine,
 } from './musicUtils';
-
 export interface MusicPlayerApi {
   isPlaying: boolean;
   loading: boolean;
@@ -32,8 +31,6 @@ export interface MusicPlayerApi {
   toggleMute: () => void;
   togglePlayMode: () => void;
 }
-
-
 export function useMusicPlayer(config?: Partial<MusicPlayerConfig>): MusicPlayerApi {
   const effective: MusicPlayerConfig = { ...DEFAULT_MUSIC_CONFIG, ...(config || {}) };
   const [isPlaying, setIsPlaying] = useState(false);
@@ -48,28 +45,19 @@ export function useMusicPlayer(config?: Partial<MusicPlayerConfig>): MusicPlayer
   const [playlist, setPlaylist] = useState<Song[]>([]);
   const [lyrics, setLyrics] = useState<LyricLine[]>([]);
   const [currentLyricIndex, setCurrentLyricIndex] = useState(-1);
-
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const errorCountRef = useRef(0);
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  
   const playNextRef = useRef<() => void>(() => {});
-
-  
   const ctxRef = useRef({ config: effective, playMode, currentIndex, playlist, volume });
   ctxRef.current = { config: effective, playMode, currentIndex, playlist, volume };
-
-  
   useEffect(() => {
     const audio = new Audio();
     audio.preload = 'auto';
     audioRef.current = audio;
     document.body.appendChild(audio);
-
     const onTimeUpdate = () => {
       setCurrentTime(audio.currentTime);
-      
-      
       const d = audio.duration;
       if (isFinite(d) && d > 0) {
         setDuration((prev) => (Math.abs(prev - d) > 0.05 ? d : prev));
@@ -96,7 +84,6 @@ export function useMusicPlayer(config?: Partial<MusicPlayerConfig>): MusicPlayer
         });
       }
     };
-    
     const onLoadedMetadata = () => {
       const d = audio.duration;
       setDuration(isFinite(d) && d > 0 ? d : 0);
@@ -126,7 +113,6 @@ export function useMusicPlayer(config?: Partial<MusicPlayerConfig>): MusicPlayer
         errorCountRef.current = 0;
       }
     };
-
     audio.addEventListener('timeupdate', onTimeUpdate);
     audio.addEventListener('loadedmetadata', onLoadedMetadata);
     audio.addEventListener('durationchange', onDurationChange);
@@ -134,7 +120,6 @@ export function useMusicPlayer(config?: Partial<MusicPlayerConfig>): MusicPlayer
     audio.addEventListener('pause', onPause);
     audio.addEventListener('ended', onEnded);
     audio.addEventListener('error', onError);
-
     return () => {
       audio.pause();
       audio.removeAttribute('src');
@@ -150,16 +135,12 @@ export function useMusicPlayer(config?: Partial<MusicPlayerConfig>): MusicPlayer
       document.body.removeChild(audio);
       audioRef.current = null;
     };
-    
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  
   const lyricsRef = useRef<LyricLine[]>([]);
   useEffect(() => {
     lyricsRef.current = lyrics;
   }, [lyrics]);
-
-  
   const loadLyric = useCallback(async (songId: number) => {
     const cfg = ctxRef.current.config;
     if (!cfg.showLyric) {
@@ -178,19 +159,15 @@ export function useMusicPlayer(config?: Partial<MusicPlayerConfig>): MusicPlayer
       setLyrics([]);
     }
   }, []);
-
-  
   const loadSong = useCallback(
     (index: number, autoplay = true, songsOverride?: Song[]) => {
       const songs = songsOverride || ctxRef.current.playlist;
       const song = songs[index];
       if (!song) return;
-
       setCurrentIndex(index);
       setCurrentLyricIndex(-1);
       setError('');
       errorCountRef.current = 0;
-
       const audio = audioRef.current;
       if (audio) {
         audio.src = song.url;
@@ -198,7 +175,6 @@ export function useMusicPlayer(config?: Partial<MusicPlayerConfig>): MusicPlayer
         if (autoplay) {
           void audio.play().catch((err) => {
             if (err.name === 'NotAllowedError') {
-              
               setIsPlaying(false);
               return;
             }
@@ -206,15 +182,12 @@ export function useMusicPlayer(config?: Partial<MusicPlayerConfig>): MusicPlayer
           });
         }
       }
-
       if (ctxRef.current.config.showLyric) {
         void loadLyric(song.id);
       }
     },
     [loadLyric]
   );
-
-  
   const loadPlaylist = useCallback(async () => {
     const cfg = ctxRef.current.config;
     if (!cfg.playlistId.trim()) {
@@ -244,9 +217,7 @@ export function useMusicPlayer(config?: Partial<MusicPlayerConfig>): MusicPlayer
         });
         setPlaylist(songs);
         setLoading(false);
-
         if (songs.length > 0) {
-          
           const memory = cfg.memory ? loadMusicMemory() : null;
           if (memory && memory.currentIndex !== undefined && memory.currentIndex < songs.length) {
             if (memory.volume !== undefined) {
@@ -260,7 +231,6 @@ export function useMusicPlayer(config?: Partial<MusicPlayerConfig>): MusicPlayer
               audioRef.current.currentTime = memory.currentTime;
             }
           } else {
-            
             loadSong(0, cfg.autoplay, songs);
           }
         } else {
@@ -277,27 +247,19 @@ export function useMusicPlayer(config?: Partial<MusicPlayerConfig>): MusicPlayer
       setError('歌单加载失败，请检查网络连接');
     }
   }, [loadSong]);
-
-  
   useEffect(() => {
     void loadPlaylist();
   }, [loadPlaylist]);
-
-  
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.volume = volume;
     }
   }, [volume]);
-
-  
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.muted = isMuted;
     }
   }, [isMuted]);
-
-  
   const play = useCallback(() => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -314,11 +276,9 @@ export function useMusicPlayer(config?: Partial<MusicPlayerConfig>): MusicPlayer
       setError('播放失败，请稍后重试');
     });
   }, [loadSong]);
-
   const pause = useCallback(() => {
     audioRef.current?.pause();
   }, []);
-
   const togglePlay = useCallback(() => {
     if (ctxRef.current.playlist.length === 0) return;
     if (audioRef.current?.paused) {
@@ -327,8 +287,6 @@ export function useMusicPlayer(config?: Partial<MusicPlayerConfig>): MusicPlayer
       pause();
     }
   }, [play, pause]);
-
-  
   const playNext = useCallback(() => {
     const songs = ctxRef.current.playlist;
     if (songs.length === 0) return;
@@ -340,11 +298,7 @@ export function useMusicPlayer(config?: Partial<MusicPlayerConfig>): MusicPlayer
     }
     loadSong(index);
   }, [loadSong]);
-
-  
   playNextRef.current = playNext;
-
-  
   const playPrev = useCallback(() => {
     const songs = ctxRef.current.playlist;
     if (songs.length === 0) return;
@@ -356,12 +310,8 @@ export function useMusicPlayer(config?: Partial<MusicPlayerConfig>): MusicPlayer
     }
     loadSong(index);
   }, [loadSong]);
-
   const next = useCallback(() => playNext(), [playNext]);
-
   const prev = useCallback(() => playPrev(), [playPrev]);
-
-  
   const playAt = useCallback(
     (index: number) => {
       const songs = ctxRef.current.playlist;
@@ -370,8 +320,6 @@ export function useMusicPlayer(config?: Partial<MusicPlayerConfig>): MusicPlayer
     },
     [loadSong]
   );
-
-  
   const setProgress = useCallback((percent: number) => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -381,8 +329,6 @@ export function useMusicPlayer(config?: Partial<MusicPlayerConfig>): MusicPlayer
     audio.currentTime = p * d;
     setCurrentTime(audio.currentTime);
   }, []);
-
-  
   const setVolume = useCallback((percent: number) => {
     const p = Math.max(0, Math.min(1, percent));
     setVolumeState(p);
@@ -398,15 +344,12 @@ export function useMusicPlayer(config?: Partial<MusicPlayerConfig>): MusicPlayer
       }
     }
   }, []);
-
   const toggleMute = useCallback(() => {
     const audio = audioRef.current;
     if (!audio) return;
     audio.muted = !audio.muted;
     setIsMuted(audio.muted);
   }, []);
-
-  
   const togglePlayMode = useCallback(() => {
     const modes: MusicPlayMode[] = ['list', 'single', 'random'];
     const current = modes.indexOf(ctxRef.current.playMode);
@@ -414,9 +357,7 @@ export function useMusicPlayer(config?: Partial<MusicPlayerConfig>): MusicPlayer
     ctxRef.current = { ...ctxRef.current, playMode: nextMode };
     setPlayMode(nextMode);
   }, []);
-
   const currentSong = playlist[currentIndex] || null;
-
   return {
     isPlaying,
     loading,

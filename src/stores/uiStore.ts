@@ -1,9 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { useSiteStore } from '@/stores/siteStore';
-
 export type PostLayoutMode = 'grid' | 'list' | 'magazine';
-
 interface UIState {
   sidebarCollapsed: boolean;
   toggleSidebar: () => void;
@@ -16,7 +14,6 @@ interface UIState {
   loadConfig: () => Promise<void>;
   saveConfig: (config: Partial<{ postLayout: PostLayoutMode }>) => Promise<boolean>;
 }
-
 export const useUIStore = create<UIState>()(
   persist(
     (set, get) => ({
@@ -28,9 +25,7 @@ export const useUIStore = create<UIState>()(
       adminNavHidden: false,
       setAdminNavHidden: (hidden) => set({ adminNavHidden: hidden }),
       loaded: false,
-
       loadConfig: async () => {
-        
         const siteLayout = useSiteStore.getState().config.postLayout;
         if (siteLayout && ['grid', 'list', 'magazine'].includes(siteLayout)) {
           set({ postLayout: siteLayout, loaded: true });
@@ -38,13 +33,10 @@ export const useUIStore = create<UIState>()(
         }
         set({ loaded: true });
       },
-
       saveConfig: async (newConfig) => {
         const merged = { postLayout: get().postLayout, ...newConfig };
-
         const ok = await useSiteStore.getState().saveConfig({ postLayout: merged.postLayout });
         if (!ok) return false;
-
         set({ ...merged, loaded: true });
         return true;
       },

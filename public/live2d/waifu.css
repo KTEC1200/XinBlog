@@ -112,7 +112,7 @@
 }
 
 #waifu-tool svg:hover {
-	fill: #0684bd; /* #34495e */
+	fill: #0684bd; 
 }
 
 @keyframes waifu-shake {

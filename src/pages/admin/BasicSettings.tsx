@@ -4,7 +4,6 @@ import { fetchAuthSettings, updateAuthSettings, type AuthSettings } from '@/api/
 import { Loading } from '@/components/Common/Loading';
 import { FloatingSaveButton } from '@/components/Common/FloatingSaveButton';
 import { useSnackbar } from 'notistack';
-
 export function BasicSettings() {
   const { enqueueSnackbar } = useSnackbar();
   const [loading, setLoading] = useState(false);
@@ -26,7 +25,6 @@ export function BasicSettings() {
   });
   const [initialSettings, setInitialSettings] = useState<AuthSettings>(settings);
   const isDirty = JSON.stringify(settings) !== JSON.stringify(initialSettings);
-
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
@@ -43,7 +41,6 @@ export function BasicSettings() {
       cancelled = true;
     };
   }, []);
-
   const handleSave = async () => {
     setSaving(true);
     const ok = await updateAuthSettings(settings);
@@ -55,9 +52,7 @@ export function BasicSettings() {
       enqueueSnackbar('保存失败，请稍后再试', { variant: 'error' });
     }
   };
-
   if (loading) return <Loading />;
-
   return (
     <Fade in timeout={400}>
     <Paper
@@ -74,8 +69,6 @@ export function BasicSettings() {
       <Typography variant="h6" sx={{ fontWeight: 700, mb: 3, overflowWrap: 'break-word' }}>
         基础设置
       </Typography>
-
-
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         <FormControlLabel
           control={
@@ -105,12 +98,8 @@ export function BasicSettings() {
           label="开启找回密码"
         />
       </Box>
-
-
       <FloatingSaveButton show={isDirty} saving={saving} onClick={handleSave} label="保存设置" />
     </Paper>
-
     </Fade>
-
   );
 }

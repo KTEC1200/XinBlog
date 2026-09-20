@@ -4,14 +4,9 @@ import type { MusicEditor } from './useMusicEditor';
 import { MusicPlayerCard } from '@/components/MusicPlayer/MusicPlayerCard';
 import { MusicPlayerWidget } from '@/components/MusicPlayer/MusicPlayerWidget';
 import { useMusicPlayer } from '@/components/MusicPlayer/useMusicPlayer';
-
-
 export function MusicPreviewPanel({ editor }: { editor: MusicEditor }) {
   const previewConfig = useMemo(() => editor.buildConfig(), [editor]);
-
-  
   const player = useMusicPlayer(previewConfig);
-
   return (
     <Stack spacing={3}>
       <Paper
@@ -27,20 +22,14 @@ export function MusicPreviewPanel({ editor }: { editor: MusicEditor }) {
         <Typography variant="h6" sx={{ fontWeight: 800, mb: 2 }}>
           预览
         </Typography>
-
         <Fade in timeout={400}>
           <Box>
             <MusicPlayerCard config={previewConfig} player={player} />
           </Box>
-
         </Fade>
-
       </Paper>
-
-
       {}
       <MusicPlayerWidget player={player} position={previewConfig.position} defaultExpanded disableScrollIntercept />
     </Stack>
-
   );
 }

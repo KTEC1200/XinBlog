@@ -14,11 +14,9 @@ import {
 import { useSiteStore } from '@/stores/siteStore';
 import { smoothScrollTo } from '@/utils/smoothScrollController';
 import type { Post } from '@/types';
-
 function getScrollContainer(): HTMLElement | null {
   return document.querySelector('main') as HTMLElement | null;
 }
-
 export function PostDetail() {
   const { slug } = useParams<{ slug: string }>();
   const { config } = useSiteStore();
@@ -30,24 +28,19 @@ export function PostDetail() {
   const [siblings, setSiblings] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [headings, setHeadings] = useState<HeadingItem[]>([]);
-
   useEffect(() => {
     if (!slug) return;
     let mounted = true;
     setLoading(true);
-
-    
     const cachedPosts = peekCache<PostsResponse>('/api/v1/posts');
     const cachedPost = cachedPosts.data?.list.find((p) => p.slug === slug);
     const initialPost = cachedPost ? transformPost(cachedPost) : null;
     const initialSiblings = cachedPosts.data?.list.map((p) => transformPost(p)) || [];
-
     if (initialPost) {
       if (!mounted) return;
       setPost(initialPost);
       setSiblings(initialSiblings);
       setLoading(false);
-      
       fetchPostBySlug(slug).then((fresh) => {
         if (mounted && fresh) {
           setPost(fresh);
@@ -55,7 +48,6 @@ export function PostDetail() {
       });
       return () => { mounted = false; };
     }
-
     Promise.all([fetchPostBySlug(slug), fetchPosts()]).then(([postData, postsData]) => {
       if (!mounted) return;
       setPost(postData);
@@ -64,11 +56,9 @@ export function PostDetail() {
     });
     return () => { mounted = false; };
   }, [slug]);
-
   if (!loading && !post) {
     return <Navigate to="/404" replace />;
   }
-
   return (
     <Fade in timeout={400}>
       <Box>
@@ -93,41 +83,31 @@ export function PostDetail() {
               />
             )}
           </Suspense>
-
         )}
-
         {(!isGlassTheme || isMobile) && <TableOfContents headings={headings} />}
         <ReadingProgressButton />
       </Box>
-
     </Fade>
-
   );
 }
-
 function ReadingProgressButton() {
   const theme = useTheme();
   const [readingProgress, setReadingProgress] = useState(0);
-
   useEffect(() => {
     const container = getScrollContainer();
     if (!container) return;
-
     const handleScroll = () => {
       const scrollTop = container.scrollTop;
       const docHeight = container.scrollHeight - container.clientHeight;
       const ratio = docHeight > 0 ? scrollTop / docHeight : 0;
       setReadingProgress(Math.min(1, Math.max(0, ratio)));
     };
-
     handleScroll();
     container.addEventListener('scroll', handleScroll, { passive: true });
     return () => container.removeEventListener('scroll', handleScroll);
   }, []);
-
   const progressRadius = 20;
   const progressCircumference = 2 * Math.PI * progressRadius;
-
   return (
     <Box
       onClick={() => {
@@ -202,9 +182,7 @@ function ReadingProgressButton() {
           strokeDashoffset={progressCircumference * (1 - readingProgress)}
         />
       </svg>
-
       <KeyboardArrowUp sx={{ color: 'primary.main', position: 'relative', zIndex: 1 }} />
     </Box>
-
   );
 }

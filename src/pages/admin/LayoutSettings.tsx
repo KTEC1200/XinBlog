@@ -24,7 +24,6 @@ import type { PostLayoutMode } from '@/stores/uiStore';
 import type { Post } from '@/types';
 import { useSnackbar } from 'notistack';
 import { FloatingSaveButton } from '@/components/Common/FloatingSaveButton';
-
 const layouts: { id: PostLayoutMode; name: string; desc: string; icon: React.ReactNode }[] = [
   {
     id: 'grid',
@@ -45,7 +44,6 @@ const layouts: { id: PostLayoutMode; name: string; desc: string; icon: React.Rea
     icon: <AutoStories sx={{ fontSize: { xs: 28, md: 40 } }} />,
   },
 ];
-
 export function AdminLayoutSettings() {
   const ui = useUIStore();
   const { enqueueSnackbar } = useSnackbar();
@@ -56,13 +54,11 @@ export function AdminLayoutSettings() {
   const isDirty = selected !== initialSelected;
   const [saving, setSaving] = useState(false);
   const [posts, setPosts] = useState<Post[]>([]);
-
   useEffect(() => {
     fetchPosts().then((data) => {
       if (data.length) setPosts(data);
     });
   }, []);
-
   const applyLayout = async () => {
     setSaving(true);
     const ok = await ui.saveConfig({ postLayout: selected });
@@ -75,7 +71,6 @@ export function AdminLayoutSettings() {
     }
     setSaving(false);
   };
-
   const renderPreview = () => {
     switch (selected) {
       case 'list':
@@ -87,19 +82,15 @@ export function AdminLayoutSettings() {
         return <PostListGrid posts={posts} />;
     }
   };
-
   return (
     <Fade in timeout={400}>
     <Box>
       <Typography variant="h5" sx={{ fontWeight: 700, mb: 1 }}>
         文章布局
       </Typography>
-
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
         选择首页文章列表的展示风格，实时预览效果。
       </Typography>
-
-
       {}
       <Paper
         elevation={0}
@@ -117,7 +108,6 @@ export function AdminLayoutSettings() {
         <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
           选择布局
         </Typography>
-
         {isMobileAdmin ? (
           <FormControl size="small" fullWidth>
             <Select
@@ -139,12 +129,9 @@ export function AdminLayoutSettings() {
                 <MenuItem key={layout.id} value={layout.id}>
                   {layout.name}
                 </MenuItem>
-
               ))}
             </Select>
-
           </FormControl>
-
         ) : (
           <ToggleButtonGroup
             value={selected}
@@ -190,22 +177,15 @@ export function AdminLayoutSettings() {
                   <Typography variant="subtitle1" fontWeight={700} sx={{ fontSize: { xs: '0.9rem', sm: '1rem' } }}>
                     {layout.name}
                   </Typography>
-
                   <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', fontSize: { xs: '0.7rem', sm: '0.75rem' } }}>
                     {layout.desc}
                   </Typography>
-
                 </Box>
-
               </ToggleButton>
-
             ))}
           </ToggleButtonGroup>
-
         )}
       </Paper>
-
-
       {}
       <Paper
         elevation={0}
@@ -224,7 +204,6 @@ export function AdminLayoutSettings() {
           <Typography variant="h6" sx={{ fontWeight: 700, overflowWrap: 'break-word' }}>
             实时预览
           </Typography>
-
           <Box
             sx={{
               px: 1.5,
@@ -238,16 +217,11 @@ export function AdminLayoutSettings() {
           >
             {layouts.find((l) => l.id === selected)?.name}
           </Box>
-
         </Box>
-
         <Box sx={{ pointerEvents: 'none', maxWidth: '100%', overflow: 'hidden' }}>
           {renderPreview()}
         </Box>
-
       </Paper>
-
-
       {}
       <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', minWidth: 0 }}>
         <Button
@@ -258,13 +232,9 @@ export function AdminLayoutSettings() {
         >
           恢复默认
         </Button>
-
       </Box>
-
       <FloatingSaveButton show={isDirty} saving={saving} onClick={applyLayout} label="应用布局" />
     </Box>
-
     </Fade>
-
   );
 }

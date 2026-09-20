@@ -3,10 +3,8 @@ import { Check } from '@mui/icons-material';
 import { themePresets } from '@/types/theme';
 import { ColorPicker } from '@/components/Common/ColorPicker';
 import type { AppearanceEditor } from '../useAppearanceEditor';
-
 export function ThemePanel({ editor }: { editor: AppearanceEditor }) {
   const { useCustom, presetId, resetToPreset, setUseCustom, colors, handleColorChange, borderRadius, setBorderRadius, activeColors } = editor;
-
   return (
     <>
       <Paper
@@ -25,7 +23,6 @@ export function ThemePanel({ editor }: { editor: AppearanceEditor }) {
         <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
           预设模板
         </Typography>
-
         <Grid container spacing={2}>
           {themePresets.map((preset) => {
             const isSelected = !useCustom && presetId === preset.id;
@@ -78,7 +75,6 @@ export function ThemePanel({ editor }: { editor: AppearanceEditor }) {
                       >
                         <Check sx={{ fontSize: 14 }} />
                       </Box>
-
                     )}
                     <Box
                       sx={{
@@ -94,24 +90,16 @@ export function ThemePanel({ editor }: { editor: AppearanceEditor }) {
                     <Typography variant="subtitle2" fontWeight={700}>
                       {preset.name}
                     </Typography>
-
                     <Typography variant="caption" color="text.secondary">
                       {preset.nameEn}
                     </Typography>
-
                   </Paper>
-
                 </ButtonBase>
-
               </Grid>
-
             );
           })}
         </Grid>
-
       </Paper>
-
-
       <Paper
         elevation={0}
         sx={{
@@ -129,7 +117,6 @@ export function ThemePanel({ editor }: { editor: AppearanceEditor }) {
           <Typography variant="h6" sx={{ fontWeight: 700 }}>
             自定义颜色
           </Typography>
-
           <ToggleButtonGroup
             value={useCustom ? 'custom' : 'preset'}
             exclusive
@@ -137,14 +124,9 @@ export function ThemePanel({ editor }: { editor: AppearanceEditor }) {
             size="small"
           >
             <ToggleButton value="preset">使用预设</ToggleButton>
-
             <ToggleButton value="custom">自定义</ToggleButton>
-
           </ToggleButtonGroup>
-
         </Box>
-
-
         <Grid container spacing={3}>
           {([
             { key: 'primary', label: '主色' },
@@ -158,20 +140,15 @@ export function ThemePanel({ editor }: { editor: AppearanceEditor }) {
               <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
                 {item.label}
               </Typography>
-
               <ColorPicker
                 value={colors[item.key]}
                 onChange={(v) => handleColorChange(item.key, v)}
                 disabled={!useCustom}
               />
             </Grid>
-
           ))}
         </Grid>
-
       </Paper>
-
-
       <Paper
         elevation={0}
         sx={{
@@ -188,7 +165,6 @@ export function ThemePanel({ editor }: { editor: AppearanceEditor }) {
         <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
           全局圆角
         </Typography>
-
         <Box sx={{ px: 1 }}>
           <Slider
             value={borderRadius}
@@ -211,10 +187,7 @@ export function ThemePanel({ editor }: { editor: AppearanceEditor }) {
             }}
           />
         </Box>
-
       </Paper>
-
-
       <Paper
         elevation={0}
         sx={{
@@ -231,7 +204,6 @@ export function ThemePanel({ editor }: { editor: AppearanceEditor }) {
         <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
           效果预览
         </Typography>
-
         <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
           <Button
             variant="contained"
@@ -243,7 +215,6 @@ export function ThemePanel({ editor }: { editor: AppearanceEditor }) {
           >
             主按钮
           </Button>
-
           <Button
             variant="outlined"
             sx={{
@@ -254,7 +225,6 @@ export function ThemePanel({ editor }: { editor: AppearanceEditor }) {
           >
             边框按钮
           </Button>
-
           <Box
             sx={{
               px: 2,
@@ -267,7 +237,6 @@ export function ThemePanel({ editor }: { editor: AppearanceEditor }) {
           >
             标签样式
           </Box>
-
           <Box
             sx={{
               width: 80,
@@ -277,10 +246,7 @@ export function ThemePanel({ editor }: { editor: AppearanceEditor }) {
             }}
           />
         </Box>
-
       </Paper>
-
     </>
-
   );
 }

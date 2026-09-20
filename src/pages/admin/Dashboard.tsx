@@ -8,10 +8,7 @@ import { peekCache } from '@/api/client';
 import { Loading } from '@/components/Common/Loading';
 import { useSiteStore } from '@/stores/siteStore';
 import type { DashboardCounts, DashboardTrends, DashboardResponse } from '@/api/admin';
-
 const DAY_RANGES = [7, 30, 90] as const;
-
-
 const SERIES = [
   { key: 'posts', label: '文章', color: 'primary' },
   { key: 'comments', label: '评论', color: 'secondary' },
@@ -19,12 +16,10 @@ const SERIES = [
   { key: 'users', label: '注册', color: 'warning' },
   { key: 'media', label: '媒体', color: 'info' },
 ] as const;
-
 export function AdminDashboard() {
   const theme = useTheme();
   const navigate = useNavigate();
   const site = useSiteStore();
-  
   const showStats = site.config.enableDashboardStats ?? true;
   const dashboardCache = peekCache<DashboardResponse>('/api/v1/admin/dashboard');
   const [days, setDays] = useState<number>(30);
@@ -34,7 +29,6 @@ export function AdminDashboard() {
   const [trends, setTrends] = useState<DashboardTrends | null>(dashboardCache.data?.trends || null);
   const [loading, setLoading] = useState(!dashboardCache.hit);
   const [hidden, setHidden] = useState<Set<string>>(new Set());
-
   useEffect(() => {
     let mounted = true;
     if (!dashboardCache.hit) setLoading(true);
@@ -49,29 +43,23 @@ export function AdminDashboard() {
     return () => {
       mounted = false;
     };
-    
-    
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [days]);
-
   if (loading) {
     return <Loading text="加载站点数据中..." />;
   }
-
   const stats = [
     { title: '文章总数', value: counts.posts, icon: <Article />, color: 'primary.main', path: '/admin/posts' },
     { title: '标签总数', value: counts.tags, icon: <Palette />, color: 'secondary.main', path: '/admin/tags' },
     { title: '媒体总数', value: counts.media, icon: <PermMedia />, color: 'success.main', path: '/admin/media' },
     { title: '用户总数', value: counts.users, icon: <People />, color: 'warning.main', path: '/admin/users' },
   ];
-
-  
   const dates = trends?.dates || [];
   const chartData = dates.map((date, i) => {
     const row: Record<string, string | number> = { date: date.slice(5) };
     if (trends) for (const s of SERIES) row[s.label] = trends[s.key][i];
     return row;
   });
-
   const toggleSeries = (key: string) => {
     setHidden((prev) => {
       const next = new Set(prev);
@@ -80,15 +68,12 @@ export function AdminDashboard() {
       return next;
     });
   };
-
   return (
     <Fade in timeout={400}>
       <Box>
         <Typography variant="h5" sx={{ fontWeight: 700, mb: 3 }}>
           站点概览
         </Typography>
-
-
         <Grid container spacing={3}>
           {stats.map((stat) => (
             <Grid item xs={12} sm={6} lg={3} key={stat.title}>
@@ -142,28 +127,19 @@ export function AdminDashboard() {
                   >
                     {stat.icon}
                   </Box>
-
                   <Box sx={{ minWidth: 0 }}>
                     <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: 'break-word' }}>
                       {stat.title}
                     </Typography>
-
                     <Typography variant="h5" sx={{ fontWeight: 700, overflowWrap: 'break-word' }}>
                       {stat.value}
                     </Typography>
-
                   </Box>
-
                 </Paper>
-
               </ButtonBase>
-
             </Grid>
-
           ))}
         </Grid>
-
-
         {showStats && (
         <Paper
           elevation={0}
@@ -183,17 +159,13 @@ export function AdminDashboard() {
               <Typography variant="h6" sx={{ fontWeight: 700 }}>
                 内容趋势
               </Typography>
-
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, px: 1.5, py: 0.5, borderRadius: 1, bgcolor: alpha(theme.palette.primary.main, 0.12), color: 'primary.main' }}>
                 <Visibility fontSize="small" />
                 <Typography variant="body2" sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}>
                   总阅读量 {counts.views.toLocaleString()} 次
                 </Typography>
-
               </Box>
-
             </Box>
-
             <ToggleButtonGroup
               size="small"
               exclusive
@@ -205,13 +177,9 @@ export function AdminDashboard() {
                 <ToggleButton key={d} value={d} sx={{ px: { xs: 1.5, sm: 2 }, fontWeight: 600, borderRadius: 'inherit' }}>
                   {d} 天
                 </ToggleButton>
-
               ))}
             </ToggleButtonGroup>
-
           </Box>
-
-
           {}
           <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 1.5 }}>
             {SERIES.map((s) => {
@@ -235,8 +203,6 @@ export function AdminDashboard() {
               );
             })}
           </Box>
-
-
           <Fade in timeout={400}>
             <Box sx={{ width: '100%', height: 320 }}>
               <ResponsiveContainer width="100%" height="100%">
@@ -266,17 +232,11 @@ export function AdminDashboard() {
                     />
                   ))}
                 </LineChart>
-
               </ResponsiveContainer>
-
             </Box>
-
           </Fade>
-
         </Paper>
-
         )}
-
         <Paper
           elevation={0}
           sx={{
@@ -292,7 +252,6 @@ export function AdminDashboard() {
           <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
             快捷入口
           </Typography>
-
           <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', minWidth: 0 }}>
             {[
               { label: '前往文章管理', to: '/admin/posts', color: 'primary' },
@@ -334,12 +293,8 @@ export function AdminDashboard() {
               );
             })}
           </Box>
-
         </Paper>
-
       </Box>
-
     </Fade>
-
   );
 }
