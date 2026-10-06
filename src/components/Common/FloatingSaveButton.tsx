@@ -1,15 +1,19 @@
 import { Box, Button, CircularProgress, Fade } from '@mui/material';
 import { Save } from '@mui/icons-material';
 import { useEffect, useRef, useState } from 'react';
+
 interface FloatingSaveButtonProps {
   show: boolean;
   saving: boolean;
   onClick: () => void;
   label?: string;
 }
+
+
 export function FloatingSaveButton({ show, saving, onClick, label = '保存' }: FloatingSaveButtonProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [leftOffset, setLeftOffset] = useState(284);
+
   useEffect(() => {
     const main = ref.current?.closest('main') as HTMLElement | null;
     if (!main) return;
@@ -19,14 +23,17 @@ export function FloatingSaveButton({ show, saving, onClick, label = '保存' }: 
     ro.observe(main);
     return () => ro.disconnect();
   }, []);
+
   return (
     <Box
       ref={ref}
       sx={{
         position: 'fixed',
         bottom: { xs: 16, sm: 24 },
+        
         left: leftOffset,
         zIndex: (theme) => theme.zIndex.drawer + 1,
+        
         pointerEvents: show ? 'auto' : 'none',
         transition: (theme) =>
           theme.transitions.create('left', {
@@ -53,7 +60,10 @@ export function FloatingSaveButton({ show, saving, onClick, label = '保存' }: 
         >
           {saving ? '保存中...' : label}
         </Button>
+
       </Fade>
+
     </Box>
+
   );
 }

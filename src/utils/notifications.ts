@@ -1,6 +1,11 @@
+
+
+
 export function isNotificationSupported(): boolean {
   return typeof window !== 'undefined' && 'Notification' in window;
 }
+
+
 export async function requestNotificationPermission(): Promise<NotificationPermission> {
   if (!isNotificationSupported()) return 'denied';
   if (Notification.permission === 'granted') return 'granted';
@@ -11,6 +16,8 @@ export async function requestNotificationPermission(): Promise<NotificationPermi
     return 'denied';
   }
 }
+
+
 export function showNotification(title: string, body: string): void {
   if (!isNotificationSupported() || Notification.permission !== 'granted') return;
   let notification: Notification;
@@ -20,6 +27,8 @@ export function showNotification(title: string, body: string): void {
       {
         body,
         tag: 'chat-room-message',
+        
+        
         renotify: true,
       } as NotificationOptions
     );
@@ -28,5 +37,6 @@ export function showNotification(title: string, body: string): void {
       notification.close();
     };
   } catch {
+    
   }
 }

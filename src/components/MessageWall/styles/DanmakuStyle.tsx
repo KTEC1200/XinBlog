@@ -2,19 +2,28 @@ import { useRef, useEffect, useState } from 'react';
 import { Box, Typography, Chip, alpha, Skeleton } from '@mui/material';
 import { getMessages } from '@/api/messages';
 import type { Message } from '@/types/interaction';
+
 const PAGE_SIZE = 100;
+
 const COLORS = ['#ff6b6b', '#ffd93d', '#6bcb77', '#4d96ff', '#ff8fb1', '#a66cff', '#ff9f43', '#00d2d3'];
+
+
 const MAX_LEN = 50;
+
 const COOLDOWN_WAIT = 3 * 1000;
+
+
 function truncate(content: string) {
   return content.length > MAX_LEN ? `${content.slice(0, MAX_LEN)}…` : content;
 }
+
 interface ActiveDanmaku extends Message {
   uid: string;
   track: number;
   duration: number;
   color: string;
 }
+
 interface DanmakuStyleProps {
   trackCount: number;
   speedMin: number;
@@ -23,6 +32,7 @@ interface DanmakuStyleProps {
   intervalMax: number;
   repeatSec: number;
 }
+
 export default function DanmakuStyle({
   trackCount,
   speedMin,
@@ -33,11 +43,16 @@ export default function DanmakuStyle({
 }: DanmakuStyleProps) {
   const [loading, setLoading] = useState(true);
   const [active, setActive] = useState<ActiveDanmaku[]>([]);
+  
   const allRef = useRef<Message[]>([]);
+  
   const lastShownRef = useRef<Map<number, number>>(new Map());
+  
   const trackSpeedsRef = useRef(
     Array.from({ length: trackCount }, () => speedMin + Math.random() * (speedMax - speedMin))
   );
+
+  
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -61,11 +76,14 @@ export default function DanmakuStyle({
       cancelled = true;
     };
   }, []);
+
+  
   useEffect(() => {
     if (loading) return;
     let stopped = false;
     const timers: number[] = [];
     let cursor = 0;
+
     const loop = (track: number) => {
       if (stopped) return;
       const all = allRef.current;
@@ -73,12 +91,15 @@ export default function DanmakuStyle({
         timers.push(window.setTimeout(() => loop(track), 3000));
         return;
       }
+
       const now = Date.now();
+      
       const due = all.filter((m) => !lastShownRef.current.has(m.id) || now - lastShownRef.current.get(m.id)! >= repeatSec * 1000);
       if (due.length === 0) {
         timers.push(window.setTimeout(() => loop(track), COOLDOWN_WAIT));
         return;
       }
+
       const msg = due[cursor % due.length];
       cursor += 1;
       lastShownRef.current.set(msg.id, now);
@@ -96,14 +117,18 @@ export default function DanmakuStyle({
       const interval = (intervalMin + Math.random() * (intervalMax - intervalMin)) * 1000;
       timers.push(window.setTimeout(() => loop(track), interval));
     };
+
+    
     for (let track = 0; track < trackCount; track++) {
       timers.push(window.setTimeout(() => loop(track), Math.random() * 4000));
     }
+
     return () => {
       stopped = true;
       timers.forEach(clearTimeout);
     };
   }, [loading]);
+
   return (
     <Box
       sx={{
@@ -120,12 +145,15 @@ export default function DanmakuStyle({
         <Box sx={{ p: 2 }}>
           <Skeleton variant="rectangular" height={380} sx={{ borderRadius: 1 }} />
         </Box>
+
       ) : allRef.current.length === 0 ? (
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
           <Typography variant="body2" color="text.secondary">
             暂无留言
           </Typography>
+
         </Box>
+
       ) : (
         <Box sx={{ position: 'relative', width: '100%', height: '100%' }}>
           {active.map((item) => (
@@ -165,6 +193,7 @@ export default function DanmakuStyle({
                   >
                     {item.username || '用户'}
                   </Typography>
+
                 ) : (
                   <>
                     <Chip
@@ -186,8 +215,10 @@ export default function DanmakuStyle({
                       >
                         {item.nickname}
                       </Typography>
+
                     )}
                   </>
+
                 )}
                 <Typography
                   variant="body2"
@@ -201,11 +232,16 @@ export default function DanmakuStyle({
                 >
                   {truncate(item.content)}
                 </Typography>
+
               </Box>
+
             </Box>
+
           ))}
         </Box>
+
       )}
     </Box>
+
   );
 }

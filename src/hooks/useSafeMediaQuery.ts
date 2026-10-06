@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTheme, type Theme } from '@mui/material/styles';
+
+
 export function useSafeMediaQuery(queryFn: (theme: Theme) => string, defaultMatches = false): boolean {
   const theme = useTheme();
   const query = queryFn(theme);
@@ -11,6 +13,7 @@ export function useSafeMediaQuery(queryFn: (theme: Theme) => string, defaultMatc
       return defaultMatches;
     }
   });
+
   useEffect(() => {
     let mql: MediaQueryList | undefined;
     try {
@@ -23,5 +26,6 @@ export function useSafeMediaQuery(queryFn: (theme: Theme) => string, defaultMatc
       return undefined;
     }
   }, [query]);
+
   return matches;
 }

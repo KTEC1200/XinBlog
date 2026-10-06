@@ -1,12 +1,14 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, Navigate, Link } from 'react-router-dom';
 import { Container, Box, Typography, Fade, Chip, alpha, CircularProgress, Button } from '@mui/material';
-import { LocalOffer, ExpandMore, ChevronLeft, ChevronRight } from '@mui/icons-material';
+import { LocalOffer, ExpandMore, ChevronLeft, ChevronRight, Label as LabelIcon } from '@mui/icons-material';
 import { fetchTags, fetchPostsPage } from '@/api/posts';
 import { useSiteStore } from '@/stores/siteStore';
 import { PostList } from '@/components/Post/PostList';
 import { Loading } from '@/components/Common/Loading';
+import { AdminFrameFab } from '@/components/Admin/AdminFrameFab';
 import type { Tag, Post, PaginationMode } from '@/types';
+
 export function TagPage() {
   const { slug } = useParams<{ slug: string }>();
   const { config } = useSiteStore();
@@ -19,17 +21,22 @@ export function TagPage() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const requestKeyRef = useRef(0);
+
   const activeSlug = slug === 'all' ? undefined : slug;
+
   const loadPosts = useCallback(async (targetPage: number, append: boolean) => {
     const key = ++requestKeyRef.current;
     const isInitial = targetPage === 1 && !append;
     if (isInitial) setLoading(true);
     else setLoadingMore(true);
+
     const [tagsData, postsData] = await Promise.all([
       fetchTags(),
       fetchPostsPage({ page: targetPage, limit: pageSize, tag: activeSlug }),
     ]);
+
     if (key !== requestKeyRef.current) return;
+
     setTags(tagsData);
     setPosts((prev) => (append ? [...prev, ...postsData.list] : postsData.list));
     setTotal(postsData.total);
@@ -37,30 +44,36 @@ export function TagPage() {
     if (isInitial) setLoading(false);
     setLoadingMore(false);
   }, [activeSlug, pageSize]);
+
   useEffect(() => {
     requestKeyRef.current += 1;
     loadPosts(1, false);
   }, [activeSlug, loadPosts]);
+
   const hasMore = posts.length < total;
   const hasPrev = page > 1;
   const hasNext = posts.length < total;
+
   const handleLoadMore = () => {
     if (!loadingMore && hasMore) {
       loadPosts(page + 1, true);
     }
   };
+
   const handlePrevPage = () => {
     if (hasPrev) {
       loadPosts(page - 1, false);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
+
   const handleNextPage = () => {
     if (hasNext) {
       loadPosts(page + 1, false);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
+
   if (slug === 'all') {
     return (
       <Fade in timeout={400}>
@@ -68,9 +81,11 @@ export function TagPage() {
           <Typography variant="h3" component="h1" sx={{ fontWeight: 800, mb: 1, fontSize: { xs: '2rem', sm: '2.5rem', md: '3rem' } }}>
             标签
           </Typography>
+
           <Typography variant="body1" color="text.secondary" sx={{ mb: 4, fontSize: { xs: '0.875rem', sm: '1rem' } }}>
             探索所有话题
           </Typography>
+
           <Box
             sx={{
               display: 'flex',
@@ -111,9 +126,11 @@ export function TagPage() {
               />
             ))}
           </Box>
+
           <Typography variant="h5" component="h2" sx={{ fontWeight: 700, mb: 3, fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
             全部文章
           </Typography>
+
           {loading ? (
             <Loading />
           ) : (
@@ -138,6 +155,7 @@ export function TagPage() {
                     >
                       {loadingMore ? '加载中...' : hasMore ? '加载更多' : '没有更多了'}
                     </Button>
+
                   ) : (
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                       <Button
@@ -152,6 +170,7 @@ export function TagPage() {
                       >
                         上一页
                       </Button>
+
                       <Box
                         sx={{
                           px: 2,
@@ -166,6 +185,7 @@ export function TagPage() {
                       >
                         {page}
                       </Box>
+
                       <Button
                         variant="outlined"
                         onClick={handleNextPage}
@@ -178,20 +198,31 @@ export function TagPage() {
                       >
                         下一页
                       </Button>
+
                     </Box>
+
                   )}
                 </Box>
+
               </Box>
+
             </Fade>
+
           )}
+        <AdminFrameFab adminPath="/admin/tags?embed=1" label="管理标签" icon={<LabelIcon />} />
         </Container>
+
       </Fade>
+
     );
   }
+
   const tag = tags.find((t) => t.slug === slug);
+
   if (!loading && !tag) {
     return <Navigate to="/404" replace />;
   }
+
   return (
     <Fade in timeout={400}>
         <Container maxWidth="lg" sx={{ py: { xs: 4, md: 6 }, pb: 8 }}>
@@ -225,12 +256,15 @@ export function TagPage() {
                 <Typography variant="h3" component="h1" sx={{ fontWeight: 800, mb: 1, fontSize: { xs: '1.75rem', sm: '2.5rem', md: '3rem' }, overflowWrap: 'break-word' }}>
                   标签：{tag.name}
                 </Typography>
+
                 <Typography variant="body1" color="text.secondary" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
                   共 {total} 篇文章
                 </Typography>
+
                 <Box sx={{ mt: { xs: 3, md: 6 }, textAlign: 'left' }}>
                   <PostList posts={posts} />
                 </Box>
+
                 <Box sx={{ mt: 5, display: 'flex', justifyContent: 'center' }}>
                   {paginationMode === 'load-more' ? (
                     <Button
@@ -249,6 +283,7 @@ export function TagPage() {
                     >
                       {loadingMore ? '加载中...' : hasMore ? '加载更多' : '没有更多了'}
                     </Button>
+
                   ) : (
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                       <Button
@@ -263,6 +298,7 @@ export function TagPage() {
                       >
                         上一页
                       </Button>
+
                       <Box
                         sx={{
                           px: 2,
@@ -277,6 +313,7 @@ export function TagPage() {
                       >
                         {page}
                       </Box>
+
                       <Button
                         variant="outlined"
                         onClick={handleNextPage}
@@ -289,13 +326,21 @@ export function TagPage() {
                       >
                         下一页
                       </Button>
+
                     </Box>
+
                   )}
                 </Box>
+
               </Box>
+
             </Fade>
+
           )}
+        <AdminFrameFab adminPath="/admin/tags?embed=1" label="管理标签" icon={<LabelIcon />} />
         </Container>
+
       </Fade>
+
   );
 }

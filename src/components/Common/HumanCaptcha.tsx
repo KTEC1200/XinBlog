@@ -17,6 +17,8 @@ import {
   type CaptchaConfig,
   type CaptchaPayload,
 } from '@/api/captcha';
+
+
 function loadScript(src: string): Promise<void> {
   return new Promise((resolve, reject) => {
     if (document.querySelector(`script[src="${src}"]`)) {
@@ -31,6 +33,8 @@ function loadScript(src: string): Promise<void> {
     document.head.appendChild(s);
   });
 }
+
+
 function waitForHcaptcha(timeoutMs = 8000): Promise<boolean> {
   return new Promise((resolve) => {
     const start = Date.now();
@@ -49,28 +53,44 @@ function waitForHcaptcha(timeoutMs = 8000): Promise<boolean> {
     check();
   });
 }
+
 interface HumanCaptchaProps {
   open: boolean;
   onClose: () => void;
   onSuccess: (payload: CaptchaPayload) => void;
+  
   inline?: boolean;
 }
+
 export interface HumanCaptchaHandle {
+  
   trigger: () => void;
 }
+
+
+
+
 export const HumanCaptcha = forwardRef<HumanCaptchaHandle, HumanCaptchaProps>(
   function HumanCaptcha({ open, onClose, onSuccess, inline }, ref) {
     const theme = useTheme();
     const [config, setConfig] = useState<CaptchaConfig | null>(null);
     const [loadingConfig, setLoadingConfig] = useState(false);
+
+    
     const [math, setMath] = useState<{ question: string; token: string } | null>(null);
     const [mathAnswer, setMathAnswer] = useState('');
     const [mathLoading, setMathLoading] = useState(false);
     const [mathSubmitted, setMathSubmitted] = useState(false);
+
+    
     const turnstileRef = useRef<HTMLDivElement | null>(null);
     const [turnstileError, setTurnstileError] = useState(false);
+
+    
     const hcaptchaContainerRef = useRef<HTMLDivElement | null>(null);
     const [hcaptchaError, setHcaptchaError] = useState(false);
+
+    
     const geetestObjRef = useRef<{
       destroy?: () => void;
       showCaptcha?: () => void;
@@ -79,17 +99,24 @@ export const HumanCaptcha = forwardRef<HumanCaptchaHandle, HumanCaptchaProps>(
     const [geetestReady, setGeetestReady] = useState(false);
     const [geetestLoading, setGeetestLoading] = useState(false);
     const [geetestSuccess, setGeetestSuccess] = useState(false);
+
+    
     const trigger = useCallback(() => {
       if (geetestObjRef.current?.showCaptcha) {
         setGeetestLoading(true);
         geetestObjRef.current.showCaptcha();
       }
     }, []);
+
     useImperativeHandle(ref, () => ({ trigger }), [trigger]);
+
+    
     const finish = (payload: CaptchaPayload) => {
       onSuccess(payload);
       if (!inline) onClose();
     };
+
+  
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
@@ -111,14 +138,17 @@ export const HumanCaptcha = forwardRef<HumanCaptchaHandle, HumanCaptchaProps>(
       }
       setConfig(cfg);
       if (cfg.mode === 'none') {
+        
         finish({ mode: 'none' });
       }
     });
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, [open]);
+
+  
   useEffect(() => {
     if (open) return;
     const w = window as unknown as Record<string, unknown>;
@@ -126,16 +156,19 @@ export const HumanCaptcha = forwardRef<HumanCaptchaHandle, HumanCaptchaProps>(
       try {
         (w as { turnstile: { remove: (el: HTMLElement) => void } }).turnstile.remove(turnstileRef.current);
       } catch {
+        
       }
     }
     if (geetestObjRef.current?.destroy) {
       try {
         geetestObjRef.current.destroy();
       } catch {
+        
       }
       geetestObjRef.current = null;
     }
   }, [open]);
+
   const loadMathQuestion = useCallback(async () => {
     setMathLoading(true);
     const m = await fetchMathCaptcha();
@@ -145,11 +178,15 @@ export const HumanCaptcha = forwardRef<HumanCaptchaHandle, HumanCaptchaProps>(
       setMathAnswer('');
     }
   }, []);
+
+  
   useEffect(() => {
     if (open && config?.mode === 'math') {
       loadMathQuestion();
     }
   }, [open, config, loadMathQuestion]);
+
+  
   useEffect(() => {
     if (!open || !config || config.mode !== 'turnstile') return;
     let cancelled = false;
@@ -189,8 +226,10 @@ export const HumanCaptcha = forwardRef<HumanCaptchaHandle, HumanCaptchaProps>(
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, [open, config]);
+
+  
   useEffect(() => {
     if (!open || !config || config.mode !== 'hcaptcha') return;
     let cancelled = false;
@@ -230,8 +269,10 @@ export const HumanCaptcha = forwardRef<HumanCaptchaHandle, HumanCaptchaProps>(
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, [open, config]);
+
+  
   useEffect(() => {
     if (!open || !config || config.mode !== 'geetest') return;
     let cancelled = false;
@@ -265,9 +306,11 @@ export const HumanCaptcha = forwardRef<HumanCaptchaHandle, HumanCaptchaProps>(
           captchaObj.onReady(() => {
             if (cancelled) return;
             setGeetestReady(true);
+            
             if (!inline) captchaObj.showCaptcha();
           });
           captchaObj.onClose(() => {
+            
             setGeetestLoading(false);
           });
           captchaObj.onSuccess(() => {
@@ -297,8 +340,9 @@ export const HumanCaptcha = forwardRef<HumanCaptchaHandle, HumanCaptchaProps>(
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, [open, config]);
+
   const handleMathSubmit = () => {
     const trimmed = mathAnswer.trim();
     if (!math || trimmed === '' || mathSubmitted) return;
@@ -307,28 +351,36 @@ export const HumanCaptcha = forwardRef<HumanCaptchaHandle, HumanCaptchaProps>(
     setMathSubmitted(true);
     finish({ mode: 'math', mathToken: math.token, mathAnswer: num });
   };
+
   const mode = config?.mode || 'none';
+
   const renderBody = () => {
     if (loadingConfig) {
       return (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
           <CircularProgress size={28} />
         </Box>
+
       );
     }
+
     if (mode === 'math') {
       return (
         <>
           <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
             请计算以下算式的结果：{math ? <b>{math.question} = ?</b> : '...'}
+
           </Typography>
+
           {mathSubmitted ? (
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, width: '100%', minHeight: 48 }}>
               <CheckCircleIcon fontSize="small" color="success" />
               <Typography variant="body2" sx={{ color: 'success.main', fontWeight: 600 }}>
                 已提交
               </Typography>
+
             </Box>
+
           ) : math ? (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%', maxWidth: 340 }}>
               <TextField
@@ -354,11 +406,14 @@ export const HumanCaptcha = forwardRef<HumanCaptchaHandle, HumanCaptchaProps>(
               >
                 提交答案
               </Button>
+
             </Box>
+
           ) : (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
               <CircularProgress size={24} />
             </Box>
+
           )}
           <Button
             type="button"
@@ -369,9 +424,12 @@ export const HumanCaptcha = forwardRef<HumanCaptchaHandle, HumanCaptchaProps>(
           >
             换一题
           </Button>
+
         </>
+
       );
     }
+
     if (mode === 'turnstile') {
       return (
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', minHeight: 65, justifyContent: 'center' }}>
@@ -380,10 +438,13 @@ export const HumanCaptcha = forwardRef<HumanCaptchaHandle, HumanCaptchaProps>(
             <Typography variant="body2" color="error" sx={{ textAlign: 'center', mt: 1 }}>
               验证加载失败，请关闭后重试
             </Typography>
+
           )}
         </Box>
+
       );
     }
+
     if (mode === 'hcaptcha') {
       return (
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', minHeight: 78, justifyContent: 'center' }}>
@@ -392,10 +453,13 @@ export const HumanCaptcha = forwardRef<HumanCaptchaHandle, HumanCaptchaProps>(
             <Typography variant="body2" color="error" sx={{ textAlign: 'center', mt: 1 }}>
               验证加载失败，请关闭后重试
             </Typography>
+
           )}
         </Box>
+
       );
     }
+
     if (mode === 'geetest') {
       return (
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', gap: 1 }}>
@@ -422,23 +486,31 @@ export const HumanCaptcha = forwardRef<HumanCaptchaHandle, HumanCaptchaProps>(
                   ? '验证中...'
                   : '点击验证'}
           </Button>
+
           {geetestError && (
             <Typography variant="body2" color="error" sx={{ textAlign: 'center' }}>
               验证加载失败，请重试
             </Typography>
+
           )}
         </Box>
+
       );
     }
+
     return null;
   };
+
   if (inline) {
+    
     return (
       <Box sx={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, mt: 0.5, mb: 0.5 }}>
         {renderBody()}
       </Box>
+
     );
   }
+
   return (
     <Dialog
       open={open}
@@ -451,9 +523,12 @@ export const HumanCaptcha = forwardRef<HumanCaptchaHandle, HumanCaptchaProps>(
         <Typography variant="h6" sx={{ fontWeight: 700, mb: 1, textAlign: 'center' }}>
           安全验证
         </Typography>
+
         {renderBody()}
       </DialogContent>
+
     </Dialog>
+
   );
   }
 );

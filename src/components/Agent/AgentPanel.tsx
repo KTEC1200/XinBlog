@@ -18,15 +18,18 @@ import AgentMessageList from './AgentMessageList';
 import AgentInput from './AgentInput';
 import type { AgentMessage } from '@/hooks/useAgentChat';
 import type { AgentMode } from '@/pages/AgentChat';
+
 const MODES: { value: AgentMode; label: string }[] = [
   { value: 'warm', label: '温柔' },
   { value: 'humorous', label: '幽默' },
   { value: 'professional', label: '专业' },
 ];
+
 export interface ModelOption {
   id: string;
   name: string;
 }
+
 interface AgentPanelProps {
   title: string;
   loading: boolean;
@@ -44,6 +47,7 @@ interface AgentPanelProps {
   onSend: (text: string) => void;
   onBack: () => void;
 }
+
 export default function AgentPanel({
   title,
   loading,
@@ -64,6 +68,7 @@ export default function AgentPanel({
   const theme = useTheme();
   const radius = theme.shape.borderRadius;
   const [copied, setCopied] = useState(false);
+
   const copyAll = async () => {
     const text = messages
       .filter((m) => m.content)
@@ -75,8 +80,10 @@ export default function AgentPanel({
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch {
+      
     }
   };
+
   return (
     <Fade in timeout={400}>
       <Box
@@ -119,10 +126,12 @@ export default function AgentPanel({
           >
             <ArrowBackIcon sx={{ fontSize: 20 }} />
           </IconButton>
+
           <SmartToyIcon color="primary" sx={{ fontSize: 20, flexShrink: 0 }} />
           <Typography variant="subtitle1" sx={{ fontWeight: 700, flex: 1, minWidth: 0 }} noWrap>
             {title}
           </Typography>
+
           <ToggleButtonGroup
             size="small"
             exclusive
@@ -152,8 +161,10 @@ export default function AgentPanel({
               <ToggleButton key={m.value} value={m.value} sx={{ textTransform: 'none', minWidth: 44 }}>
                 {m.label}
               </ToggleButton>
+
             ))}
           </ToggleButtonGroup>
+
           {messages.length > 0 && (
             <Tooltip title={copied ? '已复制' : '复制全部对话'}>
               <IconButton
@@ -163,7 +174,9 @@ export default function AgentPanel({
               >
                 <CopyAllIcon sx={{ fontSize: 20 }} />
               </IconButton>
+
             </Tooltip>
+
           )}
           <Chip
             size="small"
@@ -172,6 +185,8 @@ export default function AgentPanel({
             variant="outlined"
           />
         </Box>
+
+
         {}
         <AgentMessageList
           messages={messages}
@@ -181,6 +196,7 @@ export default function AgentPanel({
           onConfirmAction={onConfirmAction}
           onUndoAction={onUndoAction}
         />
+
         {}
         <AgentInput
           disabled={loading}
@@ -192,6 +208,8 @@ export default function AgentPanel({
           onAutoCollapseChange={onAutoCollapseChange}
         />
       </Box>
+
     </Fade>
+
   );
 }

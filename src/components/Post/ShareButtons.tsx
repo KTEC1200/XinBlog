@@ -11,22 +11,31 @@ import {
 } from '@mui/material';
 import ShareIcon from '@mui/icons-material/Share';
 import LinkIcon from '@mui/icons-material/Link';
+import ShortcutIcon from '@mui/icons-material/Shortcut';
 import { useSnackbar } from 'notistack';
+import { buildShortUrl } from '@/utils/shortLink';
+
 interface ShareButtonsProps {
   title: string;
   url?: string;
+  slug?: string;
 }
+
 const canSystemShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
-export default function ShareButtons({ title, url }: ShareButtonsProps) {
+
+export default function ShareButtons({ title, url, slug }: ShareButtonsProps) {
   const { enqueueSnackbar } = useSnackbar();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const shareUrl = url || (typeof window !== 'undefined' ? window.location.href : '');
+
   const handleOpen = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
   };
+
   const handleClose = () => {
     setAnchorEl(null);
   };
+
   const handleCopy = () => {
     if (navigator.clipboard) {
       navigator.clipboard.writeText(shareUrl).then(() => {
@@ -37,6 +46,7 @@ export default function ShareButtons({ title, url }: ShareButtonsProps) {
     }
     handleClose();
   };
+
   const handleSystemShare = async () => {
     try {
       await navigator.share({
@@ -51,32 +61,74 @@ export default function ShareButtons({ title, url }: ShareButtonsProps) {
     }
     handleClose();
   };
+
+  const handleCopyShort = () => {
+    if (!slug) return;
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(buildShortUrl(slug)).then(() => {
+        enqueueSnackbar('短链已复制', { variant: 'success' });
+      });
+    } else {
+      enqueueSnackbar('复制失败，请手动复制地址', { variant: 'warning' });
+    }
+    handleClose();
+  };
+
   if (!canSystemShare) {
     return (
-      <Button
-        variant="outlined"
-        size="small"
-        startIcon={<LinkIcon sx={{ fontSize: 18 }} />}
-        onClick={handleCopy}
-        sx={{
-          borderRadius: 1,
-          px: 2.5,
-          py: 1,
-          textTransform: 'none',
-          fontWeight: 600,
-          borderColor: (theme) => alpha(theme.palette.text.secondary, 0.25),
-          color: 'text.secondary',
-          '&:hover': {
-            borderColor: (theme) => alpha(theme.palette.primary.main, 0.45),
-            color: 'primary.main',
-            bgcolor: (theme) => alpha(theme.palette.primary.main, 0.06),
-          },
-        }}
-      >
-        复制链接
-      </Button>
+      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+        <Button
+          variant="outlined"
+          size="small"
+          startIcon={<LinkIcon sx={{ fontSize: 18 }} />}
+          onClick={handleCopy}
+          sx={{
+            borderRadius: 1,
+            px: 2.5,
+            py: 1,
+            textTransform: 'none',
+            fontWeight: 600,
+            borderColor: (theme) => alpha(theme.palette.text.secondary, 0.25),
+            color: 'text.secondary',
+            '&:hover': {
+              borderColor: (theme) => alpha(theme.palette.primary.main, 0.45),
+              color: 'primary.main',
+              bgcolor: (theme) => alpha(theme.palette.primary.main, 0.06),
+            },
+          }}
+        >
+          复制链接
+        </Button>
+
+        <Button
+          variant="outlined"
+          size="small"
+          startIcon={<ShortcutIcon sx={{ fontSize: 18 }} />}
+          onClick={handleCopyShort}
+          disabled={!slug}
+          sx={{
+            borderRadius: 1,
+            px: 2.5,
+            py: 1,
+            textTransform: 'none',
+            fontWeight: 600,
+            borderColor: (theme) => alpha(theme.palette.text.secondary, 0.25),
+            color: 'text.secondary',
+            '&:hover': {
+              borderColor: (theme) => alpha(theme.palette.primary.main, 0.45),
+              color: 'primary.main',
+              bgcolor: (theme) => alpha(theme.palette.primary.main, 0.06),
+            },
+          }}
+        >
+          复制短链
+        </Button>
+
+      </Box>
+
     );
   }
+
   return (
     <>
       <Button
@@ -101,6 +153,7 @@ export default function ShareButtons({ title, url }: ShareButtonsProps) {
       >
         分享
       </Button>
+
       <Menu
         anchorEl={anchorEl}
         open={Boolean(anchorEl)}
@@ -141,11 +194,15 @@ export default function ShareButtons({ title, url }: ShareButtonsProps) {
             >
               <ShareIcon fontSize="small" />
             </Box>
+
           </ListItemIcon>
+
           <Typography variant="body2" sx={{ fontWeight: 500 }}>
             系统分享
           </Typography>
+
         </MenuItem>
+
         <MenuItem
           onClick={handleCopy}
           sx={{ py: 1, borderRadius: 0.5, mx: 0.5, my: 0.25 }}
@@ -166,12 +223,48 @@ export default function ShareButtons({ title, url }: ShareButtonsProps) {
             >
               <LinkIcon fontSize="small" />
             </Box>
+
           </ListItemIcon>
+
           <Typography variant="body2" sx={{ fontWeight: 500 }}>
             复制链接
           </Typography>
+
         </MenuItem>
+
+        <MenuItem
+          onClick={handleCopyShort}
+          disabled={!slug}
+          sx={{ py: 1, borderRadius: 0.5, mx: 0.5, my: 0.25 }}
+        >
+          <ListItemIcon>
+            <Box
+              sx={{
+                width: 28,
+                height: 28,
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
+                color: 'primary.main',
+                '& svg': { fontSize: 16 },
+              }}
+            >
+              <ShortcutIcon fontSize="small" />
+            </Box>
+
+          </ListItemIcon>
+
+          <Typography variant="body2" sx={{ fontWeight: 500 }}>
+            复制短链
+          </Typography>
+
+        </MenuItem>
+
       </Menu>
+
     </>
+
   );
 }

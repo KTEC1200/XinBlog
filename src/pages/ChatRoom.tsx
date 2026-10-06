@@ -14,6 +14,8 @@ import {
 } from '@/api/chat';
 import { useAuthStore } from '@/stores/authStore';
 import type { ChatSettings, CustomChatRoom } from '@/types/interaction';
+
+
 export default function ChatRoom() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
@@ -22,11 +24,15 @@ export default function ChatRoom() {
   const roomKey = rawRoomKey ? decodeURIComponent(rawRoomKey) : PUBLIC_CHAT_ROOM_KEY;
   const isMembersRoom = roomKey === ALL_USERS_CHAT_ROOM_KEY;
   const isCustomRoom = roomKey.startsWith('c_');
+
   const [settings, setSettings] = useState<ChatSettings | null>(null);
+  
   const [customRoom, setCustomRoom] = useState<CustomChatRoom | null>(null);
   const [customResolved, setCustomResolved] = useState(!isCustomRoom);
   const [loading, setLoading] = useState(true);
+
   const roomName = roomKey === PUBLIC_CHAT_ROOM_KEY ? PUBLIC_CHAT_ROOM_NAME : isMembersRoom ? ALL_USERS_CHAT_ROOM_NAME : customRoom?.name || roomKey;
+
   useEffect(() => {
     let cancelled = false;
     getChatSettings().then((res) => {
@@ -34,6 +40,7 @@ export default function ChatRoom() {
       if (res.code === 0 && res.data) setSettings(res.data);
     });
     if (isCustomRoom) {
+      
       getMyChatRooms()
         .then((res) => {
           if (cancelled) return;
@@ -55,27 +62,38 @@ export default function ChatRoom() {
       cancelled = true;
     };
   }, [roomKey, isCustomRoom]);
+
   if (loading) {
     return <Loading fullScreen text="房间加载中..." />;
   }
+
   const roomEnabled = Boolean(settings?.enabled);
+  
   const customOpen = isCustomRoom && customResolved && !!customRoom && !!customRoom.enabled;
   const roomOpen = isCustomRoom ? roomEnabled && customOpen : roomEnabled && (isMembersRoom ? settings!.allUsersRoomEnabled !== false : settings!.publicRoomEnabled !== false);
+
+  
   if (roomOpen && (isMembersRoom || isCustomRoom) && !isLoggedIn) {
     return (
       <Box sx={{ height: '100dvh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', p: 3 }}>
         <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
           需要登录
         </Typography>
+
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3, textAlign: 'center', maxWidth: 320 }}>
           「{roomName}」仅供登录用户使用。请先登录后再进入聊天室。
         </Typography>
+
         <Button component={Link} to="/admin/login" variant="contained" sx={{ textTransform: 'none', px: 4 }}>
           去登录
         </Button>
+
       </Box>
+
     );
   }
+
+  
   if (roomEnabled && isCustomRoom && customResolved && (!customRoom || !customRoom.enabled)) {
     return (
       <Box sx={{ height: '100dvh', flexDirection: 'column', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 3 }}>
@@ -83,9 +101,12 @@ export default function ChatRoom() {
         <Button variant="text" onClick={() => navigate('/chat')} sx={{ textTransform: 'none', mt: 1 }}>
           返回房间列表
         </Button>
+
       </Box>
+
     );
   }
+
   return (
     <Box sx={{ height: '100dvh', display: 'flex', flexDirection: 'column' }}>
       {}
@@ -93,7 +114,9 @@ export default function ChatRoom() {
         <Box sx={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <ChatEmptyState title="聊天室功能暂未开放" description="管理员尚未开启聊天室，请耐心等待~" />
         </Box>
+
       )}
+
       {}
       {roomEnabled && roomOpen && (
         <Box sx={{ flex: 1, minHeight: 0 }}>
@@ -103,7 +126,9 @@ export default function ChatRoom() {
             onBack={() => navigate('/chat')}
           />
         </Box>
+
       )}
+
       {}
       {roomEnabled && !roomOpen && (
         <Box sx={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -112,7 +137,9 @@ export default function ChatRoom() {
             description="管理员正在整理房间，请稍后再来看看~"
           />
         </Box>
+
       )}
     </Box>
+
   );
 }

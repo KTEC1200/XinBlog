@@ -22,6 +22,7 @@ import { fetchAuthSettings } from '@/api/admin';
 import { apiPost } from '@/api/client';
 import { HumanCaptcha, type HumanCaptchaHandle } from '@/components/Common/HumanCaptcha';
 import { fetchCaptchaConfig, type CaptchaPayload } from '@/api/captcha';
+
 export function AdminLogin() {
   const theme = useTheme();
   const navigate = useNavigate();
@@ -47,13 +48,17 @@ export function AdminLogin() {
   const [captchaPayload, setCaptchaPayload] = useState<CaptchaPayload | null>(null);
   const [agreed, setAgreed] = useState(false);
   const captchaRef = useRef<HumanCaptchaHandle>(null);
+  
   const sendCodePendingRef = useRef(false);
+
   const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/';
+
   useEffect(() => {
     if (isAuthenticated) {
       navigate(from, { replace: true });
     }
   }, [isAuthenticated, from, navigate]);
+
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
@@ -76,6 +81,7 @@ export function AdminLogin() {
       cancelled = true;
     };
   }, []);
+
   useEffect(() => {
     setError('');
     setSuccess('');
@@ -87,11 +93,13 @@ export function AdminLogin() {
     setShowPassword(false);
     setAgreed(false);
   }, [tab]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSuccess('');
     setLoading(true);
+
     try {
       if (tab === 1) {
         if (/[\u4e00-\u9fa5]/.test(username)) {
@@ -129,10 +137,14 @@ export function AdminLogin() {
       setLoading(false);
     }
   };
+
+  
   const requiresLogin = loginRequired && captchaMode !== 'none';
   const requiresRegister = registerRequired && captchaMode !== 'none';
   const requiresCurrent = tab === 0 ? requiresLogin : requiresRegister;
+  
   const showInlineCaptcha = requiresCurrent;
+
   const sendCode = async (payload?: CaptchaPayload) => {
     setSendingCode(true);
     setError('');
@@ -150,6 +162,8 @@ export function AdminLogin() {
       setSendingCode(false);
     }
   };
+
+  
   const handleSendCode = () => {
     if (requiresRegister && !captchaPayload) {
       sendCodePendingRef.current = true;
@@ -158,6 +172,7 @@ export function AdminLogin() {
     }
     void sendCode(captchaPayload ?? undefined);
   };
+
   const inputRippleSx = {
     '& .MuiOutlinedInput-root': {
       position: 'relative',
@@ -183,6 +198,7 @@ export function AdminLogin() {
       },
     },
   };
+
   return (
     <Fade in timeout={400}>
       <Box
@@ -224,9 +240,12 @@ export function AdminLogin() {
           >
             登录
           </Typography>
+
           <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ mb: 4 }}>
             {tab === 0 ? '欢迎回来，请登录您的账号' : '创建新账号，加入站点'}
           </Typography>
+
+
           {allowRegister ? (
             <Box
               sx={{
@@ -274,6 +293,7 @@ export function AdminLogin() {
               >
                 登录
               </Button>
+
               <Button
                 onClick={() => setTab(1)}
                 sx={{
@@ -292,24 +312,33 @@ export function AdminLogin() {
               >
                 注册
               </Button>
+
             </Box>
+
           ) : (
             <Box sx={{ mb: 3, textAlign: 'center' }}>
               <Typography variant="h6" sx={{ fontWeight: 700 }}>
                 登录
               </Typography>
+
             </Box>
+
           )}
+
           {error && (
             <Alert severity="error" sx={{ mb: 3, borderRadius: (theme) => Math.max(8, theme.shape.borderRadius - 4) }}>
               {error}
             </Alert>
+
           )}
+
           {success && (
             <Alert severity="success" sx={{ mb: 3, borderRadius: (theme) => Math.max(8, theme.shape.borderRadius - 4) }}>
               {success}
             </Alert>
+
           )}
+
           <Fade in timeout={200} key={tab}>
             <Box
               component="form"
@@ -330,6 +359,7 @@ export function AdminLogin() {
                     <InputAdornment position="start">
                       <Person color="action" />
                     </InputAdornment>
+
                   ),
                 }}
               />
@@ -348,6 +378,7 @@ export function AdminLogin() {
                       <InputAdornment position="start">
                         <Email color="action" />
                       </InputAdornment>
+
                     ),
                   }}
                 />
@@ -366,6 +397,7 @@ export function AdminLogin() {
                       <InputAdornment position="start">
                         <VpnKey color="action" />
                       </InputAdornment>
+
                     ),
                     endAdornment: (
                       <InputAdornment position="end">
@@ -378,7 +410,9 @@ export function AdminLogin() {
                       >
                         {sendingCode ? '发送中' : '获取验证码'}
                       </Button>
+
                       </InputAdornment>
+
                     ),
                   }}
                 />
@@ -397,6 +431,7 @@ export function AdminLogin() {
                     <InputAdornment position="start">
                       <Lock color="action" />
                     </InputAdornment>
+
                   ),
                   endAdornment: (
                     <InputAdornment position="end">
@@ -407,7 +442,9 @@ export function AdminLogin() {
                       >
                         {showPassword ? <VisibilityOff /> : <Visibility />}
                       </IconButton>
+
                     </InputAdornment>
+
                   ),
                 }}
               />
@@ -426,6 +463,7 @@ export function AdminLogin() {
                       <InputAdornment position="start">
                         <Lock color="action" />
                       </InputAdornment>
+
                     ),
                   }}
                 />
@@ -478,6 +516,7 @@ export function AdminLogin() {
                       >
                         用户协议
                       </Typography>
+
                       {' 和 '}
                       <Typography
                         component={Link}
@@ -494,7 +533,9 @@ export function AdminLogin() {
                       >
                         隐私政策
                       </Typography>
+
                     </Typography>
+
                   }
                   sx={{ m: 0 }}
                 />
@@ -514,7 +555,9 @@ export function AdminLogin() {
                   >
                     忘记密码？
                   </Typography>
+
                 </Box>
+
               )}
               <Button
                 type="submit"
@@ -539,8 +582,12 @@ export function AdminLogin() {
               >
                 {loading ? (tab === 0 ? '登录中...' : '注册中...') : tab === 0 ? '登录' : '注册'}
               </Button>
+
             </Box>
+
           </Fade>
+
+
           <Box sx={{ mt: 3, textAlign: 'center' }}>
             <Button
               component={Link}
@@ -557,9 +604,14 @@ export function AdminLogin() {
             >
               返回博客首页
             </Button>
+
           </Box>
+
         </Paper>
+
       </Box>
+
     </Fade>
+
   );
 }

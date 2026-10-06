@@ -1,5 +1,7 @@
 import type { ChatBubbleRenderer } from './base';
 import { resolveThemeColor, bubbleRadius } from './base';
+
+
 export const minimalBubbleRenderer: ChatBubbleRenderer<{
   mineBorder: string;
   mineText: string;
@@ -33,6 +35,7 @@ export const minimalBubbleRenderer: ChatBubbleRenderer<{
     const otherText = resolveThemeColor(params.otherText, '');
     const mine = bubbleRadius(params.mineSharpCorner, radius);
     const other = bubbleRadius(params.otherSharpCorner, radius);
+
     return {
       mine: {
         backgroundColor: 'transparent',

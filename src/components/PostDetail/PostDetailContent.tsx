@@ -3,10 +3,12 @@ import { PostContent } from '@/components/Post/PostContent';
 import { useSiteStore } from '@/stores/siteStore';
 import { resolveSpacingConfig } from '@/utils/spacingConfig';
 import type { HeadingItem } from '@/components/Post/TableOfContents';
+
 interface PostDetailContentProps {
   content: string;
   onHeadingsExtracted?: (headings: HeadingItem[]) => void;
 }
+
 export function PostDetailContent({ content, onHeadingsExtracted }: PostDetailContentProps) {
   const spacing = resolveSpacingConfig(useSiteStore((s) => s.config.spacing));
   return (
@@ -114,10 +116,12 @@ export function PostDetailContent({ content, onHeadingsExtracted }: PostDetailCo
             borderColor: 'divider',
             my: 4,
           },
+
         },
       }}
     >
       <PostContent content={content} onHeadingsExtracted={onHeadingsExtracted} />
     </Box>
+
   );
 }

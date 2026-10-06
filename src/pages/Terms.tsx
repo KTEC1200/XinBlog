@@ -14,6 +14,10 @@ import { Gavel, PrivacyTip } from '@mui/icons-material';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useSiteStore } from '@/stores/siteStore';
+import { AdminFrameFab } from '@/components/Admin/AdminFrameFab';
+
+
+
 const agreementContent = {
   sections: [
     {
@@ -98,6 +102,7 @@ const agreementContent = {
     },
   ],
 };
+
 const privacyContent = {
   sections: [
     {
@@ -207,6 +212,7 @@ const privacyContent = {
     },
   ],
 };
+
 function SectionContent({
   section,
   index,
@@ -229,6 +235,7 @@ function SectionContent({
         >
           {section.title}
         </Typography>
+
       )}
       {section.content && (
         <Typography
@@ -242,6 +249,7 @@ function SectionContent({
         >
           {section.content}
         </Typography>
+
       )}
       {section.items && (
         <Box component="ul" sx={{ m: 0, pl: { xs: 2.5, sm: 3 }, '& li': { mb: 1 } }}>
@@ -261,21 +269,29 @@ function SectionContent({
             >
               {item}
             </Typography>
+
           ))}
         </Box>
+
       )}
     </Box>
+
   );
 }
+
 export function Terms() {
   const theme = useTheme();
   const location = useLocation();
   const site = useSiteStore();
   const isAgreement = location.pathname === '/agreement';
+
+  
   const customContent = isAgreement
     ? site.config.termsAgreement ?? ''
     : site.config.termsPrivacy ?? '';
+
   const hasCustomContent = customContent.trim().length > 0;
+
   const { title, icon: Icon, updateDate, sections } = useMemo(
     () => ({
       title: isAgreement ? '用户协议' : '隐私政策',
@@ -285,6 +301,7 @@ export function Terms() {
     }),
     [isAgreement],
   );
+
   return (
     <Fade in timeout={400}>
       <Container maxWidth="lg" sx={{ py: { xs: 4, md: 8 }, pb: { xs: 8, md: 12 } }}>
@@ -318,6 +335,7 @@ export function Terms() {
             >
               <Icon sx={{ fontSize: { xs: 28, sm: 36 } }} />
             </Box>
+
             <Typography
               variant="h3"
               component="h1"
@@ -334,11 +352,16 @@ export function Terms() {
             >
               {title}
             </Typography>
+
             <Typography variant="body2" color="text.secondary">
               更新日期：{updateDate}
             </Typography>
+
           </Box>
+
+
           <Divider sx={{ mb: 4 }} />
+
           {}
           <Box sx={{ maxWidth: 720, mx: 'auto' }}>
             {}
@@ -360,8 +383,11 @@ export function Terms() {
                 >
                   您访问、注册、登录并使用本站相关服务，即代表您已认真阅读、充分理解，并自愿遵守本协议的全部约定。
                 </Typography>
+
               </Box>
+
             )}
+
             {}
             {!isAgreement && (
               <Box
@@ -381,8 +407,11 @@ export function Terms() {
                 >
                   本站遵循《中华人民共和国个人信息保护法》《网络数据安全管理条例》合规要求，清晰、透明地向大家公示本站的个人信息处理规则。
                 </Typography>
+
               </Box>
+
             )}
+
             {}
             {hasCustomContent ? (
               <Box
@@ -434,15 +463,23 @@ export function Terms() {
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                   {customContent}
                 </ReactMarkdown>
+
               </Box>
+
             ) : (
               sections.map((section, index) => (
                 <SectionContent key={index} section={section} index={index} />
               ))
             )}
           </Box>
+
         </Paper>
+
+        {}
+        <AdminFrameFab adminPath="/admin/terms?embed=1" label="管理条款" icon={<Gavel />} requireSuper />
       </Container>
+
     </Fade>
+
   );
 }

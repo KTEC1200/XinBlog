@@ -1,10 +1,14 @@
 import { Box, IconButton } from '@mui/material';
+
 interface AnimatedMenuButtonProps {
   open: boolean;
   onClick: () => void;
   color?: string;
 }
+
 const LINE_TRANSITION = 'transform 300ms cubic-bezier(0.4, 0, 0.2, 1), opacity 200ms ease';
+
+
 export function AnimatedMenuButton({ open, onClick, color = 'text.primary' }: AnimatedMenuButtonProps) {
   const lineSx = {
     position: 'absolute' as const,
@@ -15,6 +19,7 @@ export function AnimatedMenuButton({ open, onClick, color = 'text.primary' }: An
     backgroundColor: 'currentColor',
     transition: LINE_TRANSITION,
   };
+
   return (
     <IconButton
       onClick={onClick}
@@ -52,6 +57,8 @@ export function AnimatedMenuButton({ open, onClick, color = 'text.primary' }: An
           }}
         />
       </Box>
+
     </IconButton>
+
   );
 }

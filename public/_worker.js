@@ -1,12 +1,21 @@
+
+
+
+
 import { connect } from 'cloudflare:sockets';
+
 const VERSION = '1.0.0';
 const GLOBAL_DAILY_EMAIL_LIMIT = 200; 
+
+
+
 function jsonResponse(code, data, msg = 'ok', status = 200) {
   return new Response(JSON.stringify({ code, data, msg }), {
     status,
     headers: { 'Content-Type': 'application/json' },
   });
 }
+
 function jsonResponseWithCache(code, data, msg = 'ok', status = 200, cacheControl = '') {
   const headers = { 'Content-Type': 'application/json' };
   if (cacheControl) {
@@ -14,9 +23,11 @@ function jsonResponseWithCache(code, data, msg = 'ok', status = 200, cacheContro
   }
   return new Response(JSON.stringify({ code, data, msg }), { status, headers });
 }
+
 function now() {
   return new Date().toISOString();
 }
+
 function slugify(text) {
   return text
     .toString()
@@ -27,25 +38,33 @@ function slugify(text) {
     .replace(/\-\-+/g, '-')
     .replace(/^-+|-+$/g, '');
 }
+
 function readingTime(content) {
   const chars = content ? content.length : 0;
   return Math.max(1, Math.ceil(chars / 300));
 }
+
+
+
 function bufToHex(buf) {
   return Array.from(new Uint8Array(buf))
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('');
 }
+
 function hexToBuf(hex) {
   return Uint8Array.from(hex.match(/.{2}/g).map((b) => parseInt(b, 16)));
 }
+
 function base64UrlEncode(str) {
   return btoa(str).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
 }
+
 function base64UrlDecode(str) {
   const padding = '='.repeat((4 - (str.length % 4)) % 4);
   return atob(str.replace(/-/g, '+').replace(/_/g, '/') + padding);
 }
+
 async function hashPassword(password) {
   const encoder = new TextEncoder();
   const salt = crypto.getRandomValues(new Uint8Array(16));
@@ -57,6 +76,7 @@ async function hashPassword(password) {
   );
   return { salt: bufToHex(salt), hash: bufToHex(derived) };
 }
+
 async function verifyPassword(password, saltHex, hashHex) {
   const encoder = new TextEncoder();
   const salt = hexToBuf(saltHex);
@@ -68,12 +88,14 @@ async function verifyPassword(password, saltHex, hashHex) {
   );
   return bufToHex(derived) === hashHex;
 }
+
 async function sha256Hex(text) {
   const encoder = new TextEncoder();
   const data = encoder.encode(text);
   const hash = await crypto.subtle.digest('SHA-256', data);
   return bufToHex(hash);
 }
+
 function bytesToBase64(bytes) {
   let binary = '';
   for (let i = 0; i < bytes.length; i++) {
@@ -81,6 +103,7 @@ function bytesToBase64(bytes) {
   }
   return btoa(binary);
 }
+
 function base64ToBytes(base64) {
   const binary = atob(base64);
   const bytes = new Uint8Array(binary.length);
@@ -89,6 +112,7 @@ function base64ToBytes(base64) {
   }
   return bytes;
 }
+
 async function getEncryptionKey(env) {
   const raw = env.ENCRYPTION_KEY || env.JWT_SECRET || '';
   if (!raw) return null;
@@ -96,6 +120,7 @@ async function getEncryptionKey(env) {
   const keyData = await crypto.subtle.digest('SHA-256', encoder.encode(raw));
   return crypto.subtle.importKey('raw', keyData, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
 }
+
 async function encryptApiKey(env, plaintext) {
   if (!plaintext) return plaintext;
   if (plaintext.startsWith('enc:')) return plaintext;
@@ -109,6 +134,7 @@ async function encryptApiKey(env, plaintext) {
   combined.set(new Uint8Array(encrypted), iv.length);
   return `enc:${bytesToBase64(combined)}`;
 }
+
 async function decryptApiKey(env, ciphertext) {
   if (!ciphertext || !ciphertext.startsWith('enc:')) return ciphertext;
   const key = await getEncryptionKey(env);
@@ -124,6 +150,7 @@ async function decryptApiKey(env, ciphertext) {
     return null;
   }
 }
+
 async function signJWT(payload, secret) {
   const encoder = new TextEncoder();
   const header = { alg: 'HS256', typ: 'JWT' };
@@ -135,6 +162,7 @@ async function signJWT(payload, secret) {
   const sigB64 = base64UrlEncode(String.fromCharCode(...new Uint8Array(signature)));
   return `${data}.${sigB64}`;
 }
+
 async function verifyJWT(token, secret) {
   const parts = token.split('.');
   if (parts.length !== 3) throw new Error('Invalid token');
@@ -153,6 +181,9 @@ async function verifyJWT(token, secret) {
   if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) throw new Error('Token expired');
   return payload;
 }
+
+
+
 function ensureDbConfig(env) {
   if (!env || !env.DB_CONFIG || typeof env.DB_CONFIG.prepare !== 'function') {
     const hasBinding = env && !!env.DB_CONFIG;
@@ -163,8 +194,16 @@ function ensureDbConfig(env) {
     );
   }
 }
+
+
+
+
+
 let _agentSessionInitialized = false;
+
 const AGENT_SESSION_PART_SIZE = 10;
+
+
 function chunkAgentMessages(messages) {
   const chunks = [];
   for (let i = 0; i < messages.length; i += AGENT_SESSION_PART_SIZE) {
@@ -172,16 +211,22 @@ function chunkAgentMessages(messages) {
   }
   return chunks;
 }
+
 async function ensureAgentSessionTable(env) {
+  
+  
+  
   if (_agentSessionInitialized) return;
   const db = getConfigDb(env);
   try {
     const hasSessions = await tableExists(db, 'agent_sessions');
     const hasSub = await tableExists(db, 'agent_session_messages');
+    
     if (hasSessions && hasSub) {
       _agentSessionInitialized = true;
       return;
     }
+    
     await db
       .prepare(
         `CREATE TABLE IF NOT EXISTS agent_sessions (
@@ -192,6 +237,7 @@ async function ensureAgentSessionTable(env) {
         )`
       )
       .run();
+    
     await db
       .prepare(
         `CREATE TABLE IF NOT EXISTS agent_session_messages (
@@ -204,6 +250,9 @@ async function ensureAgentSessionTable(env) {
       .run();
     await db.prepare('CREATE INDEX IF NOT EXISTS idx_agent_sessions_updated ON agent_sessions(updated_at DESC)').run();
     await db.prepare('CREATE INDEX IF NOT EXISTS idx_agent_sm_session ON agent_session_messages(session_id)').run();
+
+    
+    
     if (hasSessions && (await columnExists(db, 'agent_sessions', 'messages'))) {
       const old = await db
         .prepare("SELECT id, messages FROM agent_sessions WHERE messages IS NOT NULL AND messages != '' AND messages != '[]'")
@@ -217,28 +266,38 @@ async function ensureAgentSessionTable(env) {
           await migrateAgentMessagesToParts(db, row.id, arr);
         }
       }
+      
       try {
         await db.prepare('ALTER TABLE agent_sessions DROP COLUMN messages').run();
       } catch (e) {
         console.error('ensureAgentSessionTable drop messages col:', e && e.message);
       }
     }
+
+    
     await db
       .prepare('INSERT OR REPLACE INTO system (key, value, updated_at) VALUES (\'agent_sessions_init\', \'1\', datetime(\'now\'))')
       .run();
     _agentSessionInitialized = true;
   } catch (e) {
+    
     console.error('ensureAgentSessionTable:', e && e.message);
   }
 }
+
+
 async function tableExists(db, name) {
   const r = await db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?").bind(name).first();
   return !!r;
 }
+
+
 async function columnExists(db, table, col) {
   const r = await db.prepare(`PRAGMA table_info(${table})`).all();
   return (r.results || []).some((c) => c.name === col);
 }
+
+
 async function migrateAgentMessagesToParts(db, id, messages) {
   const chunks = chunkAgentMessages(messages);
   if (!chunks.length) return;
@@ -247,6 +306,7 @@ async function migrateAgentMessagesToParts(db, id, messages) {
     await insert.bind(id, i, JSON.stringify(chunks[i].messages)).run();
   }
 }
+
 function normalizeAgentMessage(m) {
   if (!m) return null;
   const content = m && typeof m.content === 'string' ? m.content : '';
@@ -255,7 +315,9 @@ function normalizeAgentMessage(m) {
   if (!content) return null;
   return { role, content };
 }
+
 async function agentSessionGet(env, id) {
+  
   await ensureAgentSessionTable(env);
   const db = getConfigDb(env);
   const row = await db
@@ -278,6 +340,9 @@ async function agentSessionGet(env, id) {
   }
   return { id: row.id, title: row.title, messages, createdAt: row.created_at, updatedAt: row.updated_at };
 }
+
+
+
 async function agentSessionGetPart(env, id, partIndex) {
   const db = getConfigDb(env);
   const row = await db
@@ -302,26 +367,37 @@ async function agentSessionGetPart(env, id, partIndex) {
   if (total === 0) {
     target = null;
   } else if (n < 0) {
+    
+    
     const merged = [];
     for (const p of parts) merged.push(...p.data);
     return { total, partIndex: -1, messages: merged };
   } else {
+    
     target = parts.find((p) => p.index === n) || parts[parts.length - 1];
   }
   return { total, partIndex: target ? target.index : -1, messages: target ? target.data : [] };
 }
+
 async function agentSessionSave(env, id, title, messages) {
+  
+  
+  
   await ensureAgentSessionTable(env);
   const db = getConfigDb(env);
   const slug = String(title || '新对话').slice(0, 60);
   const nowIso = new Date().toISOString();
   const existing = await db.prepare('SELECT created_at FROM agent_sessions WHERE id = ?').bind(id).first();
   const createdAt = existing ? existing.created_at : nowIso;
+  
   const capped = messages.slice(-2000);
   await db
     .prepare('INSERT OR REPLACE INTO agent_sessions (id, title, created_at, updated_at) VALUES (?, ?, ?, ?)')
     .bind(id, slug, createdAt, nowIso)
     .run();
+  
+  
+  
   const blocks = splitAgentSessionMessages(capped);
   await db.prepare('DELETE FROM agent_session_messages WHERE session_id = ?').bind(id).run();
   for (let i = 0; i < blocks.length; i++) {
@@ -330,8 +406,12 @@ async function agentSessionSave(env, id, title, messages) {
       .bind(id, i, JSON.stringify(blocks[i]))
       .run();
   }
+  
   return { updatedAt: nowIso };
 }
+
+
+
 function splitAgentSessionMessages(messages) {
   const blocks = [];
   let cur = [];
@@ -345,6 +425,9 @@ function splitAgentSessionMessages(messages) {
   if (cur.length) blocks.push(cur);
   return blocks.length ? blocks : [[]];
 }
+
+
+
 function makeAssistantDisplay(content, trail, stats) {
   const m = { role: 'assistant' };
   if (content) m.content = content;
@@ -357,6 +440,7 @@ function makeAssistantDisplay(content, trail, stats) {
   m.updatedAt = new Date().toISOString();
   return m;
 }
+
 async function agentSessionList(env, limit = 50) {
   const db = getConfigDb(env);
   const rows = await db
@@ -370,18 +454,27 @@ async function agentSessionList(env, limit = 50) {
     updatedAt: r.updated_at,
   }));
 }
+
 async function agentSessionDelete(env, id) {
   const db = getConfigDb(env);
   await db.prepare('DELETE FROM agent_sessions WHERE id = ?').bind(id).run();
   await db.prepare('DELETE FROM agent_session_messages WHERE session_id = ?').bind(id).run();
 }
+
+
 const SESSION_ID_EPOCH = new Date('2026-01-01T00:00:00.000Z').getTime();
 function makeAgentSessionId() {
   const tick = Date.now() - SESSION_ID_EPOCH;
   return `s_${tick.toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 }
+
+
+
+
 const WEB_SEARCH_UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
+
+
 function extractAnchors(html, className) {
   const out = [];
   const classRe = new RegExp(`(?:^|\\s)${className}(?:\\s|$)`);
@@ -396,6 +489,8 @@ function extractAnchors(html, className) {
   }
   return out;
 }
+
+
 function parseDdgHtml(html, maxResults) {
   const anchors = extractAnchors(html, 'result__a');
   const snippets = extractAnchors(html, 'result__snippet');
@@ -412,6 +507,8 @@ function parseDdgHtml(html, maxResults) {
   }
   return results;
 }
+
+
 function parseDdgLite(html, maxResults) {
   const s = String(html || '');
   const links = extractAnchors(s, 'result-link');
@@ -429,6 +526,8 @@ function parseDdgLite(html, maxResults) {
   }
   return results;
 }
+
+
 function pickXmlTag(block, tag) {
   const m = String(block || '').match(new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`));
   if (!m) return '';
@@ -437,6 +536,8 @@ function pickXmlTag(block, tag) {
   if (cdata) v = cdata[1];
   return v.trim();
 }
+
+
 function parseBingRss(xml, maxResults) {
   const results = [];
   for (const it of String(xml || '').matchAll(/<item>([\s\S]*?)<\/item>/g)) {
@@ -452,9 +553,11 @@ function parseBingRss(xml, maxResults) {
   }
   return results;
 }
+
 async function agentWebSearch(query, maxResults = 5) {
   const q = String(query || '').trim();
   if (!q) return { ok: false, error: '缺少搜索关键词' };
+  
   const endpoints = [
     { url: 'https://www.bing.com/search?format=rss&count=10&q=' + encodeURIComponent(q), parse: parseBingRss },
     { url: 'https://html.duckduckgo.com/html/?q=' + encodeURIComponent(q), parse: parseDdgHtml },
@@ -482,6 +585,8 @@ async function agentWebSearch(query, maxResults = 5) {
     error: '没有找到相关结果，可尝试换关键词' + (lastErr ? `（${lastErr}）` : ''),
   };
 }
+
+
 function resolveDdgUrl(u) {
   const s = String(u || '');
   try {
@@ -489,11 +594,13 @@ function resolveDdgUrl(u) {
     const uddg = parsed.searchParams.get('uddg');
     if (uddg) return uddg;
   } catch {
+    
   }
   if (/^\/\//.test(s)) return 'https:' + s;
   if (/^https?:\/\//i.test(s)) return s;
   return '';
 }
+
 function isBindingError(err) {
   const msg = err?.message || '';
   return (
@@ -503,6 +610,7 @@ function isBindingError(err) {
     msg.includes('DB_CONFIG.prepare is not a function')
   );
 }
+
 function getBindingDebugInfo(env, err) {
   const hasBinding = env && !!env.DB_CONFIG;
   return {
@@ -512,10 +620,13 @@ function getBindingDebugInfo(env, err) {
     hasPrepare: hasBinding ? typeof env.DB_CONFIG.prepare === 'function' : false,
   };
 }
+
 function getConfigDb(env) {
   ensureDbConfig(env);
+  
   return env.DB_CONFIG.withSession ? env.DB_CONFIG.withSession('first-primary') : env.DB_CONFIG;
 }
+
 async function getSetting(env, key) {
   const db = getConfigDb(env);
   const row = await db.prepare('SELECT value FROM settings WHERE key = ?').bind(key).first();
@@ -526,23 +637,29 @@ async function getSetting(env, key) {
     return null;
   }
 }
+
 async function setSetting(env, key, value) {
   const db = getConfigDb(env);
   await db.prepare('INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES (?, ?, ?)')
     .bind(key, JSON.stringify(value), now())
     .run();
 }
+
 async function getSystem(env, key) {
   const db = getConfigDb(env);
   const row = await db.prepare('SELECT value FROM system WHERE key = ?').bind(key).first();
   return row ? row.value : null;
 }
+
 async function setSystem(env, key, value) {
   const db = getConfigDb(env);
   await db.prepare('INSERT OR REPLACE INTO system (key, value, updated_at) VALUES (?, ?, ?)')
     .bind(key, value, now())
     .run();
 }
+
+
+
 async function getCurrentUser(request, env) {
   const auth = request.headers.get('Authorization') || '';
   if (!auth.startsWith('Bearer ')) return null;
@@ -561,6 +678,8 @@ async function getCurrentUser(request, env) {
     return null;
   }
 }
+
+
 async function resolveAuthIdentity(token, env) {
   if (!token) return null;
   try {
@@ -577,23 +696,32 @@ async function resolveAuthIdentity(token, env) {
     return null;
   }
 }
+
+
 function buildAuthHeaders(requestHeaders, identity) {
   const headers = new Headers(requestHeaders);
   headers.set('x-user-id', String(identity.id));
   headers.set('x-username', String(identity.username || ''));
   return { mergedHeaders: headers };
 }
+
+
+
 function buildChatSubUrl(roomKey, subPath) {
   const u = new URL('https://internal');
   u.pathname = `/api/room/${roomKey}${subPath.charAt(0) === '/' ? subPath : '/' + subPath}`;
   return u;
 }
+
 async function requireAuth(request, env, handler) {
   const user = await getCurrentUser(request, env);
   if (!user) return jsonResponse(401, null, 'Unauthorized', 401);
   return handler(request, env, user);
 }
+
 async function requireAdmin(request, env, handler) {
+  
+  
   const user = await getCurrentUser(request, env);
   if (!user) return jsonResponse(401, null, 'Unauthorized', 401);
   if (user.role !== 'admin' && user.role !== 'super_admin') {
@@ -601,15 +729,20 @@ async function requireAdmin(request, env, handler) {
   }
   return handler(request, env, user);
 }
+
 async function requireSuperAdmin(request, env, handler) {
   const user = await getCurrentUser(request, env);
   if (!user) return jsonResponse(401, null, 'Unauthorized', 401);
   if (user.role !== 'super_admin') return jsonResponse(403, null, 'Forbidden', 403);
   return handler(request, env, user);
 }
+
+
+
 async function setup(env) {
   return jsonResponse(0, { version: VERSION }, 'ok');
 }
+
 const defaultSiteConfig = {
   author: 'Xin',
   siteName: 'XinBlog',
@@ -691,11 +824,13 @@ const defaultSiteConfig = {
     intensity: 'medium',
   },
 };
+
 const defaultInteractionSettings = {
   commentsEnabled: true,
   likesEnabled: true,
   commentAudit: true,
 };
+
 const defaultFriendsConfig = {
   enabled: false,
   title: '友链',
@@ -705,12 +840,15 @@ const defaultFriendsConfig = {
   avatarShape: 'rounded',
   showDescription: true,
 };
+
 async function getSiteConfigObject(env) {
   const site = (await getSetting(env, 'site')) || {};
   const hero = (await getSetting(env, 'hero')) || {};
   const about = (await getSetting(env, 'about')) || {};
   const friends = (await getSetting(env, 'friends')) || {};
   const ai = (await getSetting(env, 'ai')) || {};
+  
+  
   const activeThemeId = (await getSetting(env, 'active_theme')) || '';
   const cardTheme = activeThemeId
     ? { ...defaultSiteConfig.cardTheme, ...(site.cardTheme || {}) }
@@ -718,6 +856,8 @@ async function getSiteConfigObject(env) {
   return {
     ...defaultSiteConfig,
     ...site,
+    
+    
     agentEnabled: ai.agentEnabled === true && ai.enabled === true,
     cardTheme,
     hero: { ...defaultSiteConfig.hero, ...hero, ...(site.hero || {}) },
@@ -726,6 +866,7 @@ async function getSiteConfigObject(env) {
     font: { ...defaultSiteConfig.font, ...(site.font || {}) },
   };
 }
+
 function escapeHtmlMeta(text) {
   return String(text || '')
     .replace(/&/g, '&amp;')
@@ -734,11 +875,13 @@ function escapeHtmlMeta(text) {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 }
+
 function injectSiteMeta(html, config, requestUrl) {
   const title = escapeHtmlMeta(config.siteName || 'XinBlog');
   const description = escapeHtmlMeta(config.shareDescription || '');
   const themeColor = escapeHtmlMeta(config.pwaThemeColor || '#ffffff');
   const origin = new URL(requestUrl).origin;
+
   let image = config.shareImage || config.logo || '/logo.png';
   if (image.startsWith('data:')) {
     image = '/logo.png';
@@ -747,6 +890,7 @@ function injectSiteMeta(html, config, requestUrl) {
     image = origin + (image.startsWith('/') ? '' : '/') + image;
   }
   image = escapeHtmlMeta(image);
+
   html = html.replace(/<title>.*?<\/title>/i, `<title>${title}</title>`);
   html = html.replace(
     /<meta\s+name=["']description["'][^>]*>/i,
@@ -756,6 +900,7 @@ function injectSiteMeta(html, config, requestUrl) {
     /<meta\s+name=["']theme-color["'][^>]*>/i,
     `<meta name="theme-color" content="${themeColor}" />`
   );
+
   const metaTags = [
     `<link rel="manifest" href="/manifest.json?v=2" />`,
     `<meta name="theme-color" content="${themeColor}" />`,
@@ -767,18 +912,22 @@ function injectSiteMeta(html, config, requestUrl) {
     `<meta name="twitter:card" content="summary_large_image" />`,
     `<meta name="twitter:image" content="${image}" />`,
   ].join('\n');
+
   return html.replace(/<head>/i, `<head>\n${metaTags}`);
 }
+
 async function getManifest(env, requestUrl) {
   try {
     const config = await getSiteConfigObject(env).catch(() => ({ ...defaultSiteConfig }));
     const origin = new URL(requestUrl).origin;
     const name = config.siteName || 'XinBlog';
     const shortName = name.length > 12 ? `${name.slice(0, 11)}…` : name;
+
     let iconSrc = config.logo || config.favicon || '/logo.png';
     if (iconSrc && !iconSrc.startsWith('http') && !iconSrc.startsWith('data:')) {
       iconSrc = origin + (iconSrc.startsWith('/') ? '' : '/') + iconSrc;
     }
+
     const manifest = {
       name,
       short_name: shortName,
@@ -793,6 +942,7 @@ async function getManifest(env, requestUrl) {
         { src: iconSrc, sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
       ],
     };
+
     return new Response(JSON.stringify(manifest), {
       status: 200,
       headers: {
@@ -808,7 +958,9 @@ async function getManifest(env, requestUrl) {
     });
   }
 }
+
 async function getSiteConfig(env) {
+  
   try {
     const config = await getSiteConfigObject(env);
     return jsonResponseWithCache(0, { site: config }, 'ok', 200, 'public, max-age=120, stale-while-revalidate=86400');
@@ -820,13 +972,16 @@ async function getSiteConfig(env) {
     throw err;
   }
 }
+
 async function listPosts(env, url) {
   const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10));
   const limit = Math.min(50, Math.max(1, parseInt(url.searchParams.get('limit') || '10', 10)));
   const tag = url.searchParams.get('tag');
   const offset = (page - 1) * limit;
+
   let posts;
   let total;
+
   if (tag) {
     const tagRow = await env.DB_POSTS.prepare('SELECT id FROM tags WHERE slug = ?').bind(tag).first();
     if (!tagRow) return jsonResponse(0, { list: [], total: 0, page, limit });
@@ -856,9 +1011,12 @@ async function listPosts(env, url) {
     const countRow = await env.DB_POSTS.prepare("SELECT COUNT(*) as c FROM posts WHERE status = 'published'").first();
     total = countRow.c;
   }
+
+  
   const list = await fillPostTags(env, posts.results || []);
   return jsonResponseWithCache(0, { list, total, page, limit }, 'ok', 200, 'public, max-age=600');
 }
+
 async function fillPostTags(env, posts) {
   if (!posts.length) return posts;
   const ids = posts.map((p) => p.id);
@@ -878,6 +1036,7 @@ async function fillPostTags(env, posts) {
   }
   return posts.map((p) => ({ ...p, tags: tagMap[p.id] || [] }));
 }
+
 async function getPost(env, path) {
   const slug = path.replace('/api/v1/posts/', '');
   const post = await env.DB_POSTS.prepare(
@@ -891,6 +1050,7 @@ async function getPost(env, path) {
   await env.DB_POSTS.prepare('UPDATE posts SET views = views + 1 WHERE id = ?').bind(post.id).run();
   return jsonResponse(0, list[0]);
 }
+
 async function listTags(env) {
   const tags = await env.DB_POSTS.prepare(
     `SELECT t.id, t.name, t.slug, t.color, COUNT(pt.post_id) as post_count
@@ -901,11 +1061,16 @@ async function listTags(env) {
   ).all();
   return jsonResponseWithCache(0, tags.results || [], 'ok', 200, 'public, max-age=600');
 }
+
 async function listPostsByTag(env, path) {
   const slug = path.replace('/api/v1/tags/', '').replace('/posts', '');
   return listPosts(env, new URL(`https://x.com/api/v1/posts?tag=${encodeURIComponent(slug)}`));
 }
+
+
+
 let rateLimitTableReady = false;
+
 async function ensureRateLimitTable(env) {
   if (rateLimitTableReady) return;
   await env.DB_USERS.prepare(
@@ -913,6 +1078,20 @@ async function ensureRateLimitTable(env) {
   ).run();
   rateLimitTableReady = true;
 }
+
+
+
+
+
+let refreshJtiTableReady = false;
+async function ensureRefreshJtiTable(env) {
+  if (refreshJtiTableReady) return;
+  await env.DB_USERS.prepare(
+    'CREATE TABLE IF NOT EXISTS refresh_token_jtis (jti TEXT PRIMARY KEY, user_id TEXT, consumed INTEGER NOT NULL DEFAULT 0, created_at TEXT)'
+  ).run();
+  refreshJtiTableReady = true;
+}
+
 function getClientIp(request) {
   return (
     request.headers.get('CF-Connecting-IP') ||
@@ -920,6 +1099,8 @@ function getClientIp(request) {
     'unknown'
   );
 }
+
+
 async function checkRateLimit(env, key, limit, windowSec) {
   const nowSec = Math.floor(Date.now() / 1000);
   const bucket = Math.floor(nowSec / windowSec);
@@ -932,6 +1113,7 @@ async function checkRateLimit(env, key, limit, windowSec) {
       .bind(bucketKey, bucket)
       .run();
   } catch (e) {
+    
     if (e.message && e.message.includes('no such table')) {
       await ensureRateLimitTable(env);
       return true;
@@ -940,29 +1122,36 @@ async function checkRateLimit(env, key, limit, windowSec) {
   }
   const row = await db.prepare('SELECT count, window_start FROM rate_limits WHERE key = ?').bind(bucketKey).first();
   if (!row) return true;
+  
   if (row.window_start !== bucket) {
     await db.prepare('UPDATE rate_limits SET count = 1, window_start = ? WHERE key = ?').bind(bucket, bucketKey).run();
     return true;
   }
+  
   if (Math.random() < 0.02) {
     await db.prepare('DELETE FROM rate_limits WHERE window_start < ?').bind(bucket - 3).run();
   }
   return row.count <= limit;
 }
+
 async function register(request, env) {
   const body = await request.json();
   const username = String(body.username || '').trim();
   const password = String(body.password || '');
   const email = body.email ? String(body.email).trim() : '';
   const code = body.code ? String(body.code).trim().toUpperCase() : '';
+
   const authSettings = (await getSetting(env, 'auth')) || {};
   if (authSettings.allowRegister === false) return jsonResponse(403, null, '当前已关闭注册');
+
   if (!username || !password) return jsonResponse(400, null, '用户名和密码必填');
   if (/[\u4e00-\u9fa5]/.test(username)) return jsonResponse(400, null, '用户名不能包含中文');
   if (password.length < 6) return jsonResponse(400, null, '密码至少 6 位');
   if (!email) return jsonResponse(400, null, '邮箱必填');
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) return jsonResponse(400, null, '邮箱格式不正确');
+
+  
   const regIp = getClientIp(request);
   if (!(await checkRateLimit(env, `reg:ip:${regIp}`, 5, 3600))) {
     return jsonResponse(429, null, '注册过于频繁，请稍后再试', 429);
@@ -970,6 +1159,7 @@ async function register(request, env) {
   if (!(await checkRateLimit(env, `reg:email:${email.toLowerCase()}`, 3, 3600))) {
     return jsonResponse(429, null, '该邮箱注册过于频繁，请稍后再试', 429);
   }
+
   if (authSettings.emailVerification === true) {
     if (!code) return jsonResponse(403, null, '请输入邮箱验证码');
     const record = await env.DB_USERS.prepare(
@@ -979,6 +1169,7 @@ async function register(request, env) {
       .first();
     if (!record) return jsonResponse(403, null, '请先获取邮箱验证码');
     if (record.code !== code) {
+      
       if (!(await checkRateLimit(env, `vc-check:${email.toLowerCase()}`, 5, 600))) {
         return jsonResponse(429, null, '验证码错误次数过多，请重新获取', 429);
       }
@@ -988,13 +1179,18 @@ async function register(request, env) {
     if (record.expires_at < nowTime) return jsonResponse(403, null, '验证码已过期');
     await env.DB_USERS.prepare('DELETE FROM verify_codes WHERE email = ?').bind(email).run();
   }
+
+  
   if (authSettings.registerVerification === true) {
     if (!(await verifyHuman(request, env, body))) {
       return jsonResponse(403, null, '人机验证未通过，请重试');
     }
   }
+
+  
   const countRow = await env.DB_USERS.prepare('SELECT COUNT(*) as c FROM users').first();
   const role = countRow.c === 0 ? 'super_admin' : 'guest';
+
   const { salt, hash } = await hashPassword(password);
   const time = now();
   try {
@@ -1012,16 +1208,21 @@ async function register(request, env) {
     throw e;
   }
 }
+
 async function login(request, env) {
   const body = await request.json();
   const account = String(body.username || '').trim();
   const password = String(body.password || '');
+
+  
   const authSettings = (await getSetting(env, 'auth')) || {};
   if (authSettings.loginVerification === true) {
     if (!(await verifyHuman(request, env, body))) {
       return jsonResponse(403, null, '人机验证未通过，请重试');
     }
   }
+
+  
   const loginIp = getClientIp(request);
   if (!(await checkRateLimit(env, `login:ip:${loginIp}`, 10, 600))) {
     return jsonResponse(429, null, '尝试次数过多，请 10 分钟后再试', 429);
@@ -1030,11 +1231,14 @@ async function login(request, env) {
   if (!(await checkRateLimit(env, `login:acc:${accountKey}`, 5, 600))) {
     return jsonResponse(429, null, '该账号尝试次数过多，请 10 分钟后再试', 429);
   }
+
   let user = await env.DB_USERS.prepare(
     'SELECT id, username, email, email_verified, avatar_base64, role, status, password_hash, password_salt FROM users WHERE username = ?'
   )
     .bind(account)
     .first();
+
+  
   if (!user) {
     user = await env.DB_USERS.prepare(
       'SELECT id, username, email, email_verified, avatar_base64, role, status, password_hash, password_salt FROM users WHERE email = ?'
@@ -1042,23 +1246,34 @@ async function login(request, env) {
       .bind(account)
       .first();
   }
+
   if (!user || user.status !== 1) return jsonResponse(401, null, '用户名或密码错误');
   const valid = await verifyPassword(password, user.password_salt, user.password_hash);
   if (!valid) return jsonResponse(401, null, '用户名或密码错误');
+
   const nowSec = Math.floor(Date.now() / 1000);
+  await ensureRefreshJtiTable(env);
   const accessToken = await signJWT(
     { sub: user.id, username: user.username, role: user.role, type: 'access', iat: nowSec, exp: nowSec + 48 * 3600 },
     env.JWT_SECRET
   );
+  
+  const refreshJti = crypto.randomUUID();
+  const refreshExp = nowSec + 30 * 24 * 3600;
   const refreshToken = await signJWT(
-    { sub: user.id, type: 'refresh', iat: nowSec, exp: nowSec + 7 * 24 * 3600 },
+    { sub: user.id, type: 'refresh', jti: refreshJti, iat: nowSec, exp: refreshExp },
     env.JWT_SECRET
   );
+
   const tokenHash = await sha256Hex(refreshToken);
-  const expiresAt = new Date((nowSec + 7 * 24 * 3600) * 1000).toISOString();
+  const expiresAt = new Date(refreshExp * 1000).toISOString();
   await env.DB_USERS.prepare('INSERT INTO refresh_tokens (user_id, token_hash, expires_at, created_at) VALUES (?, ?, ?, ?)')
     .bind(user.id, tokenHash, expiresAt, now())
     .run();
+  await env.DB_USERS.prepare('INSERT INTO refresh_token_jtis (jti, user_id, consumed, created_at) VALUES (?, ?, 0, ?)')
+    .bind(refreshJti, user.id, now())
+    .run();
+
   return jsonResponse(0, {
     accessToken,
     refreshToken,
@@ -1071,33 +1286,57 @@ async function login(request, env) {
     },
   });
 }
+
 async function refreshToken(request, env) {
   const body = await request.json();
   const refreshToken = String(body.refreshToken || '');
   if (!refreshToken) return jsonResponse(400, null, 'Refresh token required');
+
   try {
+    await ensureRefreshJtiTable(env);
     const payload = await verifyJWT(refreshToken, env.JWT_SECRET);
     if (payload.type !== 'refresh') throw new Error('Invalid token type');
+
     const tokenHash = await sha256Hex(refreshToken);
     const row = await env.DB_USERS.prepare('SELECT id, user_id, expires_at FROM refresh_tokens WHERE token_hash = ?')
       .bind(tokenHash)
       .first();
-    if (!row) return jsonResponse(401, null, 'Refresh token invalid');
+
+    
+    
+    if (!row) {
+      const used = payload.jti
+        ? await env.DB_USERS.prepare('SELECT consumed FROM refresh_token_jtis WHERE jti = ?').bind(payload.jti).first()
+        : null;
+      if (used && used.consumed === 1) {
+        await env.DB_USERS.prepare('DELETE FROM refresh_tokens WHERE user_id = ?').bind(payload.sub).run();
+        return jsonResponse(401, null, 'Refresh token reuse detected, all sessions revoked');
+      }
+      return jsonResponse(401, null, 'Refresh token invalid');
+    }
+
     const user = await env.DB_USERS.prepare(
       'SELECT id, username, email, avatar_base64, role, status FROM users WHERE id = ?'
     )
       .bind(row.user_id)
       .first();
     if (!user || user.status !== 1) return jsonResponse(401, null, 'User invalid');
+
     const nowSec = Math.floor(Date.now() / 1000);
     const accessToken = await signJWT(
       { sub: user.id, username: user.username, role: user.role, type: 'access', iat: nowSec, exp: nowSec + 48 * 3600 },
       env.JWT_SECRET
     );
+
+    
     await env.DB_USERS.prepare('DELETE FROM refresh_tokens WHERE token_hash = ?').bind(tokenHash).run();
+    if (payload.jti) {
+      await env.DB_USERS.prepare('UPDATE refresh_token_jtis SET consumed = 1 WHERE jti = ?').bind(payload.jti).run();
+    }
+    const newRefreshJti = crypto.randomUUID();
     const refreshExpSec = nowSec + 30 * 24 * 3600;
     const newRefreshToken = await signJWT(
-      { sub: user.id, type: 'refresh', iat: nowSec, exp: refreshExpSec },
+      { sub: user.id, type: 'refresh', jti: newRefreshJti, iat: nowSec, exp: refreshExpSec },
       env.JWT_SECRET
     );
     const newRefreshTokenHash = await sha256Hex(newRefreshToken);
@@ -1106,6 +1345,10 @@ async function refreshToken(request, env) {
     )
       .bind(newRefreshTokenHash, user.id, new Date(refreshExpSec * 1000).toISOString())
       .run();
+    await env.DB_USERS.prepare('INSERT INTO refresh_token_jtis (jti, user_id, consumed, created_at) VALUES (?, ?, 0, ?)')
+      .bind(newRefreshJti, user.id, now())
+      .run();
+
     return jsonResponse(0, {
       accessToken,
       refreshToken: newRefreshToken,
@@ -1121,19 +1364,24 @@ async function refreshToken(request, env) {
     return jsonResponse(401, null, 'Refresh token invalid');
   }
 }
+
 async function logout(request, env) {
+  
   let token = '';
   try {
     const body = await request.json();
     token = String(body?.refreshToken || body?.refresh_token || '');
   } catch {
+    
   }
+
   if (!token) {
     const auth = request.headers.get('Authorization') || '';
     if (auth.startsWith('Bearer ')) {
       token = auth.slice(7);
     }
   }
+
   if (token) {
     try {
       const payload = await verifyJWT(token, env.JWT_SECRET);
@@ -1141,16 +1389,20 @@ async function logout(request, env) {
         const tokenHash = await sha256Hex(token);
         await env.DB_USERS.prepare('DELETE FROM refresh_tokens WHERE token_hash = ?').bind(tokenHash).run();
       } else if (payload.sub) {
+        
         await env.DB_USERS.prepare('DELETE FROM refresh_tokens WHERE user_id = ?').bind(payload.sub).run();
       }
     } catch {
+      
     }
   }
   return jsonResponse(0, null, 'Logged out');
 }
+
 async function getMe(request, env, user) {
   return jsonResponse(0, user);
 }
+
 async function getUserSettings(request, env, user) {
   let theme = null;
   let ui = null;
@@ -1166,10 +1418,12 @@ async function getUserSettings(request, env, user) {
   }
   return jsonResponseWithCache(0, { theme, ui }, 'ok', 200, 'private, max-age=30');
 }
+
 async function updateUserSettings(request, env, user) {
   const body = await request.json();
   const updates = [];
   const params = [];
+
   if (body.theme !== undefined) {
     updates.push('theme = ?');
     params.push(JSON.stringify(body.theme));
@@ -1183,14 +1437,19 @@ async function updateUserSettings(request, env, user) {
       params.push(avatar ? String(avatar) : null);
     }
   }
+
   if (updates.length === 0) return jsonResponse(400, null, '无更新内容');
+
   updates.push('updated_at = ?');
   params.push(now());
   params.push(user.id);
+
   await env.DB_USERS.prepare(`UPDATE users SET ${updates.join(', ')} WHERE id = ?`).bind(...params).run();
   return jsonResponse(0, null, '保存成功');
 }
+
 async function getDashboard(request, env, user) {
+  
   let days = 30;
   try {
     const p = new URL(request.url).searchParams.get('days');
@@ -1198,6 +1457,7 @@ async function getDashboard(request, env, user) {
   } catch {}
   if (![7, 30, 90].includes(days)) days = 30;
   const sinceIso = new Date(Date.now() - days * 86400000).toISOString();
+
   const dayList = [];
   for (let i = days - 1; i >= 0; i--) {
     dayList.push(new Date(Date.now() - i * 86400000).toISOString().slice(0, 10));
@@ -1212,6 +1472,7 @@ async function getDashboard(request, env, user) {
       .bind(sinceIso)
       .all()
       .then((r) => fill(r.results));
+
   const [postCount, tagCount, mediaCount, userCount, postsTrend, commentsTrend, likesTrend, usersTrend, mediaTrend, viewsRow] =
     await Promise.all([
       env.DB_POSTS.prepare('SELECT COUNT(*) as c FROM posts').first().then((r) => r.c),
@@ -1225,6 +1486,7 @@ async function getDashboard(request, env, user) {
       countByDay(env.DB_MEDIA, 'media'),
       env.DB_POSTS.prepare('SELECT COALESCE(SUM(views),0) AS v FROM posts').first(),
     ]);
+
   const latestPosts = await env.DB_POSTS.prepare(
     'SELECT id, title, slug, status, created_at FROM posts ORDER BY created_at DESC LIMIT 5'
   ).all();
@@ -1234,12 +1496,14 @@ async function getDashboard(request, env, user) {
     trends: { days, dates: dayList, posts: postsTrend, comments: commentsTrend, likes: likesTrend, users: usersTrend, media: mediaTrend },
   });
 }
+
 async function listAdminPosts(request, env, user) {
   const url = new URL(request.url);
   const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10));
   const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get('limit') || '10', 10)));
   const offset = (page - 1) * limit;
   const keyword = (url.searchParams.get('keyword') || '').trim();
+
   let posts, countRow;
   if (keyword) {
     const like = `%${keyword}%`;
@@ -1266,6 +1530,7 @@ async function listAdminPosts(request, env, user) {
   const list = await fillPostTags(env, posts.results || []);
   return jsonResponse(0, { list, total: countRow.c, page, limit });
 }
+
 async function getAdminPost(request, env, user) {
   const url = new URL(request.url);
   const id = url.searchParams.get('id')
@@ -1281,11 +1546,13 @@ async function getAdminPost(request, env, user) {
   const list = await fillPostTags(env, [post]);
   return jsonResponse(0, list[0]);
 }
+
 async function listAdminTags(request, env, user) {
   const url = new URL(request.url);
   const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10));
   const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get('limit') || '10', 10)));
   const offset = (page - 1) * limit;
+
   const tags = await env.DB_POSTS.prepare(
     `SELECT t.id, t.name, t.slug, t.color, COUNT(pt.post_id) as post_count
      FROM tags t
@@ -1299,6 +1566,7 @@ async function listAdminTags(request, env, user) {
   const countRow = await env.DB_POSTS.prepare('SELECT COUNT(*) as c FROM tags').first();
   return jsonResponse(0, { list: tags.results || [], total: countRow.c, page, limit });
 }
+
 async function createPost(request, env, user) {
   const body = await request.json();
   const title = String(body.title || '').trim();
@@ -1308,9 +1576,11 @@ async function createPost(request, env, user) {
   const cover = body.coverBase64 || null;
   const tagIds = body.tagIds || [];
   const status = body.status === 'draft' ? 'draft' : 'published';
+
   if (!title || !content) return jsonResponse(400, null, '标题和内容必填');
   if (!slug) slug = slugify(title);
   if (!slug) slug = `post-${Date.now()}`;
+
   const time = now();
   try {
     const result = await env.DB_POSTS.prepare(
@@ -1319,11 +1589,13 @@ async function createPost(request, env, user) {
       .bind(title, slug, excerpt, content, cover, user.id, status, readingTime(content), time, time)
       .run();
     const postId = result.meta ? result.meta.last_row_id : null;
+
     for (const tagId of tagIds) {
       await env.DB_POSTS.prepare('INSERT OR IGNORE INTO post_tags (post_id, tag_id) VALUES (?, ?)')
         .bind(postId, tagId)
         .run();
     }
+
     return jsonResponse(0, { id: postId, slug }, '创建成功');
   } catch (e) {
     if (e.message && e.message.includes('UNIQUE')) {
@@ -1332,11 +1604,13 @@ async function createPost(request, env, user) {
     throw e;
   }
 }
+
 async function updatePost(request, env, user) {
   const id = parseInt(request.url.split('/').pop(), 10);
   const body = await request.json();
   const updates = [];
   const params = [];
+
   if (body.title !== undefined) {
     updates.push('title = ?');
     params.push(String(body.title).trim());
@@ -1364,11 +1638,14 @@ async function updatePost(request, env, user) {
     params.push(body.status === 'draft' ? 'draft' : 'published');
   }
   if (updates.length === 0) return jsonResponse(400, null, '无更新内容');
+
   updates.push('updated_at = ?');
   params.push(now());
   params.push(id);
+
   try {
     await env.DB_POSTS.prepare(`UPDATE posts SET ${updates.join(', ')} WHERE id = ?`).bind(...params).run();
+
     if (body.tagIds !== undefined) {
       await env.DB_POSTS.prepare('DELETE FROM post_tags WHERE post_id = ?').bind(id).run();
       for (const tagId of body.tagIds) {
@@ -1377,6 +1654,7 @@ async function updatePost(request, env, user) {
           .run();
       }
     }
+
     return jsonResponse(0, null, '更新成功');
   } catch (e) {
     if (e.message && e.message.includes('UNIQUE')) {
@@ -1385,14 +1663,17 @@ async function updatePost(request, env, user) {
     throw e;
   }
 }
+
 async function deletePost(request, env, user) {
   const id = parseInt(request.url.split('/').pop(), 10);
   await env.DB_POSTS.prepare('DELETE FROM post_tags WHERE post_id = ?').bind(id).run();
+  
   await deleteCommentsByPost(env, id);
   await env.DB_POSTS.prepare('DELETE FROM likes WHERE post_id = ?').bind(id).run();
   await env.DB_POSTS.prepare('DELETE FROM posts WHERE id = ?').bind(id).run();
   return jsonResponse(0, null, '删除成功');
 }
+
 async function createTag(request, env, user) {
   const body = await request.json();
   const name = String(body.name || '').trim();
@@ -1401,6 +1682,7 @@ async function createTag(request, env, user) {
   if (!name) return jsonResponse(400, null, '标签名必填');
   if (!slug) slug = slugify(name);
   if (!slug) slug = `tag-${Date.now()}`;
+
   try {
     const result = await env.DB_POSTS.prepare('INSERT INTO tags (name, slug, color) VALUES (?, ?, ?)')
       .bind(name, slug, color)
@@ -1413,12 +1695,14 @@ async function createTag(request, env, user) {
     throw e;
   }
 }
+
 async function updateTag(request, env, user) {
   const id = parseInt(request.url.split('/').pop(), 10);
   const body = await request.json();
   const name = body.name !== undefined ? String(body.name).trim() : null;
   const slug = body.slug !== undefined ? String(body.slug).trim() : null;
   const color = body.color !== undefined ? String(body.color) : null;
+
   const updates = [];
   const params = [];
   if (name) { updates.push('name = ?'); params.push(name); }
@@ -1426,6 +1710,7 @@ async function updateTag(request, env, user) {
   if (color !== null) { updates.push('color = ?'); params.push(color); }
   if (updates.length === 0) return jsonResponse(400, null, '无更新内容');
   params.push(id);
+
   try {
     await env.DB_POSTS.prepare(`UPDATE tags SET ${updates.join(', ')} WHERE id = ?`).bind(...params).run();
     return jsonResponse(0, null, '更新成功');
@@ -1436,16 +1721,19 @@ async function updateTag(request, env, user) {
     throw e;
   }
 }
+
 async function deleteTag(request, env, user) {
   const id = parseInt(request.url.split('/').pop(), 10);
   await env.DB_POSTS.prepare('DELETE FROM post_tags WHERE tag_id = ?').bind(id).run();
   await env.DB_POSTS.prepare('DELETE FROM tags WHERE id = ?').bind(id).run();
   return jsonResponse(0, null, '删除成功');
 }
+
 async function updateSettings(request, env, user) {
   const body = await request.json();
   if (body.site) {
     const { hero, about, friends, ...siteRest } = body.site;
+    
     const currentSite = (await getSetting(env, 'site')) || {};
     await setSetting(env, 'site', { ...currentSite, ...siteRest });
     if (hero) {
@@ -1463,6 +1751,9 @@ async function updateSettings(request, env, user) {
   }
   return jsonResponse(0, null, '保存成功');
 }
+
+
+
 async function listAdminThemes(request, env, user) {
   const activeThemeId = (await getSetting(env, 'active_theme')) || '';
   let rows = { results: [] };
@@ -1483,6 +1774,7 @@ async function listAdminThemes(request, env, user) {
       description = content.description || '';
       author = content.author || '';
     } catch {
+      
     }
     return {
       id: row.id,
@@ -1496,6 +1788,7 @@ async function listAdminThemes(request, env, user) {
   });
   return jsonResponse(0, list, 'ok');
 }
+
 async function getAdminTheme(request, env, user) {
   const id = new URL(request.url).pathname.split('/').filter(Boolean).pop();
   try {
@@ -1507,6 +1800,7 @@ async function getAdminTheme(request, env, user) {
     return jsonResponse(500, null, '主题数据读取失败（主题表可能已移除）', 500);
   }
 }
+
 async function createAdminTheme(request, env, user) {
   try {
     const body = await request.json();
@@ -1535,6 +1829,7 @@ async function createAdminTheme(request, env, user) {
     return jsonResponse(500, null, '主题保存失败（主题表可能已移除）', 500);
   }
 }
+
 async function updateAdminTheme(request, env, user) {
   try {
     const id = new URL(request.url).pathname.split('/').filter(Boolean).pop();
@@ -1555,9 +1850,11 @@ async function updateAdminTheme(request, env, user) {
     return jsonResponse(500, null, '主题更新失败（主题表可能已移除）', 500);
   }
 }
+
 async function applyAdminTheme(request, env, user) {
   const pathParts = new URL(request.url).pathname.split('/').filter(Boolean);
   const id = pathParts[pathParts.length - 2];
+  
   let postCard = null;
   try {
     const body = await request.json();
@@ -1581,6 +1878,7 @@ async function applyAdminTheme(request, env, user) {
   await setSetting(env, 'site', { ...site, cardTheme: { ...(site.cardTheme || {}), ...postCard } });
   return jsonResponse(0, null, '主题已应用');
 }
+
 async function deleteAdminTheme(request, env, user) {
   try {
     const id = new URL(request.url).pathname.split('/').filter(Boolean).pop();
@@ -1594,13 +1892,16 @@ async function deleteAdminTheme(request, env, user) {
     return jsonResponse(500, null, '主题删除失败（主题表可能已移除）', 500);
   }
 }
+
 async function clearAdminActiveTheme(request, env, user) {
   await setSetting(env, 'active_theme', '');
   const site = (await getSetting(env, 'site')) || {};
   await setSetting(env, 'site', { ...site, cardTheme: defaultSiteConfig.cardTheme });
   return jsonResponse(0, null, '已恢复默认主题');
 }
+
 const MAX_MEDIA_CHUNK_SIZE = 80 * 1024; 
+
 async function uploadMedia(request, env, user) {
   const body = await request.json();
   const name = String(body.name || 'image.jpg');
@@ -1608,20 +1909,24 @@ async function uploadMedia(request, env, user) {
   const base64 = String(body.base64 || '');
   const width = body.width ? parseInt(body.width, 10) : null;
   const height = body.height ? parseInt(body.height, 10) : null;
+
   if (!base64) return jsonResponse(400, null, '图片数据为空');
   if (!mimeType.startsWith('image/')) return jsonResponse(400, null, '仅支持图片');
   if (base64.length > MAX_MEDIA_CHUNK_SIZE) {
     return jsonResponse(413, null, '图片超过单接口上限，请使用分片上传');
   }
+
   const size = Math.floor(base64.length * 0.75);
   const result = await env.DB_MEDIA.prepare(
     'INSERT INTO media (name, mime_type, size, base64_data, width, height, chunk_count, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
   )
     .bind(name, mimeType, size, base64, width, height, 0, now())
     .run();
+
   const id = result.meta ? result.meta.last_row_id : null;
   return jsonResponse(0, { id, url: `/api/v1/media/${id}`, size }, '上传成功');
 }
+
 async function initMediaUpload(request, env, user) {
   const body = await request.json();
   const name = String(body.name || 'image.jpg');
@@ -1630,46 +1935,58 @@ async function initMediaUpload(request, env, user) {
   const chunkCount = parseInt(body.chunkCount || '0', 10);
   const width = body.width ? parseInt(body.width, 10) : null;
   const height = body.height ? parseInt(body.height, 10) : null;
+
   if (!chunkCount || chunkCount <= 0) return jsonResponse(400, null, '分片数量无效');
   if (!size) return jsonResponse(400, null, '文件大小无效');
   if (!mimeType.startsWith('image/')) return jsonResponse(400, null, '仅支持图片');
+
   const result = await env.DB_MEDIA.prepare(
     'INSERT INTO media (name, mime_type, size, base64_data, width, height, chunk_count, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
   )
     .bind(name, mimeType, size, '', width, height, chunkCount, now())
     .run();
+
   const id = result.meta ? result.meta.last_row_id : null;
   return jsonResponse(0, { id }, '初始化成功');
 }
+
 async function uploadMediaChunk(request, env, user) {
   const pathParts = new URL(request.url).pathname.split('/');
   const mediaId = parseInt(pathParts[pathParts.length - 1], 10);
   if (!mediaId) return jsonResponse(400, null, '媒体 ID 无效');
+
   const body = await request.json();
   const chunkIndex = parseInt(body.chunkIndex ?? body.chunk_index ?? '0', 10);
   const chunkData = String(body.chunkData ?? body.chunk_data ?? '');
+
   if (!chunkData) return jsonResponse(400, null, '分片数据为空');
   if (chunkData.length > MAX_MEDIA_CHUNK_SIZE) return jsonResponse(413, null, '分片过大');
+
   await env.DB_MEDIA.prepare(
     'INSERT INTO media_chunks (media_id, chunk_index, chunk_data, created_at) VALUES (?, ?, ?, ?)'
   )
     .bind(mediaId, chunkIndex, chunkData, now())
     .run();
+
   return jsonResponse(0, null, '分片上传成功');
 }
+
 async function finalizeMediaUpload(request, env, user) {
   const pathParts = new URL(request.url).pathname.split('/');
   const mediaId = parseInt(pathParts[pathParts.length - 1], 10);
   if (!mediaId) return jsonResponse(400, null, '媒体 ID 无效');
+
   const media = await env.DB_MEDIA.prepare('SELECT chunk_count FROM media WHERE id = ?')
     .bind(mediaId)
     .first();
   if (!media) return jsonResponse(404, null, '媒体不存在');
+
   const chunkRows = await env.DB_MEDIA.prepare(
     'SELECT chunk_index FROM media_chunks WHERE media_id = ? ORDER BY chunk_index ASC'
   )
     .bind(mediaId)
     .all();
+
   const uploaded = new Set((chunkRows.results || []).map((r) => r.chunk_index));
   const missing = [];
   for (let i = 0; i < media.chunk_count; i++) {
@@ -1678,8 +1995,10 @@ async function finalizeMediaUpload(request, env, user) {
   if (missing.length > 0) {
     return jsonResponse(400, { missing }, `缺少分片: ${missing.join(', ')}`);
   }
+
   return jsonResponse(0, { id: mediaId, url: `/api/v1/media/${mediaId}` }, '上传完成');
 }
+
 async function getMedia(env, id, request, ctx) {
   const cacheKey = new URL(request.url);
   let response;
@@ -1687,15 +2006,19 @@ async function getMedia(env, id, request, ctx) {
     response = await caches.default.match(cacheKey);
     if (response) return response;
   } catch {
+    
   }
+
   const row = await env.DB_MEDIA.prepare(
     'SELECT id, name, mime_type, size, base64_data, width, height, chunk_count FROM media WHERE id = ?'
   )
     .bind(id)
     .first();
   if (!row) return new Response('Not found', { status: 404 });
+
   const mimeType = String(row.mime_type || 'image/jpeg');
   let base64 = String(row.base64_data || '');
+
   if (row.chunk_count > 0) {
     const chunkRows = await env.DB_MEDIA.prepare(
       'SELECT chunk_data FROM media_chunks WHERE media_id = ? ORDER BY chunk_index ASC'
@@ -1708,9 +2031,11 @@ async function getMedia(env, id, request, ctx) {
     }
     base64 = chunks.join('');
   }
+
   if (!base64) {
     return new Response('Media data empty', { status: 500 });
   }
+
   let binary;
   try {
     binary = Uint8Array.from(
@@ -1728,30 +2053,42 @@ async function getMedia(env, id, request, ctx) {
       'Content-Length': String(binary.length),
     },
   });
+
   try {
     ctx.waitUntil(caches.default.put(cacheKey, response.clone()));
   } catch {
+    
   }
   return response;
 }
+
 async function deleteMedia(request, env, user) {
   const pathParts = new URL(request.url).pathname.split('/');
   const mediaId = parseInt(pathParts[pathParts.length - 1], 10);
   if (!mediaId) return jsonResponse(400, null, '媒体 ID 无效');
+
   const row = await env.DB_MEDIA.prepare('SELECT id FROM media WHERE id = ?').bind(mediaId).first();
   if (!row) return jsonResponse(404, null, '媒体不存在');
+
   await env.DB_MEDIA.prepare('DELETE FROM media_chunks WHERE media_id = ?').bind(mediaId).run();
   await env.DB_MEDIA.prepare('DELETE FROM media WHERE id = ?').bind(mediaId).run();
+
+  
   try {
     const publicUrl = new URL(`/api/v1/media/${mediaId}`, request.url);
     await caches.default.delete(publicUrl);
   } catch {
+    
   }
+
   return jsonResponse(0, null, '删除成功');
 }
+
 async function getMediaBindings(env, mediaId) {
   const urlPattern = `/api/v1/media/${mediaId}`;
   const bindings = [];
+
+  
   const posts = await env.DB_POSTS.prepare(
     `SELECT id, title, slug, cover_base64, content FROM posts
      WHERE cover_base64 LIKE ? OR content LIKE ?`
@@ -1767,6 +2104,8 @@ async function getMediaBindings(env, mediaId) {
       field: p.cover_base64 && p.cover_base64.includes(urlPattern) ? 'cover' : 'content',
     });
   }
+
+  
   const users = await env.DB_USERS.prepare(
     `SELECT id, username, avatar_base64 FROM users WHERE avatar_base64 LIKE ?`
   )
@@ -1775,6 +2114,8 @@ async function getMediaBindings(env, mediaId) {
   for (const u of users.results || []) {
     bindings.push({ type: 'user', id: u.id, name: u.username });
   }
+
+  
   const friends = await env.DB_CONFIG.prepare(
     `SELECT id, name, avatar FROM friends WHERE avatar LIKE ?`
   )
@@ -1783,10 +2124,13 @@ async function getMediaBindings(env, mediaId) {
   for (const f of friends.results || []) {
     bindings.push({ type: 'friend', id: f.id, name: f.name });
   }
+
+  
   try {
     const site = (await getSetting(env, 'site')) || {};
     const hero = (await getSetting(env, 'hero')) || {};
     const about = (await getSetting(env, 'about')) || {};
+
     const check = (key, value) => {
       if (typeof value === 'string' && value.includes(urlPattern)) {
         bindings.push({ type: 'site', key });
@@ -1798,14 +2142,18 @@ async function getMediaBindings(env, mediaId) {
     check('hero.backgroundImage', hero.backgroundImage);
     check('about.avatar', about.avatar);
   } catch {
+    
   }
+
   return bindings;
 }
+
 async function listAdminMedia(request, env, user) {
   const url = new URL(request.url);
   const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10));
   const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get('limit') || '10', 10)));
   const offset = (page - 1) * limit;
+
   const media = await env.DB_MEDIA.prepare(
     `SELECT id, name, mime_type, size, width, height, chunk_count, created_at
      FROM media ORDER BY created_at DESC LIMIT ? OFFSET ?`
@@ -1813,19 +2161,23 @@ async function listAdminMedia(request, env, user) {
     .bind(limit, offset)
     .all();
   const countRow = await env.DB_MEDIA.prepare('SELECT COUNT(*) as c FROM media').first();
+
   return jsonResponse(0, { list: media.results || [], total: countRow.c, page, limit });
 }
+
 async function getAdminMediaUsage(request, env, user) {
   try {
     const row = await env.DB_MEDIA.prepare(
       'SELECT COALESCE(SUM(size), 0) as total, COUNT(*) as count FROM media'
     ).first();
+    
     const totalSize = Math.floor(Number(row.total) * 1.42);
     return jsonResponse(0, { totalSize, count: row.count });
   } catch (err) {
     return jsonResponse(500, null, `统计媒体用量失败: ${err.message}`);
   }
 }
+
 async function getAdminMediaUsageDetail(request, env, user) {
   try {
     const rawRow = await env.DB_MEDIA.prepare(
@@ -1854,12 +2206,14 @@ async function getAdminMediaUsageDetail(request, env, user) {
     return jsonResponse(500, null, `精确统计媒体用量失败: ${err.message}`);
   }
 }
+
 async function getAdminMedia(request, env, user) {
   const url = new URL(request.url);
   const id = url.searchParams.get('id')
     ? parseInt(url.searchParams.get('id'), 10)
     : parseInt(request.url.split('/').pop(), 10);
   if (!id) return jsonResponse(400, null, '媒体 ID 无效');
+
   const row = await env.DB_MEDIA.prepare(
     `SELECT id, name, mime_type, size, width, height, chunk_count, created_at
      FROM media WHERE id = ?`
@@ -1867,27 +2221,39 @@ async function getAdminMedia(request, env, user) {
     .bind(id)
     .first();
   if (!row) return jsonResponse(404, null, '媒体不存在', 404);
+
   const bindings = await getMediaBindings(env, id);
   return jsonResponse(0, { ...row, bindings });
 }
+
 async function updateAdminMedia(request, env, user) {
   const id = parseInt(request.url.split('/').pop(), 10);
   if (!id) return jsonResponse(400, null, '媒体 ID 无效');
+
   const row = await env.DB_MEDIA.prepare('SELECT id, name FROM media WHERE id = ?').bind(id).first();
   if (!row) return jsonResponse(404, null, '媒体不存在', 404);
+
   const body = await request.json();
   const rawBase64 = String(body.base64 || '');
   const mimeType = String(body.mimeType || 'image/jpeg');
   const width = body.width ? parseInt(body.width, 10) : null;
   const height = body.height ? parseInt(body.height, 10) : null;
   const name = body.name ? String(body.name) : row.name;
+
   if (!rawBase64) return jsonResponse(400, null, '图片数据为空');
   if (!mimeType.startsWith('image/')) return jsonResponse(400, null, '仅支持图片');
+
+  
   const base64 = rawBase64.includes(',') ? rawBase64.split(',')[1] : rawBase64;
   if (!base64) return jsonResponse(400, null, '图片数据为空');
+
   const size = Math.floor(base64.length * 0.75);
+
+  
   await env.DB_MEDIA.prepare('DELETE FROM media_chunks WHERE media_id = ?').bind(id).run();
+
   if (base64.length <= MAX_MEDIA_CHUNK_SIZE) {
+    
     await env.DB_MEDIA.prepare(
       `UPDATE media SET name = ?, mime_type = ?, size = ?, base64_data = ?, width = ?, height = ?, chunk_count = 0, created_at = ?
        WHERE id = ?`
@@ -1895,6 +2261,7 @@ async function updateAdminMedia(request, env, user) {
       .bind(name, mimeType, size, base64, width, height, now(), id)
       .run();
   } else {
+    
     const chunkCount = Math.ceil(base64.length / MAX_MEDIA_CHUNK_SIZE);
     await env.DB_MEDIA.prepare(
       `UPDATE media SET name = ?, mime_type = ?, size = ?, base64_data = ?, width = ?, height = ?, chunk_count = ?, created_at = ?
@@ -1902,6 +2269,7 @@ async function updateAdminMedia(request, env, user) {
     )
       .bind(name, mimeType, size, '', width, height, chunkCount, now(), id)
       .run();
+
     for (let i = 0; i < chunkCount; i++) {
       const chunkData = base64.slice(i * MAX_MEDIA_CHUNK_SIZE, (i + 1) * MAX_MEDIA_CHUNK_SIZE);
       await env.DB_MEDIA.prepare(
@@ -1911,19 +2279,26 @@ async function updateAdminMedia(request, env, user) {
         .run();
     }
   }
+
+  
   try {
     const publicUrl = new URL(`/api/v1/media/${id}`, request.url);
     await caches.default.delete(publicUrl);
   } catch {
+    
   }
+
   return jsonResponse(0, { id, url: `/api/v1/media/${id}`, size }, '替换成功');
 }
+
 async function listDatabases(request, env, user) {
   const bindings = [];
   if (env.DB_USERS) bindings.push({ binding: 'DB_USERS', name: 'myblog-users' });
   if (env.DB_POSTS) bindings.push({ binding: 'DB_POSTS', name: 'myblog-posts' });
   if (env.DB_CONFIG) bindings.push({ binding: 'DB_CONFIG', name: 'myblog-config' });
   if (env.DB_MEDIA) bindings.push({ binding: 'DB_MEDIA', name: 'myblog-media' });
+
+  
   const stats = {};
   try {
     stats.users = (await env.DB_USERS.prepare('SELECT COUNT(*) as c FROM users').first()).c;
@@ -1947,8 +2322,10 @@ async function listDatabases(request, env, user) {
   } catch {
     stats.media = -1;
   }
+
   return jsonResponse(0, { bindings, stats, version: VERSION });
 }
+
 async function getSystemStatus(request, env, user) {
   const initialized = await getSystem(env, 'initialized');
   return jsonResponse(0, {
@@ -1958,13 +2335,18 @@ async function getSystemStatus(request, env, user) {
     timestamp: now(),
   });
 }
+
+
+
 const defaultAuthSettings = {
   allowRegister: true,
   emailVerification: false,
   enableForgotPassword: false,
+  
   loginVerification: false,
   registerVerification: false,
   forgotPasswordVerification: false,
+  
   verificationMode: 'none',
   turnstileSiteKey: '',
   turnstileSecret: '',
@@ -1973,10 +2355,12 @@ const defaultAuthSettings = {
   hcaptchaSiteKey: '',
   hcaptchaSecret: '',
 };
+
 async function getAuthSettings(request, env, user) {
   try {
     const data = (await getSetting(env, 'auth')) || {};
     const result = { ...defaultAuthSettings, ...data };
+    
     if (result.turnstileSecret) result.turnstileSecret = '****';
     if (result.geetestCaptchaKey) result.geetestCaptchaKey = '****';
     if (result.hcaptchaSecret) result.hcaptchaSecret = '****';
@@ -1989,10 +2373,12 @@ async function getAuthSettings(request, env, user) {
     throw err;
   }
 }
+
 async function updateAuthSettings(request, env, user) {
   const body = await request.json();
   const existing = (await getSetting(env, 'auth')) || {};
   const merged = { ...defaultAuthSettings, ...existing };
+  
   const verificationMode = ['none', 'turnstile', 'math', 'geetest', 'hcaptcha'].includes(body.verificationMode)
     ? body.verificationMode
     : merged.verificationMode;
@@ -2016,6 +2402,7 @@ async function updateAuthSettings(request, env, user) {
     turnstileSiteKey: body.turnstileSiteKey !== undefined
       ? String(body.turnstileSiteKey || '').trim()
       : merged.turnstileSiteKey,
+    
     turnstileSecret:
       body.turnstileSecret === undefined ||
       body.turnstileSecret === '' ||
@@ -2044,6 +2431,9 @@ async function updateAuthSettings(request, env, user) {
   await setSetting(env, 'auth', data);
   return jsonResponse(0, data, '保存成功');
 }
+
+
+
 const defaultEmailSettings = {
   provider: 'resend',
   from: '',
@@ -2055,10 +2445,13 @@ const defaultEmailSettings = {
   smtpPass: '',
   smtpSecure: false,
 };
+
 async function getEmailSettings(request, env, user) {
   try {
     const data = (await getSetting(env, 'email')) || {};
     const result = { ...defaultEmailSettings, ...data };
+    
+    
     if (result.resendApiKey) result.resendApiKey = '****';
     if (result.smtpPass) result.smtpPass = '****';
     return jsonResponse(0, result, 'ok');
@@ -2070,6 +2463,7 @@ async function getEmailSettings(request, env, user) {
     throw err;
   }
 }
+
 async function updateEmailSettings(request, env, user) {
   const body = await request.json();
   const existing = (await getSetting(env, 'email')) || {};
@@ -2085,11 +2479,15 @@ async function updateEmailSettings(request, env, user) {
     smtpSecure: body.smtpSecure === true,
   };
   await setSetting(env, 'email', data);
+  
   const result = { ...data };
   if (result.resendApiKey) result.resendApiKey = '****';
   if (result.smtpPass) result.smtpPass = '****';
   return jsonResponse(0, result, '保存成功');
 }
+
+
+
 const defaultCommentNotifySettings = {
   enabled: false,
   notifyEmail: '',
@@ -2099,6 +2497,7 @@ const defaultCommentNotifySettings = {
   notifyAdminReply: true,
   notifyUserReply: false,
 };
+
 async function getCommentNotifySettings(request, env, user) {
   try {
     const data = (await getSetting(env, 'comment_notify')) || {};
@@ -2112,6 +2511,7 @@ async function getCommentNotifySettings(request, env, user) {
     throw err;
   }
 }
+
 async function updateCommentNotifySettings(request, env, user) {
   const body = await request.json();
   const existing = (await getSetting(env, 'comment_notify')) || {};
@@ -2127,6 +2527,9 @@ async function updateCommentNotifySettings(request, env, user) {
   await setSetting(env, 'comment_notify', data);
   return jsonResponse(0, data, '保存成功');
 }
+
+
+
 async function getEmailDailyCount(env) {
   const data = await getSetting(env, 'email_daily_count');
   const today = new Date().toISOString().slice(0, 10);
@@ -2135,6 +2538,7 @@ async function getEmailDailyCount(env) {
   }
   return 0;
 }
+
 async function incrementEmailDailyCount(env) {
   const today = new Date().toISOString().slice(0, 10);
   const data = await getSetting(env, 'email_daily_count');
@@ -2142,6 +2546,7 @@ async function incrementEmailDailyCount(env) {
   await setSetting(env, 'email_daily_count', { date: today, count });
   return count;
 }
+
 const defaultEmailTemplate = {
   subject: '您的注册验证码',
   html: `<!DOCTYPE html>
@@ -2191,6 +2596,7 @@ const defaultEmailTemplate = {
 </html>`,
   text: '您好，{{username}}：感谢您注册 {{siteName}}，验证码是 {{code}}，{{expireMinutes}} 分钟内有效。如非本人操作请忽略。',
 };
+
 const defaultResetEmailTemplate = {
   subject: '您的密码重置验证码',
   html: `<!DOCTYPE html>
@@ -2240,6 +2646,7 @@ const defaultResetEmailTemplate = {
 </html>`,
   text: '您好，{{username}}：我们收到了重置 {{siteName}} 密码的请求，请在 {{expireMinutes}} 分钟内使用验证码 {{code}} 完成重置。如非本人操作请忽略此邮件。',
 };
+
 function applyEmailTemplate(template, variables) {
   let subject = template.subject || defaultEmailTemplate.subject;
   let html = template.html || defaultEmailTemplate.html;
@@ -2252,6 +2659,7 @@ function applyEmailTemplate(template, variables) {
   }
   return { subject, html, text };
 }
+
 async function getEmailTemplateSettings(request, env, user) {
   try {
     const db = getConfigDb(env);
@@ -2288,6 +2696,7 @@ async function getEmailTemplateSettings(request, env, user) {
       'ok'
     );
   } catch (err) {
+    
     if (isBindingError(err)) {
       console.error('读取邮件模板失败，返回默认模板:', err);
       const fallback = new URL(request.url).searchParams.get('kind') === 'reset' ? defaultResetEmailTemplate : defaultEmailTemplate;
@@ -2296,6 +2705,7 @@ async function getEmailTemplateSettings(request, env, user) {
     throw err;
   }
 }
+
 async function updateEmailTemplateSettings(request, env, user) {
   const body = await request.json();
   const db = getConfigDb(env);
@@ -2303,6 +2713,8 @@ async function updateEmailTemplateSettings(request, env, user) {
   const isReset = body.kind === 'reset';
   const prefix = isReset ? 'email_reset' : 'email';
   const fallback = isReset ? defaultResetEmailTemplate : defaultEmailTemplate;
+  
+  
   const [subjectRow, htmlRow, textRow] = await Promise.all([
     db.prepare('SELECT value FROM settings WHERE key = ?').bind(`${prefix}_subject`).first(),
     db.prepare('SELECT value FROM settings WHERE key = ?').bind(`${prefix}_html`).first(),
@@ -2318,6 +2730,7 @@ async function updateEmailTemplateSettings(request, env, user) {
     html: body.html !== undefined ? String(body.html) : existing.html,
     text: body.text !== undefined ? String(body.text) : existing.text,
   };
+  
   await db.prepare('INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES (?, ?, ?)')
     .bind(`${prefix}_subject`, data.subject, ts).run();
   await db.prepare('INSERT OR REPLACE INTO settings (key, value, updated_at) VALUES (?, ?, ?)')
@@ -2326,12 +2739,16 @@ async function updateEmailTemplateSettings(request, env, user) {
     .bind(`${prefix}_text`, data.text, ts).run();
   return jsonResponse(0, data, '保存成功');
 }
+
 async function sendEmailByProvider(env, to, subject, text, html, critical = false) {
   const settings = (await getSetting(env, 'email')) || {};
   const provider = settings.provider || 'resend';
+
   if (!settings.from) {
     throw new Error('未配置发件人邮箱');
   }
+
+  
   if (!critical) {
     const notifySettings = (await getSetting(env, 'comment_notify')) || {};
     const dailyLimit = notifySettings.dailyLimit || 100;
@@ -2349,18 +2766,22 @@ async function sendEmailByProvider(env, to, subject, text, html, critical = fals
       throw new Error(`每日发件通知已达上限（${maxNotify} 封），超出部分已被限制`);
     }
   }
+
+  
   const sendPromise = (async () => {
     if (provider === 'smtp') {
       const ok = await sendEmailBySMTP(settings, to, subject, text, html);
       await incrementEmailDailyCount(env);
       return ok;
     }
+
     if (provider !== 'resend') {
       throw new Error(`暂不支持的邮件服务商：${provider}`);
     }
     if (!settings.resendApiKey) {
       throw new Error('未配置 Resend API Key');
     }
+
     const from = settings.fromName ? `${settings.fromName} <${settings.from}>` : settings.from;
     const payload = {
       from,
@@ -2386,8 +2807,12 @@ async function sendEmailByProvider(env, to, subject, text, html, critical = fals
     await incrementEmailDailyCount(env);
     return true;
   })();
+
   return withTimeout(sendPromise, 25000, '邮件发送');
 }
+
+
+
 function utf8ToBase64(str) {
   const bytes = new TextEncoder().encode(str);
   let binary = '';
@@ -2396,6 +2821,7 @@ function utf8ToBase64(str) {
   }
   return btoa(binary);
 }
+
 function buildMimeMessage({ from, fromName, to, subject, text, html }) {
   const boundary = '----=_Part_' + Math.random().toString(36).slice(2) + '_' + Date.now();
   const fromHeader = fromName ? `${fromName} <${from}>` : from;
@@ -2403,6 +2829,7 @@ function buildMimeMessage({ from, fromName, to, subject, text, html }) {
     if (/^[\x00-\x7f]+$/.test(value)) return value;
     return '=?UTF-8?B?' + utf8ToBase64(value) + '?=';
   };
+
   let body = [
     'MIME-Version: 1.0',
     `From: ${encodeHeader(fromHeader)}`,
@@ -2416,6 +2843,7 @@ function buildMimeMessage({ from, fromName, to, subject, text, html }) {
     '',
     utf8ToBase64(text),
   ];
+
   if (html) {
     body = body.concat([
       `--${boundary}`,
@@ -2425,9 +2853,11 @@ function buildMimeMessage({ from, fromName, to, subject, text, html }) {
       utf8ToBase64(html),
     ]);
   }
+
   body = body.concat([`--${boundary}--`, '']);
   return body.join('\r\n');
 }
+
 function withTimeout(promise, ms, label) {
   let timer;
   const timeoutPromise = new Promise((_, reject) => {
@@ -2435,6 +2865,7 @@ function withTimeout(promise, ms, label) {
   });
   return Promise.race([promise, timeoutPromise]).finally(() => clearTimeout(timer));
 }
+
 async function smtpReadLine(reader) {
   const decoder = new TextDecoder();
   let buffer = '';
@@ -2450,6 +2881,7 @@ async function smtpReadLine(reader) {
     }
   }
 }
+
 async function smtpReadResponse(reader, expectedCode, timeoutMs = 15000) {
   while (true) {
     const line = await withTimeout(smtpReadLine(reader), timeoutMs, 'SMTP 读取响应');
@@ -2462,10 +2894,13 @@ async function smtpReadResponse(reader, expectedCode, timeoutMs = 15000) {
     if (line[3] === ' ') return { code, line };
   }
 }
+
 async function smtpSend(writer, line) {
   const encoder = new TextEncoder();
   await writer.write(encoder.encode(line + '\r\n'));
 }
+
+
 async function smtpReadEhloCapabilities(reader, writer, ehloHost, timeoutMs = 15000) {
   await smtpSend(writer, `EHLO ${ehloHost}`);
   const lines = [];
@@ -2492,11 +2927,13 @@ async function smtpReadEhloCapabilities(reader, writer, ehloHost, timeoutMs = 15
   }
   return caps;
 }
+
 async function smtpAuthPlain(reader, writer, user, pass) {
   const authPlain = utf8ToBase64(`\u0000${user}\u0000${pass}`);
   await smtpSend(writer, `AUTH PLAIN ${authPlain}`);
   await smtpReadResponse(reader, 235, 15000);
 }
+
 async function smtpAuthLogin(reader, writer, user, pass) {
   await smtpSend(writer, 'AUTH LOGIN');
   await smtpReadResponse(reader, 334, 15000);
@@ -2505,6 +2942,7 @@ async function smtpAuthLogin(reader, writer, user, pass) {
   await smtpSend(writer, utf8ToBase64(pass));
   await smtpReadResponse(reader, 235, 15000);
 }
+
 async function sendEmailBySMTP(settings, to, subject, text, html) {
   const host = String(settings.smtpHost || '').trim();
   const port = parseInt(settings.smtpPort || '587', 10) || 587;
@@ -2513,10 +2951,14 @@ async function sendEmailBySMTP(settings, to, subject, text, html) {
   const secure = settings.smtpSecure === true;
   const from = String(settings.from || '');
   const fromName = String(settings.fromName || '');
+
   if (!host) throw new Error('未配置 SMTP 服务器');
   if (!user) throw new Error('未配置 SMTP 用户名');
   if (!pass) throw new Error('未配置 SMTP 密码');
+
   const message = buildMimeMessage({ from, fromName, to, subject, text, html });
+
+  
   let secureTransport;
   if (port === 465) {
     secureTransport = 'on';
@@ -2525,26 +2967,40 @@ async function sendEmailBySMTP(settings, to, subject, text, html) {
   } else {
     secureTransport = secure ? 'on' : 'off';
   }
+
+  
   const ehloHost = from.includes('@') ? from.split('@')[1] : 'cloudflare-workers';
+
   let socket;
   try {
     socket = connect({ hostname: host, port }, { secureTransport });
   } catch (e) {
     throw new Error(`无法连接 SMTP 服务器：${e.message}`);
   }
+
   let reader = socket.readable.getReader();
   let writer = socket.writable.getWriter();
+
   try {
+    
     await smtpReadResponse(reader, 220, 15000);
+
+    
     let caps = await smtpReadEhloCapabilities(reader, writer, ehloHost, 15000);
+
+    
     if (secureTransport === 'starttls') {
       if (caps.STARTTLS === undefined) {
         throw new Error('SMTP 服务器未声明 STARTTLS 支持');
       }
       await smtpSend(writer, 'STARTTLS');
       await smtpReadResponse(reader, 220, 15000);
+
+      
+      
       try { reader.releaseLock(); } catch {}
       try { writer.releaseLock(); } catch {}
+
       let secureSocket;
       try {
         secureSocket = socket.startTls();
@@ -2556,6 +3012,7 @@ async function sendEmailBySMTP(settings, to, subject, text, html) {
       writer = secureSocket.writable.getWriter();
       caps = await smtpReadEhloCapabilities(reader, writer, ehloHost, 15000);
     }
+
     if (user && pass) {
       if (!caps.auth.length) {
         throw new Error('SMTP 服务器未声明任何认证方式');
@@ -2568,30 +3025,41 @@ async function sendEmailBySMTP(settings, to, subject, text, html) {
         throw new Error(`SMTP 服务器不支持的认证方式：${caps.auth.join(', ')}`);
       }
     }
+
     await smtpSend(writer, `MAIL FROM:<${from}>`);
     await smtpReadResponse(reader, 250, 15000);
     await smtpSend(writer, `RCPT TO:<${to}>`);
     await smtpReadResponse(reader, 250, 15000);
     await smtpSend(writer, 'DATA');
     await smtpReadResponse(reader, 354, 15000);
+
+    
     const escapedMessage = message
       .split('\r\n')
       .map((line) => (line.startsWith('.') ? '.' + line : line))
       .join('\r\n');
     await smtpSend(writer, escapedMessage + '\r\n.');
     await smtpReadResponse(reader, 250, 30000);
+
     await smtpSend(writer, 'QUIT');
   } catch (e) {
+    
     throw new Error(e.message || 'SMTP 发送失败');
   } finally {
     try { await writer.close(); } catch {}
     try { await reader.cancel(); } catch {}
     try { await socket.close(); } catch {}
   }
+
   return true;
 }
+
+
+
 const MATH_CAPTCHA_TTL_MS = 5 * 60 * 1000; 
 const MATH_CAPTCHA_SALT = 'math-captcha-v1';
+
+
 async function hmacSignBase64(secret, data) {
   const encoder = new TextEncoder();
   const key = await crypto.subtle.importKey(
@@ -2604,6 +3072,8 @@ async function hmacSignBase64(secret, data) {
   const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(data));
   return base64UrlEncode(String.fromCharCode(...new Uint8Array(signature)));
 }
+
+
 async function hmacSignHex(secret, data) {
   const encoder = new TextEncoder();
   const key = await crypto.subtle.importKey(
@@ -2618,6 +3088,8 @@ async function hmacSignHex(secret, data) {
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('');
 }
+
+
 async function issueMathCaptcha(request, env) {
   const ip = getClientIp(request);
   if (!(await checkRateLimit(env, `mc:ip:${ip}`, 10, 60))) {
@@ -2636,6 +3108,8 @@ async function issueMathCaptcha(request, env) {
   const sig = await hmacSignBase64(env.JWT_SECRET + MATH_CAPTCHA_SALT, data);
   return jsonResponse(0, { question: `${a} ${op} ${b}`, token: `${data}.${sig}` }, 'ok');
 }
+
+
 async function verifyMathCaptcha(env, body) {
   const token = String(body.mathToken || '').trim();
   const answer = body.mathAnswer;
@@ -2656,6 +3130,8 @@ async function verifyMathCaptcha(env, body) {
   if (!Number.isFinite(num)) return false;
   return Math.abs(num - payload.answer) < 1e-6;
 }
+
+
 async function verifyTurnstile(secret, token, ip) {
   if (!secret || !token) return false;
   try {
@@ -2673,6 +3149,8 @@ async function verifyTurnstile(secret, token, ip) {
     return false;
   }
 }
+
+
 async function verifyGeetest(captchaId, captchaKey, body) {
   const lotNumber = String(body.lotNumber || '').trim();
   const captchaOutput = String(body.captchaOutput || '').trim();
@@ -2699,6 +3177,8 @@ async function verifyGeetest(captchaId, captchaKey, body) {
     return false;
   }
 }
+
+
 async function verifyHCaptcha(secret, token, ip) {
   if (!secret || !token) return false;
   try {
@@ -2716,6 +3196,8 @@ async function verifyHCaptcha(secret, token, ip) {
     return false;
   }
 }
+
+
 async function verifyHuman(request, env, body) {
   const authSettings = (await getSetting(env, 'auth')) || {};
   const mode = authSettings.verificationMode || 'none';
@@ -2732,6 +3214,8 @@ async function verifyHuman(request, env, body) {
   }
   return true;
 }
+
+
 async function getCaptchaConfig(request, env) {
   const authSettings = (await getSetting(env, 'auth')) || {};
   const mode = authSettings.verificationMode || 'none';
@@ -2749,24 +3233,32 @@ async function getCaptchaConfig(request, env) {
     'ok'
   );
 }
+
 async function sendVerifyCode(request, env) {
   const body = await request.json();
   const username = String(body.username || '').trim();
   const email = String(body.email || '').trim();
+
   if (!username) return jsonResponse(400, null, '用户名必填');
   if (/[\u4e00-\u9fa5]/.test(username)) return jsonResponse(400, null, '用户名不能包含中文');
   if (!email) return jsonResponse(400, null, '邮箱必填');
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) return jsonResponse(400, null, '邮箱格式不正确');
+
+  
   const authSettings = (await getSetting(env, 'auth')) || {};
   if (authSettings.emailVerification !== true) {
     return jsonResponse(403, null, '未开启注册邮箱验证功能');
   }
+
+  
   if (authSettings.registerVerification === true) {
     if (!(await verifyHuman(request, env, body))) {
       return jsonResponse(403, null, '人机验证未通过，请重试');
     }
   }
+
+  
   const vcIp = getClientIp(request);
   if (!(await checkRateLimit(env, `vc:ip:${vcIp}`, 5, 600))) {
     return jsonResponse(429, null, '发送过于频繁，请稍后再试', 429);
@@ -2778,19 +3270,23 @@ async function sendVerifyCode(request, env) {
   if (!(await checkRateLimit(env, `vc:day:${vcEmail}`, 10, 86400))) {
     return jsonResponse(429, null, '该邮箱今日发送次数已达上限', 429);
   }
+
   const existingUser = await env.DB_USERS.prepare(
     'SELECT id FROM users WHERE username = ? OR email = ?'
   )
     .bind(username, email)
     .first();
   if (existingUser) return jsonResponse(409, null, '用户名或邮箱已被注册');
+
   const code = Math.random().toString(36).slice(2, 8).toUpperCase();
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+
   await env.DB_USERS.prepare(
     'INSERT INTO verify_codes (email, code, expires_at, created_at) VALUES (?, ?, ?, ?) ON CONFLICT(email) DO UPDATE SET code = excluded.code, expires_at = excluded.expires_at, created_at = excluded.created_at'
   )
     .bind(email, code, expiresAt, now())
     .run();
+
   const emailSettings = (await getSetting(env, 'email')) || {};
   const provider = emailSettings.provider || 'resend';
   const emailConfigured =
@@ -2800,13 +3296,17 @@ async function sendVerifyCode(request, env) {
       !!emailSettings.smtpHost &&
       !!emailSettings.smtpUser &&
       !!emailSettings.smtpPass);
+
   if (!emailConfigured) {
     return jsonResponse(503, { sent: false }, '邮件服务未配置，无法发送验证码');
   }
+
+  
   const currentCount = await getEmailDailyCount(env);
   if (currentCount >= GLOBAL_DAILY_EMAIL_LIMIT) {
     return jsonResponse(429, { sent: false }, '今日邮件发送总量已达上限，请明日再试');
   }
+
   try {
     const db = getConfigDb(env);
     const [subjectRow, htmlRow, textRow] = await Promise.all([
@@ -2835,14 +3335,18 @@ async function sendVerifyCode(request, env) {
     if (emailConfigured) {
       return jsonResponse(500, { sent: false }, `邮件发送失败：${e.message || '未知错误'}`);
     }
+    
   }
+
   return jsonResponse(0, { sent: true }, '验证码已发送');
 }
+
 async function sendForgotCode(request, env) {
   const body = await request.json();
   const username = String(body.username || '').trim();
   const email = String(body.email || '').trim();
   const authSettings = (await getSetting(env, 'auth')) || {};
+
   if (authSettings.enableForgotPassword !== true) {
     return jsonResponse(403, null, '未开启找回密码功能');
   }
@@ -2850,11 +3354,15 @@ async function sendForgotCode(request, env) {
   if (!email) return jsonResponse(400, null, '邮箱必填');
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) return jsonResponse(400, null, '邮箱格式不正确');
+
+  
   if (authSettings.forgotPasswordVerification === true) {
     if (!(await verifyHuman(request, env, body))) {
       return jsonResponse(403, null, '人机验证未通过，请重试');
     }
   }
+
+  
   const fpIp = getClientIp(request);
   if (!(await checkRateLimit(env, `fp:ip:${fpIp}`, 5, 600))) {
     return jsonResponse(429, null, '操作过于频繁，请稍后再试', 429);
@@ -2866,6 +3374,8 @@ async function sendForgotCode(request, env) {
   if (!(await checkRateLimit(env, `fp:day:${fpEmail}`, 10, 86400))) {
     return jsonResponse(429, null, '该邮箱今日操作次数已达上限', 429);
   }
+
+  
   const user = await env.DB_USERS.prepare(
     'SELECT username, email FROM users WHERE username = ? OR email = ?'
   )
@@ -2878,6 +3388,7 @@ async function sendForgotCode(request, env) {
   if (!matched) {
     return jsonResponse(0, { sent: false, _debug: { matched: false, username, email } }, '验证码已发送');
   }
+
   const code = Math.random().toString(36).slice(2, 8).toUpperCase();
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
   await env.DB_USERS.prepare(
@@ -2885,6 +3396,7 @@ async function sendForgotCode(request, env) {
   )
     .bind(fpEmail, code, expiresAt, now())
     .run();
+
   const emailSettings = (await getSetting(env, 'email')) || {};
   const provider = emailSettings.provider || 'resend';
   const emailConfigured =
@@ -2894,16 +3406,21 @@ async function sendForgotCode(request, env) {
       !!emailSettings.smtpHost &&
       !!emailSettings.smtpUser &&
       !!emailSettings.smtpPass);
+
   if (!emailConfigured) {
     return jsonResponse(503, { sent: false }, '邮件服务未配置，无法发送重置邮件');
   }
+
+  
   const globalCount = await getEmailDailyCount(env);
   if (globalCount >= GLOBAL_DAILY_EMAIL_LIMIT) {
     return jsonResponse(429, { sent: false }, '今日邮件发送总量已达上限，请明日再试');
   }
+
   let sendStatus = 'not_attempted';
   let sendError = '';
   const debugBase = { matched: true, provider, emailConfigured, email };
+
   try {
     const db = getConfigDb(env);
     const [subjectRow, htmlRow, textRow] = await Promise.all([
@@ -2940,8 +3457,10 @@ async function sendForgotCode(request, env) {
       return jsonResponse(500, { sent: false, _debug: { ...debugBase, sendStatus, sendError, stage: e.message || 'template' } }, `邮件发送失败：${e.message || '未知错误'}`);
     }
   }
+
   return jsonResponse(0, { sent: true, _debug: { ...debugBase, sendStatus, sendError } }, '验证码已发送');
 }
+
 async function resetPassword(request, env) {
   const body = await request.json();
   const username = String(body.username || '').trim();
@@ -2949,12 +3468,14 @@ async function resetPassword(request, env) {
   const code = String(body.code || '').trim().toUpperCase();
   const password = String(body.password || '');
   const authSettings = (await getSetting(env, 'auth')) || {};
+
   if (authSettings.enableForgotPassword !== true) {
     return jsonResponse(403, null, '未开启找回密码功能');
   }
   if (!username || !email) return jsonResponse(400, null, '用户名和邮箱必填');
   if (password.length < 6) return jsonResponse(400, null, '密码至少 6 位');
   if (!code) return jsonResponse(400, null, '请输入邮箱验证码');
+
   const record = await env.DB_USERS.prepare(
     'SELECT code, expires_at FROM verify_codes WHERE email = ?'
   )
@@ -2968,12 +3489,14 @@ async function resetPassword(request, env) {
     return jsonResponse(403, null, '验证码错误');
   }
   if (record.expires_at < new Date().toISOString()) return jsonResponse(403, null, '验证码已过期');
+
   const user = await env.DB_USERS.prepare(
     'SELECT id FROM users WHERE username = ? AND email = ?'
   )
     .bind(username, email.toLowerCase())
     .first();
   if (!user) return jsonResponse(403, null, '用户不存在');
+
   const { salt, hash } = await hashPassword(password);
   await env.DB_USERS.prepare(
     'UPDATE users SET password_hash = ?, password_salt = ?, updated_at = ? WHERE id = ?'
@@ -2983,16 +3506,21 @@ async function resetPassword(request, env) {
   await env.DB_USERS.prepare('DELETE FROM verify_codes WHERE email = ?').bind(email.toLowerCase()).run();
   return jsonResponse(0, null, '密码已重置，请使用新密码登录');
 }
+
 async function changePassword(request, env, user) {
   const body = await request.json();
   const currentPassword = String(body.currentPassword || '');
   const newPassword = String(body.newPassword || '');
+
   if (!currentPassword) return jsonResponse(400, null, '请输入当前密码');
   if (newPassword.length < 6) return jsonResponse(400, null, '新密码至少 6 位');
   if (newPassword === currentPassword) return jsonResponse(400, null, '新密码不能与当前密码相同');
+
+  
   if (!(await checkRateLimit(env, `cp:${user.id}`, 5, 600))) {
     return jsonResponse(429, null, '操作过于频繁，请稍后再试', 429);
   }
+
   const row = await env.DB_USERS.prepare(
     'SELECT id, password_hash, password_salt, status FROM users WHERE id = ?'
   )
@@ -3000,8 +3528,10 @@ async function changePassword(request, env, user) {
     .first();
   if (!row) return jsonResponse(404, null, '用户不存在');
   if (row.status === 'banned') return jsonResponse(403, null, '账号已被禁用');
+
   const valid = await verifyPassword(currentPassword, row.password_salt, row.password_hash);
   if (!valid) return jsonResponse(403, null, '当前密码不正确');
+
   const { salt, hash } = await hashPassword(newPassword);
   await env.DB_USERS.prepare(
     'UPDATE users SET password_hash = ?, password_salt = ?, updated_at = ? WHERE id = ?'
@@ -3010,12 +3540,16 @@ async function changePassword(request, env, user) {
     .run();
   return jsonResponse(0, null, '密码已修改');
 }
+
+
+
 async function getPostIdBySlug(env, slug) {
   const row = await env.DB_POSTS.prepare('SELECT id FROM posts WHERE slug = ? AND status = ?')
     .bind(slug, 'published')
     .first();
   return row ? row.id : null;
 }
+
 async function getUserMap(env, userIds) {
   const map = {};
   if (!userIds.length) return map;
@@ -3030,6 +3564,7 @@ async function getUserMap(env, userIds) {
   }
   return map;
 }
+
 async function getPostMap(env, postIds) {
   const map = {};
   if (!postIds.length) return map;
@@ -3042,6 +3577,7 @@ async function getPostMap(env, postIds) {
   }
   return map;
 }
+
 async function getInteractionSettings(request, env, user) {
   try {
     const data = (await getSetting(env, 'interaction')) || {};
@@ -3060,6 +3596,7 @@ async function getInteractionSettings(request, env, user) {
     throw err;
   }
 }
+
 async function updateInteractionSettings(request, env, user) {
   const body = await request.json();
   const data = {
@@ -3070,13 +3607,16 @@ async function updateInteractionSettings(request, env, user) {
   await setSetting(env, 'interaction', data);
   return jsonResponse(0, data, '保存成功');
 }
+
 async function listComments(env, url, path) {
   const slug = path.replace('/api/v1/posts/', '').replace('/comments', '');
   const postId = await getPostIdBySlug(env, slug);
   if (!postId) return jsonResponse(404, null, '文章不存在', 404);
+
   const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10));
   const limit = Math.min(50, Math.max(1, parseInt(url.searchParams.get('limit') || '20', 10)));
   const offset = (page - 1) * limit;
+
   const comments = await env.DB_POSTS.prepare(
     `SELECT id, post_id, user_id, content, parent_id, status, created_at, updated_at
      FROM comments
@@ -3086,14 +3626,17 @@ async function listComments(env, url, path) {
   )
     .bind(postId, limit, offset)
     .all();
+
   const countRow = await env.DB_POSTS.prepare(
     "SELECT COUNT(*) as c FROM comments WHERE post_id = ? AND status = 'approved'"
   )
     .bind(postId)
     .first();
+
   const list = comments.results || [];
   const userIds = [...new Set(list.map((c) => c.user_id).filter(Boolean))];
   const parentUserIds = [...new Set(list.map((c) => c.parent_id).filter(Boolean))];
+  
   const parentCommentMap = {};
   if (parentUserIds.length > 0) {
     const parentComments = await env.DB_POSTS.prepare(
@@ -3105,6 +3648,7 @@ async function listComments(env, url, path) {
   }
   const allUserIds = [...new Set([...userIds, ...Object.values(parentCommentMap).filter(Boolean)])];
   const userMap = await getUserMap(env, allUserIds);
+
   const results = list.map((c) => ({
     id: c.id,
     postId: c.post_id,
@@ -3118,19 +3662,24 @@ async function listComments(env, url, path) {
     avatar: userMap[c.user_id]?.avatar_base64 || null,
     replyToUsername: c.parent_id ? (userMap[parentCommentMap[c.parent_id]]?.username || null) : null,
   }));
+
   return jsonResponse(0, { list: results, total: countRow.c, page, limit });
 }
+
 async function createComment(request, env, user) {
   const path = new URL(request.url).pathname;
   const slug = path.replace('/api/v1/posts/', '').replace('/comments', '');
   const postId = await getPostIdBySlug(env, slug);
   if (!postId) return jsonResponse(404, null, '文章不存在', 404);
+
   const settings = (await getSetting(env, 'interaction')) || {};
   if (settings.commentsEnabled === false) return jsonResponse(403, null, '评论功能已关闭');
+
   const body = await request.json();
   const content = String(body.content || '').trim();
   if (!content) return jsonResponse(400, null, '评论内容不能为空');
   if (content.length > 2000) return jsonResponse(400, null, '评论内容不能超过 2000 字');
+
   const parentId = parseInt(body.parentId, 10) || null;
   if (parentId) {
     const parentExists = await env.DB_POSTS.prepare('SELECT id FROM comments WHERE id = ? AND post_id = ?')
@@ -3138,21 +3687,31 @@ async function createComment(request, env, user) {
       .first();
     if (!parentExists) return jsonResponse(400, null, '回复的评论不存在');
   }
+
   const status = settings.commentAudit === false ? 'approved' : 'pending';
   const time = now();
+
   const result = await env.DB_POSTS.prepare(
     'INSERT INTO comments (post_id, user_id, content, parent_id, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
   )
     .bind(postId, user.id, content, parentId, status, time, time)
     .run();
+
   const commentId = result.meta ? result.meta.last_row_id : null;
+
+  
+  
   const notifyErrors = [];
   if (commentId) {
     const errs = await sendCommentNotifications(request, env, postId, slug, user, content, parentId, commentId, status);
     notifyErrors.push(...(Array.isArray(errs) ? errs : []));
   }
+
   return jsonResponse(0, { id: commentId, status, notifyErrors }, '评论成功');
 }
+
+
+
 function buildEmailHtml(siteName, title, bodyLines, postTitle, postUrl, time) {
   return `<!DOCTYPE html>
 <html lang="zh-CN">
@@ -3178,6 +3737,7 @@ function buildEmailHtml(siteName, title, bodyLines, postTitle, postUrl, time) {
 </body>
 </html>`;
 }
+
 async function sendCommentNotifications(request, env, postId, slug, commenter, content, parentId, commentId, commentStatus = 'pending') {
   const notifySettings = (await getSetting(env, 'comment_notify')) || {};
   const errors = [];
@@ -3193,6 +3753,7 @@ async function sendCommentNotifications(request, env, postId, slug, commenter, c
     return [err];
   }
   console.log('[comment-notify] enabled, sending to:', notifySettings.notifyEmail);
+
   const site = (await getSetting(env, 'site')) || {};
   const siteName = site.siteName || 'XinBlog';
   const post = await env.DB_POSTS.prepare('SELECT title FROM posts WHERE id = ?').bind(postId).first();
@@ -3208,21 +3769,30 @@ async function sendCommentNotifications(request, env, postId, slug, commenter, c
   const adminUrl = `${baseUrl}/admin`;
   const time = new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
   const needAudit = commentStatus === 'pending' ? '（需审核后公开显示）' : '';
+
   if (parentId) {
+    
     const parentComment = await env.DB_POSTS.prepare('SELECT user_id FROM comments WHERE id = ?').bind(parentId).first();
     if (!parentComment) return;
+
     const parentUser = await env.DB_USERS.prepare('SELECT id, username, email, role FROM users WHERE id = ?')
       .bind(parentComment.user_id)
       .first();
     if (!parentUser) return;
+
     const isAdmin = commenter.role === 'super_admin';
     const isParentAdmin = parentUser.role === 'super_admin';
+
+    
     let shouldNotifyUser = false;
     if (isAdmin) {
+      
       shouldNotifyUser = notifySettings.notifyAdminReply;
     } else if (!isParentAdmin) {
+      
       shouldNotifyUser = notifySettings.notifyUserReply;
     }
+
     if (shouldNotifyUser && parentUser.email) {
       const subject = `${commenter.username} 回复了您在「${postTitle}」中的评论${needAudit ? '（待审核）' : ''}`;
       const text = `您收到了一条来自 ${commenter.username} 的回复：\n\n${content}\n\n文章：${postTitle}\n链接：${postUrl}`;
@@ -3239,6 +3809,8 @@ async function sendCommentNotifications(request, env, postId, slug, commenter, c
         errors.push(`回复用户邮件失败: ${e.message}`);
       }
     }
+
+    
     if (notifySettings.notifyAdminOnNew && !isParentAdmin && notifySettings.notifyEmail) {
       const subject = `[${siteName}] ${commenter.username} 回复了评论`;
       const text = `用户 ${commenter.username} 回复了 ${parentUser.username} 在文章「${postTitle}」中的评论：\n\n${content}\n\n链接：${postUrl}`;
@@ -3256,6 +3828,7 @@ async function sendCommentNotifications(request, env, postId, slug, commenter, c
       }
     }
   } else {
+    
     if (notifySettings.notifyAdminOnNew && notifySettings.notifyEmail) {
       const subject = `[${siteName}] ${commenter.username} 发表了新评论`;
       const text = `用户 ${commenter.username} 在文章「${postTitle}」中发表了评论：\n\n${content}\n\n链接：${postUrl}`;
@@ -3273,35 +3846,48 @@ async function sendCommentNotifications(request, env, postId, slug, commenter, c
       }
     }
   }
+
   if (!errors.length) errors.push('无通知邮件需发送（或无 email 收件人）');
   return errors;
 }
+
 async function deleteComment(request, env, user) {
   const path = new URL(request.url).pathname;
   const match = path.match(/\/api\/v1\/posts\/([^/]+)\/comments\/(\d+)/);
   if (!match) return jsonResponse(400, null, '路径无效');
   const slug = match[1];
   const commentId = parseInt(match[2], 10);
+
   const postId = await getPostIdBySlug(env, slug);
   if (!postId) return jsonResponse(404, null, '文章不存在', 404);
+
   const comment = await env.DB_POSTS.prepare('SELECT id, user_id FROM comments WHERE id = ? AND post_id = ?')
     .bind(commentId, postId)
     .first();
   if (!comment) return jsonResponse(404, null, '评论不存在', 404);
+
   if (comment.user_id !== user.id && user.role !== 'super_admin') {
     return jsonResponse(403, null, '无权删除该评论');
   }
+
   await deleteCommentTree(env, commentId);
   return jsonResponse(0, null, '删除成功');
 }
+
+
+
+
 async function deleteCommentTree(env, rootId) {
   const ordered = [];
   await collectCommentTree(env, rootId, ordered);
+  
   ordered.push(rootId);
   for (const id of ordered) {
     await env.DB_POSTS.prepare('DELETE FROM comments WHERE id = ?').bind(id).run();
   }
 }
+
+
 async function collectCommentTree(env, parentId, ordered) {
   const rows = await env.DB_POSTS.prepare('SELECT id FROM comments WHERE parent_id = ?')
     .bind(parentId)
@@ -3311,24 +3897,31 @@ async function collectCommentTree(env, parentId, ordered) {
     ordered.push(row.id);
   }
 }
+
+
 async function deleteCommentsByPost(env, postId) {
   await env.DB_POSTS.prepare('UPDATE comments SET parent_id = NULL WHERE post_id = ?').bind(postId).run();
   await env.DB_POSTS.prepare('DELETE FROM comments WHERE post_id = ?').bind(postId).run();
 }
+
+
 async function deleteCommentsByUser(env, userId) {
   await env.DB_POSTS.prepare(
     'UPDATE comments SET parent_id = NULL WHERE parent_id IN (SELECT id FROM comments WHERE user_id = ?)'
   ).bind(userId).run();
   await env.DB_POSTS.prepare('DELETE FROM comments WHERE user_id = ?').bind(userId).run();
 }
+
 async function getLikes(request, env, user) {
   const path = new URL(request.url).pathname;
   const slug = path.replace('/api/v1/posts/', '').replace('/likes', '');
   const postId = await getPostIdBySlug(env, slug);
   if (!postId) return jsonResponse(404, null, '文章不存在', 404);
+
   const countRow = await env.DB_POSTS.prepare('SELECT COUNT(*) as c FROM likes WHERE post_id = ?')
     .bind(postId)
     .first();
+
   let liked = false;
   if (user) {
     const likeRow = await env.DB_POSTS.prepare('SELECT id FROM likes WHERE post_id = ? AND user_id = ?')
@@ -3336,15 +3929,19 @@ async function getLikes(request, env, user) {
       .first();
     liked = !!likeRow;
   }
+
   return jsonResponse(0, { count: countRow.c, liked });
 }
+
 async function createLike(request, env, user) {
   const path = new URL(request.url).pathname;
   const slug = path.replace('/api/v1/posts/', '').replace('/likes', '');
   const postId = await getPostIdBySlug(env, slug);
   if (!postId) return jsonResponse(404, null, '文章不存在', 404);
+
   const settings = (await getSetting(env, 'interaction')) || {};
   if (settings.likesEnabled === false) return jsonResponse(403, null, '点赞功能已关闭');
+
   try {
     await env.DB_POSTS.prepare('INSERT INTO likes (post_id, user_id, created_at) VALUES (?, ?, ?)')
       .bind(postId, user.id, now())
@@ -3357,28 +3954,33 @@ async function createLike(request, env, user) {
     throw e;
   }
 }
+
 async function deleteLike(request, env, user) {
   const path = new URL(request.url).pathname;
   const slug = path.replace('/api/v1/posts/', '').replace('/likes', '');
   const postId = await getPostIdBySlug(env, slug);
   if (!postId) return jsonResponse(404, null, '文章不存在', 404);
+
   await env.DB_POSTS.prepare('DELETE FROM likes WHERE post_id = ? AND user_id = ?')
     .bind(postId, user.id)
     .run();
   return jsonResponse(0, null, '取消点赞成功');
 }
+
 async function listAdminComments(request, env, user) {
   const url = new URL(request.url);
   const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10));
   const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get('limit') || '20', 10)));
   const status = url.searchParams.get('status') || '';
   const offset = (page - 1) * limit;
+
   let comments;
   let total;
   const validStatuses = ['pending', 'approved', 'rejected'];
   const kw = (url.searchParams.get('keyword') || '').trim();
   const useStatus = status && validStatuses.includes(status);
   const like = kw ? `%${kw}%` : '';
+
   const where = [];
   const params = [];
   if (useStatus) {
@@ -3390,6 +3992,7 @@ async function listAdminComments(request, env, user) {
     params.push(like);
   }
   const whereSql = where.length ? ' WHERE ' + where.join(' AND ') : '';
+
   comments = await env.DB_POSTS.prepare(
     `SELECT id, post_id, user_id, content, status, created_at, updated_at
      FROM comments${whereSql} ORDER BY created_at DESC LIMIT ? OFFSET ?`
@@ -3399,11 +4002,13 @@ async function listAdminComments(request, env, user) {
   total = (
     await env.DB_POSTS.prepare(`SELECT COUNT(*) as c FROM comments${whereSql}`).bind(...params).first()
   ).c;
+
   const list = comments.results || [];
   const postIds = [...new Set(list.map((c) => c.post_id))];
   const userIds = [...new Set(list.map((c) => c.user_id))];
   const postMap = await getPostMap(env, postIds);
   const userMap = await getUserMap(env, userIds);
+
   const results = list.map((c) => ({
     id: c.id,
     postId: c.post_id,
@@ -3417,8 +4022,10 @@ async function listAdminComments(request, env, user) {
     username: userMap[c.user_id]?.username || '未知用户',
     avatar: userMap[c.user_id]?.avatar_base64 || null,
   }));
+
   return jsonResponse(0, { list: results, total, page, limit });
 }
+
 async function updateAdminCommentsBatch(request, env, user) {
   const body = await request.json();
   const ids = Array.isArray(body.ids) ? body.ids.filter((i) => Number.isInteger(i)) : [];
@@ -3432,24 +4039,32 @@ async function updateAdminCommentsBatch(request, env, user) {
     .run();
   return jsonResponse(0, null, `已更新 ${ids.length} 条评论`);
 }
+
 async function updateAdminComment(request, env, user) {
   const id = parseInt(request.url.split('/').pop(), 10);
   const comment = await env.DB_POSTS.prepare('SELECT id FROM comments WHERE id = ?').bind(id).first();
   if (!comment) return jsonResponse(404, null, '评论不存在', 404);
+
   const body = await request.json();
   if (body.status === undefined) return jsonResponse(400, null, '无更新内容');
+
   const valid = ['pending', 'approved', 'rejected'];
   if (!valid.includes(body.status)) return jsonResponse(400, null, '状态无效');
+
   await env.DB_POSTS.prepare('UPDATE comments SET status = ?, updated_at = ? WHERE id = ?')
     .bind(body.status, now(), id)
     .run();
   return jsonResponse(0, null, '保存成功');
 }
+
 async function deleteAdminComment(request, env, user) {
   const id = parseInt(request.url.split('/').pop(), 10);
   await deleteCommentTree(env, id);
   return jsonResponse(0, null, '删除成功');
 }
+
+
+
 const defaultMessageWallSettings = {
   enabled: false,
   allowAnonymous: true,
@@ -3462,6 +4077,7 @@ const defaultMessageWallSettings = {
   danmakuIntervalMin: 6,
   danmakuIntervalMax: 10,
 };
+
 async function getMessageWallSettings(request, env, user) {
   try {
     const data = (await getSetting(env, 'message_wall')) || {};
@@ -3479,6 +4095,7 @@ async function getMessageWallSettings(request, env, user) {
     throw err;
   }
 }
+
 async function updateMessageWallSettings(request, env, user) {
   const body = await request.json();
   const clampNum = (v, min, max, def) => {
@@ -3505,15 +4122,19 @@ async function updateMessageWallSettings(request, env, user) {
   await setSetting(env, 'message_wall', data);
   return jsonResponse(0, data, '保存成功');
 }
+
+
 const PUBLIC_CHAT_ROOM_KEY = 'public';
 const PUBLIC_CHAT_ROOM_NAME = '公共聊天房';
 const ALL_USERS_CHAT_ROOM_KEY = 'members';
 const ALL_USERS_CHAT_ROOM_NAME = '全体聊天房';
+
 const defaultChatSettings = {
   enabled: false, 
   publicRoomEnabled: true, 
   allUsersRoomEnabled: true, 
 };
+
 async function getChatSettings(request, env, user) {
   try {
     const data = (await getSetting(env, 'chat')) || {};
@@ -3531,6 +4152,7 @@ async function getChatSettings(request, env, user) {
     throw err;
   }
 }
+
 async function updateChatSettings(request, env, user) {
   const body = await request.json();
   const data = {
@@ -3541,7 +4163,12 @@ async function updateChatSettings(request, env, user) {
   await setSetting(env, 'chat', data);
   return jsonResponse(0, data, '保存成功');
 }
+
+
+
+
 const ensuredRoomTables = new WeakSet();
+
 async function ensureChatRoomTables(env) {
   const db = getConfigDb(env);
   if (ensuredRoomTables.has(db)) return db;
@@ -3572,11 +4199,15 @@ async function ensureChatRoomTables(env) {
   ensuredRoomTables.add(db);
   return db;
 }
+
+
 function randomRoomKey() {
   const bytes = new Uint8Array(5);
   crypto.getRandomValues(bytes);
   return 'c_' + Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
 }
+
+
 async function listMyChatRooms(request, env, user) {
   if (!user) return jsonResponse(0, { list: [] }, 'ok');
   await ensureChatRoomTables(env);
@@ -3591,6 +4222,8 @@ async function listMyChatRooms(request, env, user) {
   ).bind(user.id).all();
   return jsonResponse(0, { list: rows.results || [] }, 'ok');
 }
+
+
 async function listAdminChatRooms(request, env, user) {
   await ensureChatRoomTables(env);
   const db = getConfigDb(env);
@@ -3608,12 +4241,15 @@ async function listAdminChatRooms(request, env, user) {
   const countRow = await db.prepare('SELECT COUNT(*) as c FROM chat_rooms').first();
   return jsonResponse(0, { list: rows.results || [], total: countRow.c, page, limit });
 }
+
+
 async function searchRoomUsers(request, env, user) {
   const url = new URL(request.url);
   const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10));
   const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get('limit') || '20', 10)));
   const offset = (page - 1) * limit;
   const keyword = (url.searchParams.get('keyword') || '').trim();
+
   let list, countRow;
   if (keyword) {
     const like = `%${keyword}%`;
@@ -3631,6 +4267,8 @@ async function searchRoomUsers(request, env, user) {
   }
   return jsonResponse(0, { list: list.results || [], total: countRow.c, page, limit });
 }
+
+
 async function getAdminChatRoomMembers(request, env, user) {
   const url = new URL(request.url);
   const parts = request.url.split('/');
@@ -3644,6 +4282,8 @@ async function getAdminChatRoomMembers(request, env, user) {
   ).bind(key).all();
   return jsonResponse(0, { list: rows.results || [] }, 'ok');
 }
+
+
 async function getRoomForConnect(roomKey, userId, env) {
   await ensureChatRoomTables(env);
   const db = getConfigDb(env);
@@ -3655,6 +4295,9 @@ async function getRoomForConnect(roomKey, userId, env) {
   if (!member) return null;
   return { room_key: room.room_key, name: room.name, max_users: room.max_users || 0 };
 }
+
+
+
 async function adminChatDoOverview(request, env, user) {
   if (!env.CHAT) return jsonResponse(500, null, '聊天服务未绑定（env.CHAT）', 500);
   const keys = [PUBLIC_CHAT_ROOM_KEY, ALL_USERS_CHAT_ROOM_KEY];
@@ -3676,6 +4319,8 @@ async function adminChatDoOverview(request, env, user) {
   }
   return jsonResponse(0, { rooms }, 'ok');
 }
+
+
 async function adminListChatMedia(request, env, user) {
   const parts = request.url.split('/');
   const roomKey = decodeURIComponent(parts[parts.length - 1]);
@@ -3684,6 +4329,8 @@ async function adminListChatMedia(request, env, user) {
   const j = await upstream.json().catch(() => ({}));
   return jsonResponse(0, { items: j.items || [] }, 'ok');
 }
+
+
 async function adminDeleteChatMedia(request, env, user) {
   const parts = request.url.split('/');
   const id = decodeURIComponent(parts[parts.length - 1]);
@@ -3693,6 +4340,8 @@ async function adminDeleteChatMedia(request, env, user) {
   const text = await upstream.text();
   return new Response(text, { status: upstream.status, headers: { 'content-type': 'application/json' } });
 }
+
+
 async function createChatRoom(request, env, user) {
   const body = await request.json();
   const name = String(body.name || '').trim();
@@ -3704,6 +4353,7 @@ async function createChatRoom(request, env, user) {
   const memberIds = Array.isArray(body.members)
     ? [...new Set((body.members || []).map(Number).filter((n) => Number.isInteger(n) && n > 0))]
     : [];
+
   await ensureChatRoomTables(env);
   const db = getConfigDb(env);
   const ids = memberIds.includes(user.id) ? memberIds : [user.id, ...memberIds];
@@ -3711,6 +4361,7 @@ async function createChatRoom(request, env, user) {
     `SELECT id, username FROM users WHERE id IN (${ids.map(() => '?').join(',')})`
   ).bind(...ids).all();
   const nameMap = new Map((names.results || []).map((r) => [r.id, r.username]));
+
   const roomKey = randomRoomKey();
   const nowTs = now();
   const stmts = [
@@ -3728,13 +4379,17 @@ async function createChatRoom(request, env, user) {
   await db.batch(stmts);
   return jsonResponse(0, { room_key: roomKey }, '创建成功');
 }
+
+
 async function updateChatRoom(request, env, user) {
   const key = decodeURIComponent(request.url.split('/').pop());
   const body = await request.json();
+
   await ensureChatRoomTables(env);
   const db = getConfigDb(env);
   const exist = await db.prepare('SELECT room_key FROM chat_rooms WHERE room_key = ?').bind(key).first();
   if (!exist) return jsonResponse(404, null, '房间不存在', 404);
+
   const sets = ['updated_at = ?'];
   const params = [now()];
   if (body.name !== undefined) {
@@ -3761,6 +4416,7 @@ async function updateChatRoom(request, env, user) {
     params.push(body.enabled ? 1 : 0);
   }
   const stmts = [db.prepare(`UPDATE chat_rooms SET ${sets.join(', ')} WHERE room_key = ?`).bind(...params, key)];
+
   if (Array.isArray(body.members)) {
     const memberIds = [...new Set((body.members || []).map(Number).filter((n) => Number.isInteger(n) && n > 0))];
     const ids = memberIds.includes(user.id) ? memberIds : [user.id, ...memberIds];
@@ -3784,6 +4440,8 @@ async function updateChatRoom(request, env, user) {
   await db.batch(stmts);
   return jsonResponse(0, null, '保存成功');
 }
+
+
 async function deleteChatRoom(request, env, user) {
   const key = decodeURIComponent(request.url.split('/').pop());
   await ensureChatRoomTables(env);
@@ -3794,6 +4452,8 @@ async function deleteChatRoom(request, env, user) {
   ]);
   return jsonResponse(0, null, '删除成功');
 }
+
+
 async function getChatPublicRoom(env) {
   const settings = (await getSetting(env, 'chat')) || {};
   return {
@@ -3802,10 +4462,12 @@ async function getChatPublicRoom(env) {
     enabled: settings.publicRoomEnabled !== false,
   };
 }
+
 async function listMessages(env, url) {
   const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10));
   const limit = Math.min(50, Math.max(1, parseInt(url.searchParams.get('limit') || '20', 10)));
   const offset = (page - 1) * limit;
+
   let messages, countRow;
   try {
     const db = getConfigDb(env);
@@ -3822,11 +4484,14 @@ async function listMessages(env, url) {
       "SELECT COUNT(*) as c FROM message_wall WHERE status = 'approved'"
     ).first();
   } catch {
+    
     return jsonResponse(0, { list: [], total: 0, page, limit });
   }
+
   const list = messages.results || [];
   const userIds = [...new Set(list.map((m) => m.user_id).filter(Boolean))];
   const userMap = await getUserMap(env, userIds);
+
   const results = list.map((m) => ({
     id: m.id,
     content: m.content,
@@ -3838,8 +4503,10 @@ async function listMessages(env, url) {
     username: m.user_id ? (userMap[m.user_id]?.username || null) : null,
     avatar: m.user_id ? (userMap[m.user_id]?.avatar_base64 || null) : null,
   }));
+
   return jsonResponse(0, { list: results, total: countRow.c, page, limit });
 }
+
 async function listMyMessages(request, env, user) {
   const db = getConfigDb(env);
   let rows;
@@ -3861,13 +4528,16 @@ async function listMyMessages(request, env, user) {
   }));
   return jsonResponse(0, { list, total: list.length });
 }
+
 async function createMessage(request, env, user) {
   const settings = (await getSetting(env, 'message_wall')) || {};
   if (settings.enabled === false) return jsonResponse(403, null, '留言墙功能已关闭');
+
   const body = await request.json();
   const content = String(body.content || '').trim();
   if (!content) return jsonResponse(400, null, '留言内容不能为空');
   if (content.length > 2000) return jsonResponse(400, null, '留言内容不能超过 2000 字');
+
   let nickname = null;
   if (!user) {
     if (settings.allowAnonymous === false) return jsonResponse(403, null, '暂不支持匿名留言');
@@ -3875,8 +4545,10 @@ async function createMessage(request, env, user) {
     if (!nickname) return jsonResponse(400, null, '请填写昵称');
     if (nickname.length > 20) return jsonResponse(400, null, '昵称不能超过 20 个字符');
   }
+
   const status = settings.auditEnabled === false ? 'approved' : 'pending';
   const time = now();
+
   try {
     const db = getConfigDb(env);
     const result = await db.prepare(
@@ -3889,6 +4561,7 @@ async function createMessage(request, env, user) {
     return jsonResponse(500, null, '留言功能暂不可用，请稍后再试', 500);
   }
 }
+
 async function deleteMessage(request, env, user) {
   const id = parseInt(request.url.split('/').pop(), 10);
   const db = getConfigDb(env);
@@ -3896,19 +4569,23 @@ async function deleteMessage(request, env, user) {
     .bind(id)
     .first();
   if (!message) return jsonResponse(404, null, '留言不存在', 404);
+
   if (!message.user_id) return jsonResponse(403, null, '匿名留言不可删除');
   if (message.user_id !== user.id && user.role !== 'super_admin') {
     return jsonResponse(403, null, '无权删除该留言');
   }
+
   await db.prepare('DELETE FROM message_wall WHERE id = ?').bind(id).run();
   return jsonResponse(0, null, '删除成功');
 }
+
 async function listAdminMessages(request, env, user) {
   const url = new URL(request.url);
   const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10));
   const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get('limit') || '20', 10)));
   const status = url.searchParams.get('status') || '';
   const offset = (page - 1) * limit;
+
   let messages, total;
   const validStatuses = ['pending', 'approved', 'rejected'];
   try {
@@ -3935,11 +4612,14 @@ async function listAdminMessages(request, env, user) {
       total = countRow.c;
     }
   } catch {
+    
     return jsonResponse(0, { list: [], total: 0, page, limit });
   }
+
   const list = messages.results || [];
   const userIds = [...new Set(list.map((m) => m.user_id).filter(Boolean))];
   const userMap = await getUserMap(env, userIds);
+
   const results = list.map((m) => ({
     id: m.id,
     content: m.content,
@@ -3951,8 +4631,10 @@ async function listAdminMessages(request, env, user) {
     username: m.user_id ? (userMap[m.user_id]?.username || null) : null,
     avatar: m.user_id ? (userMap[m.user_id]?.avatar_base64 || null) : null,
   }));
+
   return jsonResponse(0, { list: results, total, page, limit });
 }
+
 async function updateAdminMessagesBatch(request, env, user) {
   const body = await request.json();
   const ids = Array.isArray(body.ids) ? body.ids.filter((i) => Number.isInteger(i)) : [];
@@ -3967,31 +4649,40 @@ async function updateAdminMessagesBatch(request, env, user) {
     .run();
   return jsonResponse(0, null, `已更新 ${ids.length} 条留言`);
 }
+
 async function updateAdminMessage(request, env, user) {
   const id = parseInt(request.url.split('/').pop(), 10);
   const db = getConfigDb(env);
   const message = await db.prepare('SELECT id FROM message_wall WHERE id = ?').bind(id).first();
   if (!message) return jsonResponse(404, null, '留言不存在', 404);
+
   const body = await request.json();
   if (body.status === undefined) return jsonResponse(400, null, '无更新内容');
+
   const valid = ['pending', 'approved', 'rejected'];
   if (!valid.includes(body.status)) return jsonResponse(400, null, '状态无效');
+
   await db.prepare('UPDATE message_wall SET status = ?, updated_at = ? WHERE id = ?')
     .bind(body.status, now(), id)
     .run();
   return jsonResponse(0, null, '保存成功');
 }
+
 async function deleteAdminMessage(request, env, user) {
   const id = parseInt(request.url.split('/').pop(), 10);
   await getConfigDb(env).prepare('DELETE FROM message_wall WHERE id = ?').bind(id).run();
   return jsonResponse(0, null, '删除成功');
 }
+
+
+
 async function listAdminUsers(request, env, user) {
   const url = new URL(request.url);
   const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10));
   const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get('limit') || '10', 10)));
   const offset = (page - 1) * limit;
   const keyword = (url.searchParams.get('keyword') || '').trim();
+
   let list, countRow;
   if (keyword) {
     const like = `%${keyword}%`;
@@ -4011,13 +4702,17 @@ async function listAdminUsers(request, env, user) {
       .all();
     countRow = await env.DB_USERS.prepare('SELECT COUNT(*) as c FROM users').first();
   }
+
   return jsonResponse(0, { list: list.results || [], total: countRow.c, page, limit });
 }
+
 async function updateAdminUser(request, env, user) {
   const id = parseInt(request.url.split('/').pop(), 10);
   const body = await request.json();
+
   const target = await env.DB_USERS.prepare('SELECT id FROM users WHERE id = ?').bind(id).first();
   if (!target) return jsonResponse(404, null, '用户不存在', 404);
+
   const updates = [];
   const params = [];
   if (body.username !== undefined) {
@@ -4041,9 +4736,11 @@ async function updateAdminUser(request, env, user) {
     params.push(body.emailVerified ? 1 : 0);
   }
   if (updates.length === 0) return jsonResponse(400, null, '无更新内容');
+
   updates.push('updated_at = ?');
   params.push(now());
   params.push(id);
+
   try {
     await env.DB_USERS.prepare(`UPDATE users SET ${updates.join(', ')} WHERE id = ?`).bind(...params).run();
     return jsonResponse(0, null, '保存成功');
@@ -4054,14 +4751,20 @@ async function updateAdminUser(request, env, user) {
     throw e;
   }
 }
+
 async function deleteAdminUser(request, env, user) {
   const id = parseInt(request.url.split('/').pop(), 10);
   if (Number.isNaN(id)) return jsonResponse(400, null, '用户 ID 无效');
+
   const target = await env.DB_USERS.prepare('SELECT id, role FROM users WHERE id = ?').bind(id).first();
   if (!target) return jsonResponse(404, null, '用户不存在', 404);
+
+  
   if (id === user.id) {
     return jsonResponse(403, null, '不能删除当前登录用户');
   }
+
+  
   if (target.role === 'super_admin') {
     const admins = await env.DB_USERS.prepare(
       "SELECT COUNT(*) as c FROM users WHERE role = 'super_admin' AND status = 1"
@@ -4070,13 +4773,19 @@ async function deleteAdminUser(request, env, user) {
       return jsonResponse(403, null, '不能删除最后一个超级管理员');
     }
   }
+
+  
   await env.DB_USERS.prepare('DELETE FROM refresh_tokens WHERE user_id = ?').bind(id).run();
   await env.DB_USERS.prepare('DELETE FROM verify_codes WHERE email IN (SELECT email FROM users WHERE id = ?)').bind(id).run();
   await env.DB_POSTS.prepare('DELETE FROM likes WHERE user_id = ?').bind(id).run();
   await deleteCommentsByUser(env, id);
   await env.DB_USERS.prepare('DELETE FROM users WHERE id = ?').bind(id).run();
+
   return jsonResponse(0, null, '删除成功');
 }
+
+
+
 function rowToFriend(row) {
   return {
     id: row.id,
@@ -4089,6 +4798,7 @@ function rowToFriend(row) {
     updatedAt: row.updated_at,
   };
 }
+
 async function listFriends(env) {
   const friends = await env.DB_CONFIG.prepare(
     `SELECT id, name, url, description, avatar, sort_order, created_at, updated_at
@@ -4096,6 +4806,7 @@ async function listFriends(env) {
   ).all();
   return jsonResponseWithCache(0, { list: (friends.results || []).map(rowToFriend) }, 'ok', 200, 'public, max-age=600');
 }
+
 async function listAdminFriends(request, env, user) {
   const friends = await env.DB_CONFIG.prepare(
     `SELECT id, name, url, description, avatar, sort_order, created_at, updated_at
@@ -4103,6 +4814,7 @@ async function listAdminFriends(request, env, user) {
   ).all();
   return jsonResponse(0, { list: (friends.results || []).map(rowToFriend) });
 }
+
 async function createFriend(request, env, user) {
   const body = await request.json();
   const name = String(body.name || '').trim();
@@ -4110,8 +4822,10 @@ async function createFriend(request, env, user) {
   const description = body.description ? String(body.description).trim() : '';
   const avatar = body.avatar ? String(body.avatar) : '';
   const sortOrder = body.sortOrder !== undefined ? parseInt(body.sortOrder, 10) || 0 : 0;
+
   if (!name) return jsonResponse(400, null, '友链名称必填');
   if (!url) return jsonResponse(400, null, '友链链接必填');
+
   const time = now();
   const result = await env.DB_CONFIG.prepare(
     'INSERT INTO friends (name, url, description, avatar, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
@@ -4121,14 +4835,18 @@ async function createFriend(request, env, user) {
   const id = result.meta ? result.meta.last_row_id : null;
   return jsonResponse(0, { id, name, url, description, avatar, sortOrder, createdAt: time, updatedAt: time }, '创建成功');
 }
+
 async function updateFriend(request, env, user) {
   const id = parseInt(request.url.split('/').pop(), 10);
   if (!id) return jsonResponse(400, null, '友链 ID 无效');
+
   const friend = await env.DB_CONFIG.prepare('SELECT id FROM friends WHERE id = ?').bind(id).first();
   if (!friend) return jsonResponse(404, null, '友链不存在', 404);
+
   const body = await request.json();
   const updates = [];
   const params = [];
+
   if (body.name !== undefined) {
     const name = String(body.name).trim();
     if (!name) return jsonResponse(400, null, '友链名称必填');
@@ -4154,38 +4872,51 @@ async function updateFriend(request, env, user) {
     params.push(parseInt(body.sortOrder, 10) || 0);
   }
   if (updates.length === 0) return jsonResponse(400, null, '无更新内容');
+
   updates.push('updated_at = ?');
   params.push(now());
   params.push(id);
+
   await env.DB_CONFIG.prepare(`UPDATE friends SET ${updates.join(', ')} WHERE id = ?`).bind(...params).run();
   return jsonResponse(0, null, '更新成功');
 }
+
 async function deleteFriend(request, env, user) {
   const id = parseInt(request.url.split('/').pop(), 10);
   if (!id) return jsonResponse(400, null, '友链 ID 无效');
   await env.DB_CONFIG.prepare('DELETE FROM friends WHERE id = ?').bind(id).run();
   return jsonResponse(0, null, '删除成功');
 }
+
+
+
+
 async function readFriendApplications(env) {
   const list = (await getSetting(env, 'friend_applications')) || [];
   return Array.isArray(list) ? list : [];
 }
+
 async function writeFriendApplications(env, list) {
   await setSetting(env, 'friend_applications', list);
 }
+
 async function applyFriend(request, env, user) {
+  
   const body = await request.json();
   const name = String(body.name || '').trim();
   const url = String(body.url || '').trim();
   const description = body.description ? String(body.description).trim() : '';
   const email = body.email ? String(body.email).trim() : '';
   const avatar = body.avatar ? String(body.avatar).trim() : '';
+
   const friendsConfig = (await getSetting(env, 'friends')) || {};
   if (friendsConfig.applyEnabled !== true) {
     return jsonResponse(400, null, '暂未开放友链申请');
   }
+
   if (!name) return jsonResponse(400, null, '站点名称必填');
   if (!url) return jsonResponse(400, null, '站点链接必填');
+
   const time = now();
   let id = 1;
   const list = await readFriendApplications(env);
@@ -4193,6 +4924,7 @@ async function applyFriend(request, env, user) {
     const maxId = Math.max(...list.map((a) => Number(a.id) || 0));
     id = maxId + 1;
   }
+  
   if (friendsConfig.applyNeedsAudit !== true) {
     await env.DB_CONFIG.prepare(
       'INSERT INTO friends (name, url, description, avatar, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
@@ -4201,6 +4933,7 @@ async function applyFriend(request, env, user) {
       .run();
     return jsonResponse(0, { id, status: 'approved', autoApproved: true }, '友链申请成功');
   }
+
   list.push({
     id,
     name,
@@ -4218,6 +4951,7 @@ async function applyFriend(request, env, user) {
   await writeFriendApplications(env, list);
   return jsonResponse(0, { id, status: 'pending' }, '友链申请已提交，等待审核');
 }
+
 async function listMyFriendApplications(request, env, user) {
   if (!user) return jsonResponse(401, null, 'Unauthorized', 401);
   const list = (await readFriendApplications(env)).filter((a) => a.applyUserId === user.id);
@@ -4235,6 +4969,7 @@ async function listMyFriendApplications(request, env, user) {
     })),
   });
 }
+
 async function listFriendApplications(request, env, user) {
   const url = new URL(request.url);
   const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10) || 1);
@@ -4246,20 +4981,25 @@ async function listFriendApplications(request, env, user) {
   const pageList = list.slice(start, start + limit);
   return jsonResponse(0, { list: pageList, total });
 }
+
 async function auditFriendApplication(request, env, user) {
   const id = parseInt(request.url.split('/').pop(), 10);
   if (!id) return jsonResponse(400, null, '申请 ID 无效');
+
   const body = await request.json();
   const status = body.status;
   if (status !== 'approved' && status !== 'rejected') {
     return jsonResponse(400, null, '审核状态无效');
   }
   const remark = body.remark ? String(body.remark).trim() : '';
+
   const list = await readFriendApplications(env);
   const idx = list.findIndex((a) => Number(a.id) === id);
   if (idx === -1) return jsonResponse(404, null, '申请不存在', 404);
   const app = list[idx];
+
   if (status === 'approved') {
+    
     const time = now();
     await env.DB_CONFIG.prepare(
       'INSERT INTO friends (name, url, description, avatar, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
@@ -4271,6 +5011,7 @@ async function auditFriendApplication(request, env, user) {
   await writeFriendApplications(env, list);
   return jsonResponse(0, null, status === 'approved' ? '已通过并添加为友链' : '已驳回');
 }
+
 async function deleteFriendApplication(request, env, user) {
   const id = parseInt(request.url.split('/').pop(), 10);
   if (!id) return jsonResponse(400, null, '申请 ID 无效');
@@ -4279,6 +5020,10 @@ async function deleteFriendApplication(request, env, user) {
   await writeFriendApplications(env, next);
   return jsonResponse(0, null, '已删除');
 }
+
+
+
+
 const AI_MODEL_COST = {
   'gpt-4o-mini': '轻量',
   'gpt-4o': '中消耗',
@@ -4288,6 +5033,7 @@ const AI_MODEL_COST = {
   'qwen2.5-coder-32b': '高消耗',
   'text-embedding-3-small': '轻量',
 };
+
 const AI_MODEL_MAP = {
   'gpt-4o-mini': '@cf/meta/llama-3.2-3b-instruct',
   'gpt-4o': '@cf/meta/llama-3.1-8b-instruct-fp8',
@@ -4304,13 +5050,16 @@ const AI_MODEL_MAP = {
   'sdxl-base': '@cf/stabilityai/stable-diffusion-xl-base-1.0',
   'whisper': '@cf/openai/whisper',
 };
+
 function resolveAiModel(input) {
   return AI_MODEL_MAP[input] || input;
 }
+
 function extractAiResponse(result) {
   if (!result) return '';
   if (typeof result.response === 'string') return result.response;
   if (typeof result.content === 'string') return result.content;
+  
   if (Array.isArray(result.choices)) {
     if (result.choices.length === 0) return '';
     const first = result.choices[0];
@@ -4325,14 +5074,17 @@ function extractAiResponse(result) {
   if (typeof result === 'string') return result;
   return '';
 }
+
 function isCustomModel(modelAlias) {
   return typeof modelAlias === 'string' && modelAlias.startsWith('custom:');
 }
+
 function parseCustomModelId(modelAlias) {
   if (!isCustomModel(modelAlias)) return null;
   const id = parseInt(modelAlias.replace('custom:', ''), 10);
   return Number.isNaN(id) ? null : id;
 }
+
 async function listCustomModels(env, enabledOnly = false) {
   let stmt = env.DB_CONFIG.prepare('SELECT id, name, model_id, base_url, api_key, enabled, created_at, updated_at FROM ai_custom_models');
   if (enabledOnly) {
@@ -4354,6 +5106,7 @@ async function listCustomModels(env, enabledOnly = false) {
   }
   return models;
 }
+
 async function getCustomModelById(env, id) {
   const row = await env.DB_CONFIG.prepare('SELECT id, name, model_id, base_url, api_key, enabled, created_at, updated_at FROM ai_custom_models WHERE id = ?')
     .bind(id)
@@ -4370,6 +5123,7 @@ async function getCustomModelById(env, id) {
     updatedAt: row.updated_at,
   };
 }
+
 async function createCustomModel(env, data) {
   const now = new Date().toISOString();
   const encryptedKey = await encryptApiKey(env, data.apiKey);
@@ -4380,6 +5134,7 @@ async function createCustomModel(env, data) {
     .run();
   return { id: res.meta?.last_row_id, ...data };
 }
+
 async function updateCustomModel(env, id, data) {
   const now = new Date().toISOString();
   const encryptedKey = await encryptApiKey(env, data.apiKey);
@@ -4390,10 +5145,14 @@ async function updateCustomModel(env, id, data) {
     .run();
   return await getCustomModelById(env, id);
 }
+
 async function deleteCustomModel(env, id) {
   await env.DB_CONFIG.prepare('DELETE FROM ai_custom_models WHERE id = ?').bind(id).run();
   return true;
 }
+
+
+
 function buildCustomModelEndpoint(custom) {
   const base = String(custom.baseUrl || '').trim().replace(/\/+$/, '');
   if (/\/chat\/completions$/i.test(base)) {
@@ -4401,6 +5160,7 @@ function buildCustomModelEndpoint(custom) {
   }
   return base + '/v1/chat/completions';
 }
+
 async function callCustomModelNonStream(custom, body) {
   const url = buildCustomModelEndpoint(custom);
   const reqBody = {
@@ -4435,6 +5195,7 @@ async function callCustomModelNonStream(custom, body) {
     usage: json.usage || null,
   };
 }
+
 async function callCustomModelStream(custom, body) {
   const url = buildCustomModelEndpoint(custom);
   const res = await fetch(url, {
@@ -4458,14 +5219,18 @@ async function callCustomModelStream(custom, body) {
   }
   return res.body;
 }
+
 function stripThinkingTags(text) {
   if (!text || typeof text !== 'string') return text;
+  
   return text
     .replace(/<thinking\s*>[\s\S]*?<\/thinking\s*>/gi, '')
     .replace(/<thinking\s*>/gi, '')
     .trim();
 }
+
 function sanitizeJsonControlChars(text) {
+  
   return text
     .replace(/^\uFEFF/, '')
     .replace(/[\u0000-\u001F\u007F-\u009F]/g, (c) => {
@@ -4478,24 +5243,34 @@ function sanitizeJsonControlChars(text) {
       return '';
     });
 }
+
 function extractJson(text) {
   if (!text || typeof text !== 'string') return null;
   let trimmed = text.trim();
+
+  
   try {
     return JSON.parse(trimmed);
   } catch {}
+
+  
   try {
     const sanitized = sanitizeJsonControlChars(trimmed);
     if (sanitized !== trimmed) {
       return JSON.parse(sanitized);
     }
   } catch {}
+
+  
   const codeBlockMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
   if (codeBlockMatch) {
     try {
       return JSON.parse(codeBlockMatch[1].trim());
     } catch {}
   }
+
+  
+  
   let start = trimmed.indexOf('{');
   while (start !== -1) {
     let depth = 0;
@@ -4524,6 +5299,7 @@ function extractJson(text) {
               return JSON.parse(trimmed.slice(start, i + 1));
             } catch {}
             break;
+            
           }
         }
       }
@@ -4532,6 +5308,7 @@ function extractJson(text) {
   }
   return null;
 }
+
 function listAiModels() {
   const created = Math.floor(Date.now() / 1000);
   return Object.keys(AI_MODEL_MAP).map((id) => ({
@@ -4541,12 +5318,15 @@ function listAiModels() {
     owned_by: 'cloudflare-workers-ai',
   }));
 }
+
 function aiGenerateId(prefix = 'chatcmpl') {
   return `${prefix}-${crypto.randomUUID().replace(/-/g, '')}`;
 }
+
 function aiNowUnix() {
   return Math.floor(Date.now() / 1000);
 }
+
 const defaultAiSettings = {
   enabled: false,
   agentEnabled: false,
@@ -4557,6 +5337,7 @@ const defaultAiSettings = {
   maxTokens: 4096,
   agentAvatar: '',
 };
+
 async function getAiSettings(request, env, user) {
   try {
     const data = (await getSetting(env, 'ai')) || {};
@@ -4568,6 +5349,7 @@ async function getAiSettings(request, env, user) {
     throw err;
   }
 }
+
 async function updateAiSettings(request, env, user) {
   const body = await request.json();
   const data = {
@@ -4583,10 +5365,12 @@ async function updateAiSettings(request, env, user) {
   await setSetting(env, 'ai', data);
   return jsonResponse(0, data, '保存成功');
 }
+
 async function checkAiEnabled(env) {
   const settings = (await getSetting(env, 'ai')) || {};
   return settings.enabled === true;
 }
+
 async function getAgentSettings(request, env) {
   try {
     const settings = (await getSetting(env, 'ai')) || {};
@@ -4596,12 +5380,17 @@ async function getAgentSettings(request, env) {
     throw err;
   }
 }
+
 async function verifyAiApiKey(request, env) {
   const auth = request.headers.get('Authorization') || '';
   if (!auth.startsWith('Bearer ')) return false;
   const token = auth.slice(7).trim();
   if (!token) return false;
+
+  
   if (env.AI_API_KEY && token === env.AI_API_KEY) return true;
+
+  
   const hash = await sha256Hex(token);
   const row = await env.DB_CONFIG.prepare(
     'SELECT id FROM ai_api_keys WHERE key_hash = ? AND enabled = 1'
@@ -4610,21 +5399,25 @@ async function verifyAiApiKey(request, env) {
     .first();
   return !!row;
 }
+
 async function listAiApiKeys(request, env, user) {
   const rows = await env.DB_CONFIG.prepare(
     'SELECT id, name, enabled, created_at, updated_at FROM ai_api_keys ORDER BY created_at DESC'
   ).all();
   return jsonResponse(0, { list: rows.results || [] });
 }
+
 async function createAiApiKey(request, env, user) {
   const body = await request.json();
   const name = String(body.name || '').trim();
   if (!name) return jsonResponse(400, null, '名称必填');
+
   const keyPrefix = 'xb-';
   const keySuffix = crypto.randomUUID().replace(/-/g, '').slice(0, 24);
   const rawKey = `${keyPrefix}${keySuffix}`;
   const keyHash = await sha256Hex(rawKey);
   const time = now();
+
   try {
     const result = await env.DB_CONFIG.prepare(
       'INSERT INTO ai_api_keys (name, key_hash, enabled, created_at, updated_at) VALUES (?, ?, ?, ?, ?)'
@@ -4639,12 +5432,14 @@ async function createAiApiKey(request, env, user) {
     throw e;
   }
 }
+
 async function deleteAiApiKey(request, env, user) {
   const id = parseInt(request.url.split('/').pop(), 10);
   if (!id) return jsonResponse(400, null, 'ID 无效');
   await env.DB_CONFIG.prepare('DELETE FROM ai_api_keys WHERE id = ?').bind(id).run();
   return jsonResponse(0, null, '删除成功');
 }
+
 async function listAdminAiModels(request, env, user) {
   const builtIn = Object.keys(AI_MODEL_MAP).map((id) => {
     const cost = AI_MODEL_COST[id];
@@ -4654,6 +5449,7 @@ async function listAdminAiModels(request, env, user) {
   const customModels = custom.map((m) => ({ id: `custom:${m.id}`, name: `${m.name}（自定义）`, builtIn: false }));
   return jsonResponse(0, { models: [...customModels, ...builtIn] });
 }
+
 async function listAiCustomModels(request, env, user) {
   const rows = await env.DB_CONFIG.prepare(
     'SELECT id, name, model_id, base_url, api_key, enabled, created_at, updated_at FROM ai_custom_models ORDER BY created_at DESC'
@@ -4669,6 +5465,7 @@ async function listAiCustomModels(request, env, user) {
     updatedAt: row.updated_at,
   })) });
 }
+
 function validateCustomModel(body, requireApiKey = true) {
   const name = String(body.name || '').trim();
   const modelId = String(body.modelId || '').trim();
@@ -4681,10 +5478,12 @@ function validateCustomModel(body, requireApiKey = true) {
   if (!/^https?:\/\//i.test(baseUrl)) return { error: 'Base URL 必须以 http:// 或 https:// 开头' };
   return { data: { name, modelId, baseUrl, apiKey, enabled: body.enabled !== false } };
 }
+
 function maskCustomModel(model) {
   if (!model) return model;
   return { ...model, apiKey: '' };
 }
+
 async function createAiCustomModel(request, env, user) {
   const body = await request.json();
   const validation = validateCustomModel(body, true);
@@ -4692,6 +5491,7 @@ async function createAiCustomModel(request, env, user) {
   const model = await createCustomModel(env, validation.data);
   return jsonResponse(0, maskCustomModel({ id: model.id, ...validation.data }), '创建成功');
 }
+
 async function updateAiCustomModel(request, env, user) {
   const id = parseInt(request.url.split('/').pop(), 10);
   if (!id) return jsonResponse(400, null, 'ID 无效');
@@ -4708,12 +5508,16 @@ async function updateAiCustomModel(request, env, user) {
   if (!model) return jsonResponse(404, null, '模型不存在');
   return jsonResponse(0, maskCustomModel(model), '更新成功');
 }
+
 async function deleteAiCustomModelHandler(request, env, user) {
   const id = parseInt(request.url.split('/').pop(), 10);
   if (!id) return jsonResponse(400, null, 'ID 无效');
   await deleteCustomModel(env, id);
   return jsonResponse(0, null, '删除成功');
 }
+
+
+
 const DEFAULT_PROMPTS = {
   'article-generation': `你是一位专业的中文博客作者。请根据用户提供的主题生成一篇完整的博客文章。
 必须严格按照以下 json 格式返回，不要包含任何其他解释文字、markdown 代码块或 XML 标签：
@@ -4726,6 +5530,7 @@ const DEFAULT_PROMPTS = {
   'format-optimization': '你是一位专业的文字编辑。请优化用户提供的 Markdown 文本，改善排版和表达，保持原意不变。只返回优化后的 Markdown 内容，不要包含任何解释。',
   'article-summary': '你是一位专业的文章摘要助手。请根据用户提供的文章标题和正文，生成一段简洁的中文摘要。要求：1. 160 字以内；2. 保留文章的核心观点和关键信息；3. 语言通顺、客观，避免使用第一人称；4. 只返回摘要文本本身，不要添加任何解释、引号、markdown 标记或"以下是摘要"之类的前缀。',
   'agent-core': `你是这个博客站点的 AI 助手，由超级管理员直接使用。你的目标是「用户让你做什么，你就能自己完成什么」——但前提是：想清楚再动手、做一步汇报一步、绝不擅自越权。
+
 【铁律，必须无条件遵守】
 1. 严禁乱调工具。技能清单里没有的、或用户没让做的事，一律不碰。能用纯回答处理的问题，绝不调用任何技能。
 2. 动手前必须思考。思考就是普通的文本：每执行一个子任务之前，先在这条回复里用 <thinking>...</thinking> 标签把这一步想清楚、写详细，再调用工具。思考写在回复文本里、和工具调用同一轮产出，不额外占用轮次；想一步、做一步，再想下一步、再做下一步。分步任务每一步动手前都要先写出思考；不思考就调用工具，视为违规。
@@ -4733,18 +5538,22 @@ const DEFAULT_PROMPTS = {
 4. 写操作必须征得同意。凡是删除、修改、发布、改权限、批审核等一切改动数据的操作，先清楚说明「要做什么、影响哪些内容」，等用户明确确认后才能真正执行；用户没点头，宁可不做，绝不擅自改数据。
 5. 只答事实、不脑补。技能返回什么就基于什么回答；数据里看不到的，就明说「看不到/没有」，禁止编造数字或结论。
 6. 控制范围与篇幅。不要在一个回答里塞无关内容，不要长篇大论；说明讲清楚即可，输出用 Markdown，代码/列表规范排版。
+
 【输出格式硬性要求】
 1. 凡是这一轮要调用工具，必须先在这条回复里用 <thinking>...</thinking> 写出思考过程，紧跟着再给出工具调用；思考与工具调用必须在同一轮输出中一起产出，先思考、后调用，禁止先调工具再补思考。
 2. 思考过程不设固定模板、不规定内容，由你自由展开，尽量写详细、写充分（意图分析、拆解步骤、判断依据、取舍理由等，怎么想就怎么写），给自己留足思考空间。
 3. 不写 <thinking> 就直接调用工具，视为违规，会被要求重做。
 4. 纯文本回答（不调用任何工具）也要先用 <thinking> 想一下再答。
+
 【工作方式】
 - 一句话：把用户诉求拆解为有序子任务 →（必要时）open_skills 打开技能 → 按「思考（<thinking> 文本）→ 调用技能 → 再思考 → …」的链路逐步执行，直到全部完成 → 最后归纳成自然语言回答。
 - 每一步动手前先把这一步的打算写进 <thinking>，让用户看到你在想什么，也让多步任务的顺序清晰可见。
 - 普通闲聊（问候、介绍站点等）：不需要技能，直接回答，零工具开销。
 - 全程中文、口语化、语气温和友好，但立场要坚定、规则要清楚。
+
 【状态自查】每次动手前自查：我这一步是不是用户要的？会不会改动数据？要不要先问用户？三条都过关才执行。`,
 };
+
 async function loadPrompt(env, request, name) {
   try {
     if (env.ASSETS && request) {
@@ -4756,9 +5565,11 @@ async function loadPrompt(env, request, name) {
       }
     }
   } catch (_) {
+    
   }
   return DEFAULT_PROMPTS[name] || '';
 }
+
 async function findOrCreateTags(env, tagNames) {
   const result = [];
   for (const name of tagNames) {
@@ -4793,18 +5604,22 @@ async function findOrCreateTags(env, tagNames) {
   }
   return result;
 }
+
 async function aiGeneratePost(request, env, user) {
   const enabled = await checkAiEnabled(env);
   if (!enabled) return jsonResponse(403, null, 'AI 功能已关闭', 403);
+
   const body = await request.json();
   const topic = String(body.topic || '').trim();
   const description = String(body.description || '').trim();
   const existingTags = body.existingTags || [];
   if (!topic) return jsonResponse(400, null, '请输入文章主题');
+
   const settings = (await getSetting(env, 'ai')) || {};
   const modelAlias = body.model || settings.model || defaultAiSettings.model;
   const temperature = body.temperature !== undefined ? Number(body.temperature) : (settings.temperature ?? defaultAiSettings.temperature);
   const maxTokens = body.maxTokens !== undefined ? Number(body.maxTokens) : (settings.maxTokens ?? defaultAiSettings.maxTokens);
+
   const promptTemplate = await loadPrompt(env, request, 'article-generation');
   const systemPrompt = promptTemplate || `你是一位专业的中文博客作者。请根据用户提供的主题生成一篇完整的博客文章。
 必须严格按照以下 json 格式返回，不要包含任何其他解释文字、markdown 代码块或 XML 标签：
@@ -4814,6 +5629,7 @@ async function aiGeneratePost(request, env, user) {
   "tags": ["标签1", "标签2"],
   "content": "Markdown 格式的正文内容，800-2000字"
 }`;
+
   const tagNames = Array.isArray(existingTags)
     ? existingTags.map((t) => (typeof t === 'string' ? t : t?.name)).filter(Boolean)
     : [];
@@ -4825,6 +5641,7 @@ async function aiGeneratePost(request, env, user) {
     { role: 'system', content: systemPrompt },
     { role: 'user', content: userPrompt },
   ];
+
   let raw = '';
   let actualModel = modelAlias;
   try {
@@ -4878,6 +5695,7 @@ async function aiGeneratePost(request, env, user) {
     const errMsg = err.message || String(err);
     return jsonResponse(502, { model: actualModel, error: errMsg, raw }, `AI 生成失败（模型：${actualModel}）：${errMsg}`, 502);
   }
+
   let parsed = extractJson(raw);
   if (!parsed) {
     raw = stripThinkingTags(raw);
@@ -4893,13 +5711,16 @@ async function aiGeneratePost(request, env, user) {
     console.error('AI generate parse error:', parseError, 'raw:', raw);
     return jsonResponse(502, { raw, model: actualModel, error: parseError }, `AI 返回格式无法解析：${parseError}`, 502);
   }
+
   const title = String(parsed.title || '').trim();
   const excerpt = String(parsed.excerpt || '').trim();
   const content = String(parsed.content || '').trim();
   const parsedTagNames = Array.isArray(parsed.tags) ? parsed.tags : [];
+
   if (!title || !content) {
     return jsonResponse(502, { raw: parsed, rawText: raw, model: actualModel, error: 'AI 返回内容不完整' }, 'AI 返回内容不完整，请重试', 502);
   }
+
   return jsonResponse(0, {
     title,
     excerpt,
@@ -4908,9 +5729,11 @@ async function aiGeneratePost(request, env, user) {
     raw,
   });
 }
+
 async function aiChat(request, env, user) {
   const enabled = await checkAiEnabled(env);
   if (!enabled) return jsonResponse(403, null, 'AI 功能已关闭', 403);
+
   const body = await request.json();
   const messages = body.messages || [];
   const modelAlias = body.model || defaultAiSettings.model;
@@ -4924,8 +5747,11 @@ async function aiChat(request, env, user) {
   const maxTokens = Number.isNaN(parsedMaxTokens)
     ? (aiSettings.maxTokens ?? defaultAiSettings.maxTokens)
     : Math.min(65536, Math.max(256, parsedMaxTokens));
+
   const options = { messages, temperature, max_tokens: maxTokens };
   if (stream) options.stream = true;
+
+  
   if (isCustomModel(modelAlias)) {
     const customId = parseCustomModelId(modelAlias);
     const custom = customId ? await getCustomModelById(env, customId) : null;
@@ -5007,10 +5833,13 @@ async function aiChat(request, env, user) {
       return jsonResponse(502, null, `AI 对话失败：${err.message || String(err)}`, 502);
     }
   }
+
   if (!env.AI) {
     return jsonResponse(503, null, 'AI 绑定未配置', 503);
   }
+
   const model = resolveAiModel(modelAlias);
+
   let aiResult;
   try {
     aiResult = await env.AI.run(model, options);
@@ -5018,6 +5847,7 @@ async function aiChat(request, env, user) {
     console.error('AI.run chat error:', err);
     return jsonResponse(502, null, `AI 对话失败：${err.message || String(err)}`, 502);
   }
+
   if (!stream) {
     const content = stripThinkingTags(extractAiResponse(aiResult));
     return jsonResponse(0, {
@@ -5035,10 +5865,13 @@ async function aiChat(request, env, user) {
       usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
     });
   }
+
+  
   const id = aiGenerateId();
   const created = aiNowUnix();
   const encoder = new TextEncoder();
   const aiStream = aiResult;
+
   const readable = new ReadableStream({
     async start(controller) {
       const reader = aiStream.getReader();
@@ -5079,6 +5912,7 @@ async function aiChat(request, env, user) {
       }
     },
   });
+
   return new Response(readable, {
     headers: {
       'Content-Type': 'text/event-stream',
@@ -5087,6 +5921,13 @@ async function aiChat(request, env, user) {
     },
   });
 }
+
+
+
+
+
+
+
 const OPEN_SKILLS_TOOL = {
   type: 'function',
   function: {
@@ -5106,7 +5947,15 @@ const OPEN_SKILLS_TOOL = {
     },
   },
 };
+
+
+
+
+
+
+
 const ALWAYS_ACTIVE_SKILLS = [
+  
   'article.list',
   'article.read',
   'article.create',
@@ -5119,8 +5968,10 @@ const ALWAYS_ACTIVE_SKILLS = [
   'tag.create',
   'tag.update',
   'tag.delete',
+  
   'site.info',
   'dashboard.stat',
+  
   'message.list',
   'user.list',
   'friend.list',
@@ -5130,6 +5981,10 @@ const ALWAYS_ACTIVE_SKILLS = [
   'ai.models',
   'ai.settings',
 ];
+
+
+
+
 async function agentSkillCall(env, user, handler, query = {}) {
   const q = new URLSearchParams(query).toString();
   const req = new Request('https://agent.local' + (q ? '?' + q : ''), { method: 'GET' });
@@ -5143,6 +5998,10 @@ async function agentSkillCall(env, user, handler, query = {}) {
   }
   return { ok: true, data: json.data };
 }
+
+
+
+
 const SKILL_PACKAGE_FILES = [
   '01-site',
   '02-content-articles',
@@ -5155,6 +6014,8 @@ const SKILL_PACKAGE_FILES = [
   '09-chat',
   '10-ai',
 ];
+
+
 const SKILL_HANDLERS = {
   getDashboard,
   listAdminPosts,
@@ -5185,9 +6046,15 @@ const SKILL_HANDLERS = {
   getMessageWallSettings,
   getChatSettings,
 };
+
+
 const SKILL_EXECUTORS = {
   'site.info': async (ctx) => ({ ok: true, data: await getSiteConfig(ctx.env) }),
 };
+
+
+
+
 const SKILL_WRITE = {
   'article.create': { handler: createPost, method: 'POST', keyParam: null, params: ['title', 'slug', 'content', 'excerpt', 'coverBase64', 'tagIds', 'status'], superAdmin: false },
   'article.update': { handler: updatePost, method: 'PATCH', keyParam: 'id', params: ['title', 'slug', 'content', 'excerpt', 'coverBase64', 'tagIds', 'status'], superAdmin: false },
@@ -5203,16 +6070,22 @@ const SKILL_WRITE = {
   'friend.application.review': { handler: auditFriendApplication, method: 'PATCH', keyParam: 'id', params: ['status', 'remark'], superAdmin: false },
   'user.update': { handler: updateAdminUser, method: 'PATCH', keyParam: 'id', params: ['role', 'status', 'emailVerified'], superAdmin: true },
   'user.delete': { handler: deleteAdminUser, method: 'DELETE', keyParam: 'id', params: [], superAdmin: true },
+  
   'site.settings.emailTemplate.update': { handler: updateEmailTemplateSettings, method: 'PATCH', keyParam: null, params: ['kind', 'subject', 'html', 'text'], superAdmin: true },
   'site.terms.update': { handler: updateSettings, method: 'PATCH', keyParam: null, params: ['termsAgreement', 'termsPrivacy'], superAdmin: true, wrapSite: true },
   'site.info.update': { handler: updateSettings, method: 'PATCH', keyParam: null, params: ['description', 'announcement', 'title', 'subtitle'], superAdmin: true, wrapSite: true },
+  
   'friend.update': { handler: updateFriend, method: 'PATCH', keyParam: 'id', params: ['name', 'url', 'description', 'avatar', 'sortOrder'], superAdmin: false },
   'friend.application.delete': { handler: deleteFriendApplication, method: 'DELETE', keyParam: 'id', params: [], superAdmin: true },
+  
   'chat.room.create': { handler: createChatRoom, method: 'POST', keyParam: null, params: ['name', 'description', 'cover', 'maxUsers', 'members'], superAdmin: false },
   'chat.room.update': { handler: updateChatRoom, method: 'PATCH', keyParam: 'key', params: ['name', 'description', 'cover', 'maxUsers', 'enabled', 'members'], superAdmin: false },
   'chat.room.delete': { handler: deleteChatRoom, method: 'DELETE', keyParam: 'key', params: [], superAdmin: true },
 };
+
+
 const writeConfirmMap = new Map();
+
 function waitWriteConfirm(token, timeoutMs = 5 * 60 * 1000) {
   return new Promise((resolve) => {
     const timer = setTimeout(() => {
@@ -5222,6 +6095,8 @@ function waitWriteConfirm(token, timeoutMs = 5 * 60 * 1000) {
     writeConfirmMap.set(token, { resolve, timer });
   });
 }
+
+
 async function confirmWriteAction(request, env, user) {
   const body = await request.json().catch(() => ({}));
   const token = String(body.token || '').trim();
@@ -5233,6 +6108,8 @@ async function confirmWriteAction(request, env, user) {
   pending.resolve({ approved });
   return jsonResponse(0, { ok: true, approved });
 }
+
+
 function describeWriteAction(skillId, args) {
   const brief = (v) => (v === undefined || v === null ? '' : String(v).slice(0, 40));
   switch (skillId) {
@@ -5264,6 +6141,9 @@ function describeWriteAction(skillId, args) {
     default: return `执行写操作 ${skillId}`;
   }
 }
+
+
+
 let _undoTableInitialized = false;
 async function ensureUndoLogTable(env) {
   if (_undoTableInitialized) return;
@@ -5284,6 +6164,7 @@ async function ensureUndoLogTable(env) {
     .run();
   _undoTableInitialized = true;
 }
+
 function safeParse(s) {
   try {
     if (s === null || s === undefined) return null;
@@ -5292,19 +6173,28 @@ function safeParse(s) {
     return null;
   }
 }
+
+
 async function collectCommentsByPost(env, postId) {
   const rows = await env.DB_POSTS.prepare('SELECT * FROM comments WHERE post_id = ? ORDER BY id ASC').bind(postId).all();
   return rows.results || [];
 }
+
+
 async function collectCommentsByUser(env, userId) {
   const rows = await env.DB_POSTS.prepare('SELECT * FROM comments WHERE user_id = ? ORDER BY id ASC').bind(userId).all();
   return rows.results || [];
 }
+
+
 async function collectCommentSubtreeRows(env, rootId) {
   const all = await env.DB_POSTS.prepare('SELECT * FROM comments WHERE id = ? OR parent_id = ?').bind(rootId, rootId).all();
   return all.results || [];
 }
+
+
 const UNDO_MAP = {
+  
   'article.create': {
     snapshot: () => null,
     after: (result) => ({ id: result && result.id }),
@@ -5382,6 +6272,7 @@ const UNDO_MAP = {
       return { ok: true, message: `已恢复文章《${p.title}》` };
     },
   },
+  
   'tag.create': {
     snapshot: () => null,
     after: (result) => ({ id: result && result.id }),
@@ -5431,6 +6322,7 @@ const UNDO_MAP = {
       return { ok: true, message: `已恢复标签「${t.name}」` };
     },
   },
+  
   'comment.review': {
     snapshot: async (env, args) => {
       const ids = (args.ids || []).filter((i) => Number.isInteger(Number(i))).map(Number);
@@ -5477,6 +6369,7 @@ const UNDO_MAP = {
       return { ok: true, message: `已恢复 ${list.length} 条评论` };
     },
   },
+  
   'message.review': {
     snapshot: async (env, args) => {
       const ids = (args.ids || []).filter((i) => Number.isInteger(Number(i))).map(Number);
@@ -5517,6 +6410,7 @@ const UNDO_MAP = {
       return { ok: true, message: '已恢复该留言' };
     },
   },
+  
   'friend.create': {
     snapshot: () => null,
     after: (result) => ({ id: result && result.id }),
@@ -5556,6 +6450,7 @@ const UNDO_MAP = {
       const before = safeParse(log.before_data);
       const after = safeParse(log.after_data) || {};
       if (!before || !before.id) return { ok: false, error: '缺少申请快照' };
+      
       if (after.status === 'approved') {
         await env.DB_CONFIG.prepare('DELETE FROM friends WHERE name = ? AND url = ?').bind(before.name, before.url).run();
       }
@@ -5583,6 +6478,7 @@ const UNDO_MAP = {
       return { ok: true, message: `已恢复友链申请（${app.name}）` };
     },
   },
+  
   'user.update': {
     snapshot: async (env, args) => {
       const id = Number(args.id);
@@ -5642,6 +6538,7 @@ const UNDO_MAP = {
       return { ok: true, message: `已恢复用户「${u.username}」` };
     },
   },
+  
   'site.settings.emailTemplate.update': {
     snapshot: async (env, args) => {
       const prefix = args.kind === 'reset' ? 'email_reset' : 'email';
@@ -5687,6 +6584,7 @@ const UNDO_MAP = {
       return { ok: true, message: '已恢复站点信息' };
     },
   },
+  
   'chat.room.create': {
     snapshot: () => null,
     after: (result) => ({ key: result && result.room_key }),
@@ -5762,6 +6660,8 @@ const UNDO_MAP = {
     },
   },
 };
+
+
 function describeWriteDone(skillId, args, result) {
   switch (skillId) {
     case 'article.create': return `已创建文章《${String(args.title || '').slice(0, 20)}》`;
@@ -5789,6 +6689,8 @@ function describeWriteDone(skillId, args, result) {
     default: return '已执行';
   }
 }
+
+
 function describeUndoPreview(skillId, before) {
   const trunc = (s, n = 18) => {
     const t = String(s || '');
@@ -5845,6 +6747,9 @@ function describeUndoPreview(skillId, before) {
     return '将恢复到操作前状态';
   }
 }
+
+
+
 async function executeWriteSkill(skillId, args, ctx) {
   const meta = SKILL_WRITE[skillId];
   if (!meta) return { ok: false, error: `未知写技能：${skillId}` };
@@ -5858,9 +6763,11 @@ async function executeWriteSkill(skillId, args, ctx) {
   if (!decision || !decision.approved) {
     return { ok: false, cancelled: true, error: decision && decision.reason ? decision.reason : '用户取消了此操作' };
   }
+  
   if (meta.superAdmin && ctx.user && ctx.user.role !== 'super_admin') {
     return { ok: false, error: '需要站点（站长）权限才能执行该操作' };
   }
+  
   const ud = UNDO_MAP[skillId];
   let before = null;
   if (ud && ud.snapshot) {
@@ -5871,6 +6778,7 @@ async function executeWriteSkill(skillId, args, ctx) {
     }
   }
   const result = await doWriteSkill(meta, args, ctx);
+  
   if (result.ok && ud && ctx.send) {
     try {
       await ensureUndoLogTable(ctx.env);
@@ -5902,6 +6810,7 @@ async function executeWriteSkill(skillId, args, ctx) {
       console.error('record undo failed:', e);
     }
   } else if (ctx.send) {
+    
     ctx.send('write_result', {
       token,
       skill: skillId,
@@ -5913,6 +6822,9 @@ async function executeWriteSkill(skillId, args, ctx) {
   }
   return result;
 }
+
+
+
 async function applyUndo(env, log) {
   const restorer = UNDO_MAP[log.skill];
   if (!restorer || !restorer.restore) return { ok: false, error: `该操作不支持回滚（${log.skill}）` };
@@ -5926,6 +6838,7 @@ async function applyUndo(env, log) {
   await getConfigDb(env).prepare('UPDATE ai_undo_log SET used_at = ? WHERE id = ?').bind(now(), log.id).run();
   return { ok: true, message: (r && r.message) || '已回滚' };
 }
+
 async function undoAgentWrite(request, env, user) {
   const body = await request.json().catch(() => ({}));
   const undoId = String(body.undoId || '').trim();
@@ -5946,6 +6859,8 @@ async function undoAgentWrite(request, env, user) {
   if (!r.ok) return jsonResponse(500, null, r.error, 500);
   return jsonResponse(0, null, r.message);
 }
+
+
 async function undoAgentWriteAdmin(request, env, user) {
   const id = String(new URL(request.url).pathname.split('/').pop() || '').trim();
   if (!id) return jsonResponse(400, null, '缺少记录 id');
@@ -5962,6 +6877,8 @@ async function undoAgentWriteAdmin(request, env, user) {
   if (!r.ok) return jsonResponse(500, null, r.error, 500);
   return jsonResponse(0, null, r.message);
 }
+
+
 async function listUndoLogs(request, env, user) {
   await ensureUndoLogTable(env);
   const db = getConfigDb(env);
@@ -6004,6 +6921,8 @@ async function listUndoLogs(request, env, user) {
   });
   return jsonResponse(0, { list, total: totalRow ? totalRow.c || 0 : 0, page, pageSize });
 }
+
+
 async function deleteUndoLog(request, env, user) {
   const id = String(new URL(request.url).pathname.split('/').pop() || '').trim();
   if (!id) return jsonResponse(400, null, '缺少记录 id');
@@ -6013,13 +6932,17 @@ async function deleteUndoLog(request, env, user) {
   if (!res.meta || !res.meta.changes) return jsonResponse(404, null, '回滚记录不存在', 404);
   return jsonResponse(0, null, '已删除该回滚记录');
 }
+
+
 async function doWriteSkill(meta, args, ctx) {
   let body = {};
   for (const f of meta.params || []) if (args[f] !== undefined) body[f] = args[f];
+  
   if (body.maxUsers !== undefined && body.max_users === undefined) {
     body.max_users = body.maxUsers;
     delete body.maxUsers;
   }
+  
   if (meta.wrapSite) body = { site: body };
   let path = '';
   if (meta.keyParam && args[meta.keyParam] !== undefined) path += '/' + encodeURIComponent(args[meta.keyParam]);
@@ -6036,6 +6959,7 @@ async function doWriteSkill(meta, args, ctx) {
   }
   return { ok: true, data: json.data };
 }
+
 function summarizeToolArgsJson(args) {
   try {
     const s = JSON.stringify(args || {});
@@ -6044,6 +6968,7 @@ function summarizeToolArgsJson(args) {
     return String(args || '');
   }
 }
+
 function _parseParams(def) {
   let p;
   try {
@@ -6051,13 +6976,18 @@ function _parseParams(def) {
   } catch {
     p = {};
   }
+  
+  
   if (!p || typeof p !== 'object' || Array.isArray(p) || p.type !== 'object') {
     p = { type: 'object', properties: {}, additionalProperties: false };
   }
   return p;
 }
+
 function buildSkillFromDef(def) {
   const exec = SKILL_EXECUTORS[def.skill];
+  
+  
   const toolName = def.skill.replace(/[^a-zA-Z0-9_-]/g, '_');
   return {
     id: def.skill,
@@ -6083,6 +7013,7 @@ function buildSkillFromDef(def) {
           },
   };
 }
+
 function parseSkillFile(text) {
   const skills = [];
   const blocks = String(text || '').split(/^---+\s*$/m);
@@ -6099,7 +7030,9 @@ function parseSkillFile(text) {
   }
   return skills;
 }
+
 let agentSkillCache = null;
+
 async function ensureSkills(env, request) {
   if (agentSkillCache) return agentSkillCache;
   const map = {};
@@ -6115,6 +7048,7 @@ async function ensureSkills(env, request) {
       map[def.skill] = buildSkillFromDef(def);
     }
   }
+  
   map['open_skills'] = {
     id: 'open_skills',
     name: '打开技能',
@@ -6140,6 +7074,7 @@ async function ensureSkills(env, request) {
       return { ok: true, data: { pong: 'pong', time: new Date().toISOString() } };
     },
   };
+  
   map['web.search'] = {
     id: 'web.search',
     name: '联网搜索',
@@ -6162,6 +7097,7 @@ async function ensureSkills(env, request) {
       return await agentWebSearch(args && args.query, 5);
     },
   };
+  
   map['web.fetch'] = {
     id: 'web.fetch',
     name: '抓取网页',
@@ -6203,6 +7139,8 @@ async function ensureSkills(env, request) {
   agentSkillCache = map;
   return map;
 }
+
+
 function stripHtmlTags(html) {
   let s = String(html || '');
   s = s.replace(/<script[\s\S]*?<\/script>/gi, ' ');
@@ -6212,12 +7150,14 @@ function stripHtmlTags(html) {
   s = s.replace(/\s+/g, ' ').trim();
   return s;
 }
+
 function agentSkillManifest(skills) {
   const lines = Object.values(skills)
     .filter((s) => s.visible)
     .map((s) => `- ${s.id}：${s.description}`);
   return lines.length ? lines.join('\n') : '（暂无可用技能）';
 }
+
 function extractToolCalls(result) {
   if (!result) return [];
   if (Array.isArray(result.tool_calls)) return result.tool_calls;
@@ -6234,6 +7174,7 @@ function extractToolCalls(result) {
   }
   return [];
 }
+
 function normalizeToolCall(tc) {
   if (!tc) return null;
   const fn = tc.function || {};
@@ -6249,6 +7190,7 @@ function normalizeToolCall(tc) {
   }
   return { id, name, args };
 }
+
 async function executeAgentSkill(name, args, ctx, active, skills) {
   if (name === 'open_skills') {
     const ids = Array.isArray(args.ids) ? args.ids : [];
@@ -6264,6 +7206,8 @@ async function executeAgentSkill(name, args, ctx, active, skills) {
     }
     return { ok: true, data: { opened, tip: '这些技能已打开，接下来可以直接调用它们完成子任务。' } };
   }
+  
+  
   let skill = skills[name];
   if (!skill) {
     skill = Object.values(skills).find(
@@ -6279,6 +7223,8 @@ async function executeAgentSkill(name, args, ctx, active, skills) {
     return { ok: false, error: e.message || String(e) };
   }
 }
+
+
 function mergeStreamToolCalls(acc, deltas) {
   for (const d of deltas || []) {
     const idx = d.index ?? 0;
@@ -6293,6 +7239,13 @@ function mergeStreamToolCalls(acc, deltas) {
   }
   return acc;
 }
+
+
+
+
+
+
+
 async function* streamAgentTurn(env, modelAlias, custom, messages, tools) {
   const decoder = new TextDecoder();
   let upstream;
@@ -6303,10 +7256,14 @@ async function* streamAgentTurn(env, modelAlias, custom, messages, tools) {
     upstream = await env.AI.run(model, { messages, temperature: 0.6, max_tokens: 2048, tools, stream: true });
   }
   const reader = upstream.getReader();
+
   let accContent = '';
   let accReasoning = '';
   let toolCalls = [];
   let usage = null;
+
+  
+  
   let buf = '';
   let inThink = false;
   let thinkAcc = '';
@@ -6329,6 +7286,8 @@ async function* streamAgentTurn(env, modelAlias, custom, messages, tools) {
       if (!inThink) {
         const open = findOpenIdx(buf);
         if (open === -1) {
+          
+          
           accContent += buf;
           pending.push({ type: 'content_delta', text: buf });
           buf = '';
@@ -6359,6 +7318,7 @@ async function* streamAgentTurn(env, modelAlias, custom, messages, tools) {
       }
     }
   };
+
   let rawLines = '';
   while (true) {
     const { done, value } = await reader.read();
@@ -6392,6 +7352,7 @@ async function* streamAgentTurn(env, modelAlias, custom, messages, tools) {
     }
     while (pending.length) yield pending.shift();
   }
+  
   if (thinkAcc.trim()) {
     accReasoning += thinkAcc;
     pending.push({ type: 'reasoning', text: thinkAcc });
@@ -6400,11 +7361,13 @@ async function* streamAgentTurn(env, modelAlias, custom, messages, tools) {
   while (pending.length) yield pending.shift();
   yield { type: 'done', content: accContent, reasoning: accReasoning, tool_calls: toolCalls, usage };
 }
+
 function describeToolData(data) {
   if (!data) return '';
   if (typeof data !== 'object') return `（${String(data).slice(0, 40)}）`;
   return `（${Object.keys(data).length} 项字段）`;
 }
+
 function summarizeToolArg(args) {
   try {
     const s = JSON.stringify(args === undefined ? {} : args);
@@ -6413,6 +7376,7 @@ function summarizeToolArg(args) {
     return String(args || '');
   }
 }
+
 function summarizeToolOutput(exec) {
   try {
     const data = exec && exec.ok ? exec.data : null;
@@ -6425,6 +7389,7 @@ function summarizeToolOutput(exec) {
     return '';
   }
 }
+
 function sumUsage(acc, usage) {
   if (!usage || typeof usage !== 'object') return acc;
   const get = (k) => {
@@ -6436,6 +7401,8 @@ function sumUsage(acc, usage) {
   acc.total += get('total_tokens') || 0;
   return acc;
 }
+
+
 const AGENT_PERSONA = {
   warm: {
     name: '温柔体贴',
@@ -6453,30 +7420,41 @@ const AGENT_PERSONA = {
       '【当前性格：严谨专业】简明扼要、直奔结论，先给答案再给必要依据，用词精准克制，不废话不煽情。写操作确认从无例外，严格按流程执行。',
   },
 };
+
+
 async function aiAgent(request, env, user) {
   const enabled = await checkAiEnabled(env);
   if (!enabled) return jsonResponse(403, null, 'AI 功能已关闭', 403);
+
   const body = await request.json();
+  
   const userMessages = (Array.isArray(body.messages) ? body.messages : [])
     .map((m) => ({ role: m.role === 'system' ? 'user' : m.role, content: String(m.content || '') }))
     .filter((m) => m.content && (m.role === 'user' || m.role === 'assistant'));
   if (!userMessages.length) return jsonResponse(400, null, '缺少消息', 400);
+  
   const sessionMessages = [];
   const sessionTitle = null;
+
   const aiSettings = (await getSetting(env, 'ai')) || {};
   const modelAlias = body.model || aiSettings.model || defaultAiSettings.model;
   const mode = AGENT_PERSONA[body.mode] ? body.mode : 'warm';
+
+  
   let skills;
   try {
     skills = await ensureSkills(env, request);
   } catch (e) {
     skills = { app: () => null };
   }
+
   let systemPrompt = await loadPrompt(env, request, 'agent-core');
   if (!systemPrompt) systemPrompt = DEFAULT_PROMPTS['agent-core'] || '';
   systemPrompt = `${systemPrompt}\n\n${AGENT_PERSONA[mode].block}\n\n## 当前可用技能清单\n${agentSkillManifest(skills)}\n（需要时用 open_skills 打开技能的完整用法；普通聊天不要使用技能。）`;
+
   const encoder = new TextEncoder();
   const maxIters = 8;
+
   const readable = new ReadableStream({
     async start(controller) {
       const send = (type, data) => controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type, data })}\n\n`));
@@ -6486,7 +7464,10 @@ async function aiAgent(request, env, user) {
           : null;
         if (isCustomModel(modelAlias) && (!custom || !custom.enabled)) throw new Error('自定义模型不存在或已禁用');
         if (!custom && !env.AI) throw new Error('AI 绑定未配置');
+
         const historyMessages = [...sessionMessages, ...userMessages];
+        
+        
         const contextMessages = historyMessages
           .filter((m) =>
             m.role === 'user'
@@ -6503,13 +7484,19 @@ async function aiAgent(request, env, user) {
             return out;
           });
         const messages = [
+          
           ...contextMessages.slice(0, Math.max(0, contextMessages.length - 1)),
           { role: 'system', content: systemPrompt },
           ...contextMessages.slice(-1),
         ];
+        
+        
+        
         const active = new Set(ALWAYS_ACTIVE_SKILLS.filter((id) => skills[id] && skills[id].visible));
         let finished = false;
+        
         let stats = { rounds: 0, tokens: { prompt: 0, completion: 0, total: 0 } };
+
         for (let it = 0; it < maxIters && !finished; it++) {
           const webSearchOn = aiSettings.webSearch === true;
           const tools = [
@@ -6518,12 +7505,15 @@ async function aiAgent(request, env, user) {
               .map((id) => (skills[id] ? skills[id].toolDef : null))
               .filter((td) => td && (webSearchOn || (td.function && td.function.name !== 'web_search' && td.function.name !== 'web_fetch'))),
           ];
+          
+          
           let turnContent = '';
           let turnReasoning = '';
           let turnToolCalls = [];
           let turnUsage = null;
           for await (const evt of streamAgentTurn(env, modelAlias, custom, messages, tools)) {
             if (evt.type === 'content_delta') {
+              
               send('content_delta', { text: evt.text });
             } else if (evt.type === 'reasoning') {
               turnReasoning += evt.text;
@@ -6538,20 +7528,26 @@ async function aiAgent(request, env, user) {
           const content = turnContent.trim();
           stats.rounds += 1;
           stats.tokens = sumUsage(stats.tokens, turnUsage);
+
           const toolCalls = turnToolCalls.map(normalizeToolCall).filter(Boolean);
+
           if (toolCalls.length) {
+            
             if (!turnReasoning.trim() && !content) {
               const fallbackThink =
                 `我准备调用工具${toolCalls.map((tc) => `「${tc.name}」`).join('、')}来完成这一步：` +
                 toolCalls.map((tc) => `${tc.name}(${summarizeToolArg(tc.args)})`).join('；');
               send('think_delta', { text: fallbackThink });
             }
+            
             const assistantMsg = { role: 'assistant', content: null, tool_calls: turnToolCalls };
             messages.push(assistantMsg);
           } else {
+            
             finished = true;
             break;
           }
+
           for (let ci = 0; ci < toolCalls.length; ci++) {
             const tc = toolCalls[ci];
             const paramsPreview = summarizeToolArg(tc.args);
@@ -6576,8 +7572,10 @@ async function aiAgent(request, env, user) {
             });
           }
         }
+
         if (!finished) send('error', { message: '已超过最大步骤数，请精简描述后重试' });
         send('stats', { rounds: stats.rounds, tokens: stats.tokens });
+        
         send('done', {});
       } catch (err) {
         console.error('agent error:', err);
@@ -6588,6 +7586,7 @@ async function aiAgent(request, env, user) {
       }
     },
   });
+
   return new Response(readable, {
     headers: {
       'Content-Type': 'text/event-stream',
@@ -6596,14 +7595,17 @@ async function aiAgent(request, env, user) {
     },
   });
 }
+
 async function aiFormatOptimize(request, env, user) {
   const enabled = await checkAiEnabled(env);
   if (!enabled) return jsonResponse(403, null, 'AI 功能已关闭', 403);
+
   const body = await request.json();
   const content = String(body.content || '').trim();
   if (!content) {
     return jsonResponse(400, null, '缺少 content 参数', 400);
   }
+
   const settings = (await getSetting(env, 'ai')) || {};
   const modelAlias = body.model || settings.model || defaultAiSettings.model;
   const temperature = body.temperature !== undefined
@@ -6612,11 +7614,13 @@ async function aiFormatOptimize(request, env, user) {
   const maxTokens = body.maxTokens !== undefined
     ? Number(body.maxTokens)
     : (settings.maxTokens ?? defaultAiSettings.maxTokens);
+
   const systemPrompt = await loadPrompt(env, request, 'format-optimization');
   const messages = [
     { role: 'system', content: systemPrompt },
     { role: 'user', content: `请优化以下 Markdown 文本，只返回优化后的 Markdown 内容：\n\n${content}` },
   ];
+
   let optimized = '';
   let actualModel = modelAlias;
   try {
@@ -6642,19 +7646,25 @@ async function aiFormatOptimize(request, env, user) {
     console.error('AI format error:', err);
     return jsonResponse(502, { model: actualModel, error: err.message || String(err) }, `AI 格式优化失败（模型：${actualModel}）：${err.message || String(err)}`, 502);
   }
+
   optimized = stripThinkingTags(optimized);
+  
   optimized = optimized.replace(/^```markdown\s*/, '').replace(/^```\s*/, '').replace(/\s*```$/, '').trim();
+
   return jsonResponse(0, { content: optimized, model: modelAlias });
 }
+
 async function aiGenerateSummary(request, env, user) {
   const enabled = await checkAiEnabled(env);
   if (!enabled) return jsonResponse(403, null, 'AI 功能已关闭', 403);
+
   const body = await request.json();
   const title = String(body.title || '').trim();
   const content = String(body.content || '').trim();
   if (!content) {
     return jsonResponse(400, null, '缺少 content 参数', 400);
   }
+
   const settings = (await getSetting(env, 'ai')) || {};
   const modelAlias = body.model || settings.model || defaultAiSettings.model;
   const temperature = body.temperature !== undefined
@@ -6663,13 +7673,16 @@ async function aiGenerateSummary(request, env, user) {
   const maxTokens = body.maxTokens !== undefined
     ? Number(body.maxTokens)
     : (settings.maxTokens ?? defaultAiSettings.maxTokens);
+
   const systemPrompt = await loadPrompt(env, request, 'article-summary');
+  
   const safeContent = content.length > 12000 ? content.slice(0, 12000) : content;
   const userPrompt = `请为下面这篇文章生成摘要。\n标题：${title || '（无标题）'}\n正文：\n${safeContent}`;
   const messages = [
     { role: 'system', content: systemPrompt },
     { role: 'user', content: userPrompt },
   ];
+
   let summary = '';
   let actualModel = modelAlias;
   try {
@@ -6695,10 +7708,14 @@ async function aiGenerateSummary(request, env, user) {
     console.error('AI summary error:', err);
     return jsonResponse(502, { model: actualModel, error: err.message || String(err) }, `AI 摘要生成失败（模型：${actualModel}）：${err.message || String(err)}`, 502);
   }
+
   summary = stripThinkingTags(summary).trim();
+  
   summary = summary.replace(/^```\s*/, '').replace(/\s*```$/, '').replace(/^["“'`]|["”'`]$/g, '').trim();
+
   return jsonResponse(0, { excerpt: summary, model: modelAlias });
 }
+
 async function openaiModels(request, env) {
   const ok = await verifyAiApiKey(request, env);
   if (!ok) {
@@ -6714,6 +7731,7 @@ async function openaiModels(request, env) {
   }));
   return openaiJsonResponse({ object: 'list', data: [...customModels, ...builtIn] });
 }
+
 function openaiCorsHeaders() {
   return {
     'Access-Control-Allow-Origin': '*',
@@ -6721,17 +7739,20 @@ function openaiCorsHeaders() {
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   };
 }
+
 function openaiJsonResponse(body, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
     headers: { 'Content-Type': 'application/json', ...openaiCorsHeaders() },
   });
 }
+
 async function openaiChatCompletions(request, env) {
   const ok = await verifyAiApiKey(request, env);
   if (!ok) {
     return openaiJsonResponse({ error: { message: 'Invalid API key', type: 'authentication_error' } }, 401);
   }
+
   const body = await request.json();
   const messages = body.messages || [];
   const modelAlias = body.model || defaultAiSettings.model;
@@ -6744,7 +7765,10 @@ async function openaiChatCompletions(request, env) {
   const maxTokens = Number.isNaN(parsedMaxTokens)
     ? defaultAiSettings.maxTokens
     : Math.min(65536, Math.max(256, parsedMaxTokens));
+
   const options = { messages, temperature, max_tokens: maxTokens };
+
+  
   if (isCustomModel(modelAlias)) {
     const customId = parseCustomModelId(modelAlias);
     const custom = customId ? await getCustomModelById(env, customId) : null;
@@ -6819,17 +7843,21 @@ async function openaiChatCompletions(request, env) {
       return openaiJsonResponse({ error: { message: err.message || String(err), type: 'ai_error' } }, 502);
     }
   }
+
   if (!env.AI) {
     return openaiJsonResponse({ error: { message: 'AI binding not configured', type: 'ai_error' } }, 503);
   }
+
   const model = resolveAiModel(modelAlias);
   if (stream) options.stream = true;
+
   let aiResult;
   try {
     aiResult = await env.AI.run(model, options);
   } catch (err) {
     return openaiJsonResponse({ error: { message: err.message || String(err), type: 'ai_error' } }, 502);
   }
+
   if (!stream) {
     const content = stripThinkingTags(extractAiResponse(aiResult));
     return openaiJsonResponse({
@@ -6841,10 +7869,12 @@ async function openaiChatCompletions(request, env) {
       usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
     });
   }
+
   const id = aiGenerateId();
   const created = aiNowUnix();
   const encoder = new TextEncoder();
   const aiStream = aiResult;
+
   const readable = new ReadableStream({
     async start(controller) {
       const reader = aiStream.getReader();
@@ -6884,6 +7914,7 @@ async function openaiChatCompletions(request, env) {
       }
     },
   });
+
   return new Response(readable, {
     headers: {
       'Content-Type': 'text/event-stream',
@@ -6893,6 +7924,7 @@ async function openaiChatCompletions(request, env) {
     },
   });
 }
+
 async function openaiEmbeddings(request, env) {
   const ok = await verifyAiApiKey(request, env);
   if (!ok) {
@@ -6901,16 +7933,19 @@ async function openaiEmbeddings(request, env) {
   if (!env.AI) {
     return openaiJsonResponse({ error: { message: 'AI binding not configured', type: 'ai_error' } }, 503);
   }
+
   const body = await request.json();
   const modelAlias = body.model || 'bge-m3';
   const model = resolveAiModel(modelAlias);
   const inputs = Array.isArray(body.input) ? body.input : [body.input];
+
   let result;
   try {
     result = await env.AI.run(model, { text: inputs });
   } catch (err) {
     return openaiJsonResponse({ error: { message: err.message || String(err), type: 'ai_error' } }, 502);
   }
+
   const embeddings = result.data || [];
   return openaiJsonResponse({
     object: 'list',
@@ -6923,6 +7958,9 @@ async function openaiEmbeddings(request, env) {
     usage: { prompt_tokens: 0, total_tokens: 0 },
   });
 }
+
+
+
 function checkEnv(env) {
   const missing = [];
   if (!env.JWT_SECRET) missing.push('JWT_SECRET');
@@ -6932,12 +7970,17 @@ function checkEnv(env) {
   if (!env.DB_MEDIA || typeof env.DB_MEDIA.prepare !== 'function') missing.push('DB_MEDIA binding');
   return missing;
 }
+
+
+
+
 async function resolveUrl(request) {
   const url = new URL(request.url);
   const target = url.searchParams.get('url');
   if (!target) {
     return jsonResponse(400, null, '缺少 url 参数');
   }
+  
   if (!target.startsWith('https://youtu.be/') && !target.startsWith('https://www.youtube.com/')) {
     return jsonResponse(403, null, '只允许解析 YouTube 链接');
   }
@@ -6952,6 +7995,7 @@ async function resolveUrl(request) {
       },
     });
     const finalUrl = response.url;
+    
     let playlistId = '';
     const idMatch = finalUrl.match(/[?&]id=(\d+)/);
     if (idMatch) {
@@ -6965,12 +8009,15 @@ async function resolveUrl(request) {
     return jsonResponse(500, null, `解析失败：${err.message}`, 500);
   }
 }
+
+
 async function proxyImage(request) {
   const url = new URL(request.url);
   const target = url.searchParams.get('url');
   if (!target) {
     return jsonResponse(400, null, '缺少 url 参数');
   }
+  
   const allowedHosts = [
     'i.ytimg.com', 
     'img.youtube.com', 
@@ -7003,6 +8050,7 @@ async function proxyImage(request) {
     return jsonResponse(500, null, `图片代理失败：${err.message}`, 500);
   }
 }
+
 export default {
   async fetch(request, env, ctx) {
     if (request.method === 'OPTIONS') {
@@ -7015,14 +8063,18 @@ export default {
         },
       });
     }
+
     const url = new URL(request.url);
     const method = request.method;
     const path = url.pathname;
+
     const missingEnv = checkEnv(env);
     if (missingEnv.length > 0) {
       return jsonResponse(500, null, `环境变量/绑定缺失：${missingEnv.join('、')}`, 500);
     }
+
     try {
+      
       function rejectChatSocket(message, code = 403) {
         const pair = new WebSocketPair();
         pair[1].accept();
@@ -7030,7 +8082,13 @@ export default {
         pair[1].close(1011, String(code));
         return new Response(null, { status: 101, webSocket: pair[0] });
       }
+
+      
+      
+      
+      
       if (path.startsWith('/api/chat/')) {
+        
         if (path === '/api/chat/check-nickname') {
           const name = (url.searchParams.get('name') || '').trim();
           if (!name) return jsonResponse(400, null, '昵称不能为空', 400);
@@ -7038,16 +8096,25 @@ export default {
           if (row) return jsonResponse(409, null, '该昵称已被注册用户占用，请换一个');
           return jsonResponse(0, { ok: true }, 'ok');
         }
+
         if (!env.CHAT) return jsonResponse(500, null, '聊天服务未绑定（env.CHAT）', 500);
         const chatUrl = new URL(request.url);
+        
         const seg = chatUrl.pathname.replace(/^\/api\/chat/, '').split('/').filter(Boolean);
         const roomKey = seg[0] === 'room' ? seg[1] : null;
         const isMembers = roomKey === ALL_USERS_CHAT_ROOM_KEY;
         const isCustom = !!roomKey && roomKey.startsWith('c_');
+
+        
+        
         let identity = null;
         let forwarded = new Request(chatUrl.toString(), request);
         if (roomKey === PUBLIC_CHAT_ROOM_KEY) {
           const guestName = (chatUrl.searchParams.get('nickname') || '').trim();
+          
+          
+          
+          
           const token = chatUrl.searchParams.get('token') || '';
           if (token) identity = await resolveAuthIdentity(token, env);
           if (guestName) {
@@ -7065,16 +8132,20 @@ export default {
             });
           }
         }
+
         let maxUsers = 0;
         if (isMembers || isCustom) {
+          
           const token = chatUrl.searchParams.get('token') || '';
           identity = await resolveAuthIdentity(token, env);
           if (!identity) return rejectChatSocket('登录已失效，请重新登录后再进入聊天室');
           if (isCustom) {
+            
             const room = await getRoomForConnect(roomKey, identity.id, env);
             if (!room) return rejectChatSocket('房间不存在或您不在该房间成员列表中');
             maxUsers = room.max_users;
           }
+          
           forwarded = new Request(chatUrl.toString(), {
             ...request,
             headers: buildAuthHeaders(request.headers, identity).mergedHeaders,
@@ -7085,10 +8156,16 @@ export default {
             forwarded = new Request(forwarded, { headers: h });
           }
         }
+
+        
         chatUrl.pathname = '/api' + chatUrl.pathname.slice('/api/chat'.length);
         forwarded = new Request(chatUrl.toString(), forwarded);
         return env.CHAT.fetch(forwarded);
       }
+
+      
+      
+      
       async function canViewChatRoomMedia(roomKey, req) {
         if (!env.CHAT) return jsonResponse(500, null, '聊天服务未绑定（env.CHAT）', 500);
         if (roomKey === PUBLIC_CHAT_ROOM_KEY) return true;
@@ -7102,6 +8179,7 @@ export default {
         }
         return true;
       }
+      
       async function chatUploadMedia(req, env2, user) {
         if (!env2.CHAT) return jsonResponse(500, null, '聊天服务未绑定（env.CHAT）', 500);
         const key = (new URL(req.url).searchParams.get('room') || PUBLIC_CHAT_ROOM_KEY).trim();
@@ -7121,7 +8199,9 @@ export default {
         const text = await upstream.text();
         return new Response(text, { status: upstream.status, headers: { 'content-type': 'application/json' } });
       }
+
       if (method === 'GET' && path.match(/^\/api\/v1\/chat\/media\/[^/]+\/[^/]+$/)) {
+        
         const seg = path.split('/');
         const roomKey = seg[5];
         const id = seg[6];
@@ -7133,15 +8213,27 @@ export default {
       if (method === 'POST' && path === '/api/v1/chat/media/upload') {
         return await requireAuth(request, env, chatUploadMedia);
       }
+
+      
       if (method === 'GET' && path === '/v1/models') return await openaiModels(request, env);
       if (method === 'POST' && path === '/v1/chat/completions') return await openaiChatCompletions(request, env);
       if (method === 'POST' && path === '/v1/embeddings') return await openaiEmbeddings(request, env);
+
+      
       if (method === 'POST' && path === '/api/v1/setup') return await setup(env);
+
+      
       if (method === 'GET' && path === '/api/v1/site') return await getSiteConfig(env);
       if (method === 'GET' && path === '/manifest.json') return await getManifest(env, request.url);
       if (method === 'GET' && path === '/api/v1/posts') return await listPosts(env, url);
+
+      
       if (method === 'GET' && path === '/api/v1/resolve-url') return await resolveUrl(request);
+
+      
       if (method === 'GET' && path === '/api/v1/proxy-image') return await proxyImage(request);
+
+      
       if (method === 'GET' && path.match(/^\/api\/v1\/posts\/[^/]+\/comments$/)) return await listComments(env, url, path);
       if (method === 'POST' && path.match(/^\/api\/v1\/posts\/[^/]+\/comments$/)) return await requireAuth(request, env, createComment);
       if (method === 'DELETE' && path.match(/^\/api\/v1\/posts\/[^/]+\/comments\/\d+$/)) return await requireAuth(request, env, deleteComment);
@@ -7151,6 +8243,7 @@ export default {
       }
       if (method === 'POST' && path.match(/^\/api\/v1\/posts\/[^/]+\/likes$/)) return await requireAuth(request, env, createLike);
       if (method === 'DELETE' && path.match(/^\/api\/v1\/posts\/[^/]+\/likes$/)) return await requireAuth(request, env, deleteLike);
+
       if (method === 'GET' && path.startsWith('/api/v1/posts/')) return await getPost(env, path);
       if (method === 'GET' && path === '/api/v1/tags') return await listTags(env);
       if (method === 'GET' && path.startsWith('/api/v1/media/')) {
@@ -7161,9 +8254,15 @@ export default {
       if (method === 'GET' && path.endsWith('/posts') && path.startsWith('/api/v1/tags/')) {
         return await listPostsByTag(env, path);
       }
+
+      
       if (method === 'GET' && path === '/api/v1/friends') return await listFriends(env);
+      
       if (method === 'POST' && path === '/api/v1/friends/apply') return await requireAuth(request, env, applyFriend);
+      
       if (method === 'GET' && path === '/api/v1/friends/applications/my') return await requireAuth(request, env, listMyFriendApplications);
+
+      
       if (method === 'POST' && path === '/api/v1/auth/register') return await register(request, env);
       if (method === 'POST' && path === '/api/v1/auth/login') return await login(request, env);
       if (method === 'POST' && path === '/api/v1/auth/refresh') return await refreshToken(request, env);
@@ -7172,8 +8271,12 @@ export default {
       if (method === 'POST' && path === '/api/v1/auth/verify-code') return await sendVerifyCode(request, env);
       if (method === 'POST' && path === '/api/v1/auth/forgot-code') return await sendForgotCode(request, env);
       if (method === 'POST' && path === '/api/v1/auth/reset-password') return await resetPassword(request, env);
+
+      
       if (method === 'GET' && path === '/api/v1/auth/captcha/config') return await getCaptchaConfig(request, env);
       if (method === 'POST' && path === '/api/v1/auth/captcha/math') return await issueMathCaptcha(request, env);
+
+      
       if (method === 'GET' && path === '/api/v1/settings/auth') return await getAuthSettings(request, env);
       if (method === 'GET' && path === '/api/v1/settings/email') return await getEmailSettings(request, env);
       if (method === 'GET' && path === '/api/v1/settings/email-template') return await getEmailTemplateSettings(request, env);
@@ -7181,7 +8284,11 @@ export default {
       if (method === 'GET' && path === '/api/v1/settings/message-wall') return await getMessageWallSettings(request, env);
       if (method === 'GET' && path === '/api/v1/settings/chat') return await getChatSettings(request, env);
       if (method === 'GET' && path === '/api/v1/settings/agent') return await getAgentSettings(request, env);
+
+      
       if (method === 'GET' && path === '/api/v1/chat/my-rooms') return await requireAuth(request, env, listMyChatRooms);
+
+      
       if (method === 'GET' && path === '/api/v1/messages/my') return await requireAuth(request, env, listMyMessages);
       if (method === 'GET' && path === '/api/v1/messages') return await listMessages(env, url);
       if (method === 'POST' && path === '/api/v1/messages') {
@@ -7189,19 +8296,27 @@ export default {
         return await createMessage(request, env, user);
       }
       if (method === 'DELETE' && path.match(/^\/api\/v1\/messages\/\d+$/)) return await requireAuth(request, env, deleteMessage);
+
+      
       if (method === 'GET' && path === '/api/v1/user/settings') return await requireAuth(request, env, getUserSettings);
       if (method === 'PATCH' && path === '/api/v1/user/settings') return await requireAuth(request, env, updateUserSettings);
+      
       if (method === 'POST' && path === '/api/v1/user/change-password') return await requireAuth(request, env, changePassword);
+
+      
       if (method === 'GET' && path === '/api/v1/admin/dashboard') return await requireAdmin(request, env, getDashboard);
+      
       if (method === 'GET' && path === '/api/v1/admin/posts') return await requireAdmin(request, env, listAdminPosts);
       if (method === 'GET' && path.startsWith('/api/v1/admin/posts/')) return await requireAdmin(request, env, getAdminPost);
       if (method === 'POST' && path === '/api/v1/admin/posts') return await requireAdmin(request, env, createPost);
       if (method === 'PATCH' && path.startsWith('/api/v1/admin/posts/')) return await requireAdmin(request, env, updatePost);
       if (method === 'DELETE' && path.startsWith('/api/v1/admin/posts/')) return await requireSuperAdmin(request, env, deletePost);
+      
       if (method === 'GET' && path === '/api/v1/admin/tags') return await requireAdmin(request, env, listAdminTags);
       if (method === 'POST' && path === '/api/v1/admin/tags') return await requireAdmin(request, env, createTag);
       if (method === 'PATCH' && path.startsWith('/api/v1/admin/tags/')) return await requireAdmin(request, env, updateTag);
       if (method === 'DELETE' && path.startsWith('/api/v1/admin/tags/')) return await requireSuperAdmin(request, env, deleteTag);
+      
       if (method === 'PATCH' && path === '/api/v1/admin/settings') return await requireSuperAdmin(request, env, updateSettings);
       if (method === 'GET' && path === '/api/v1/admin/settings/auth') return await requireSuperAdmin(request, env, getAuthSettings);
       if (method === 'PATCH' && path === '/api/v1/admin/settings/auth') return await requireSuperAdmin(request, env, updateAuthSettings);
@@ -7209,41 +8324,55 @@ export default {
       if (method === 'PATCH' && path === '/api/v1/admin/settings/email') return await requireSuperAdmin(request, env, updateEmailSettings);
       if (method === 'GET' && path === '/api/v1/admin/settings/email-template') return await requireSuperAdmin(request, env, getEmailTemplateSettings);
       if (method === 'PATCH' && path === '/api/v1/admin/settings/email-template') return await requireSuperAdmin(request, env, updateEmailTemplateSettings);
+      
       if (method === 'GET' && path === '/api/v1/admin/settings/comment-notify') return await requireAdmin(request, env, getCommentNotifySettings);
       if (method === 'PATCH' && path === '/api/v1/admin/settings/comment-notify') return await requireSuperAdmin(request, env, updateCommentNotifySettings);
+      
       if (method === 'GET' && path === '/api/v1/admin/settings/interaction') return await requireSuperAdmin(request, env, getInteractionSettings);
       if (method === 'PATCH' && path === '/api/v1/admin/settings/interaction') return await requireSuperAdmin(request, env, updateInteractionSettings);
+      
       if (method === 'GET' && path === '/api/v1/admin/settings/message-wall') return await requireAdmin(request, env, getMessageWallSettings);
       if (method === 'PATCH' && path === '/api/v1/admin/settings/message-wall') return await requireSuperAdmin(request, env, updateMessageWallSettings);
+      
       if (method === 'GET' && path === '/api/v1/admin/settings/chat') return await requireAdmin(request, env, getChatSettings);
       if (method === 'PATCH' && path === '/api/v1/admin/settings/chat') return await requireSuperAdmin(request, env, updateChatSettings);
+      
       if (method === 'GET' && path === '/api/v1/admin/chat/rooms') return await requireAdmin(request, env, listAdminChatRooms);
       if (method === 'GET' && path === '/api/v1/admin/chat/rooms/search-users') return await requireAdmin(request, env, searchRoomUsers);
       if (method === 'GET' && path.match(/^\/api\/v1\/admin\/chat\/rooms\/[^/]+\/members$/)) return await requireAdmin(request, env, getAdminChatRoomMembers);
       if (method === 'POST' && path === '/api/v1/admin/chat/rooms') return await requireAdmin(request, env, createChatRoom);
       if (method === 'PATCH' && path.match(/^\/api\/v1\/admin\/chat\/rooms\/[^/]+$/)) return await requireAdmin(request, env, updateChatRoom);
       if (method === 'DELETE' && path.match(/^\/api\/v1\/admin\/chat\/rooms\/[^/]+$/)) return await requireSuperAdmin(request, env, deleteChatRoom);
+      
       if (method === 'GET' && path === '/api/v1/admin/chat/do/overview') return await requireAdmin(request, env, adminChatDoOverview);
       if (method === 'GET' && path.match(/^\/api\/v1\/admin\/chat\/do\/media\/[^/]+$/)) return await requireAdmin(request, env, adminListChatMedia);
       if (method === 'DELETE' && path.match(/^\/api\/v1\/admin\/chat\/do\/media\/[^/]+\/[^/]+$/)) return await requireAdmin(request, env, adminDeleteChatMedia);
+      
       if (method === 'GET' && path === '/api/v1/admin/messages') return await requireAdmin(request, env, listAdminMessages);
       if (method === 'PATCH' && path === '/api/v1/admin/messages/batch') return await requireAdmin(request, env, updateAdminMessagesBatch);
       if (method === 'PATCH' && path.match(/^\/api\/v1\/admin\/messages\/\d+$/)) return await requireAdmin(request, env, updateAdminMessage);
       if (method === 'DELETE' && path.match(/^\/api\/v1\/admin\/messages\/\d+$/)) return await requireSuperAdmin(request, env, deleteAdminMessage);
+      
       if (method === 'GET' && path === '/api/v1/admin/comments') return await requireAdmin(request, env, listAdminComments);
       if (method === 'PATCH' && path === '/api/v1/admin/comments/batch') return await requireAdmin(request, env, updateAdminCommentsBatch);
       if (method === 'PATCH' && path.match(/^\/api\/v1\/admin\/comments\/\d+$/)) return await requireAdmin(request, env, updateAdminComment);
       if (method === 'DELETE' && path.match(/^\/api\/v1\/admin\/comments\/\d+$/)) return await requireSuperAdmin(request, env, deleteAdminComment);
+      
       if (method === 'GET' && path === '/api/v1/admin/users') return await requireSuperAdmin(request, env, listAdminUsers);
       if (method === 'PATCH' && path.startsWith('/api/v1/admin/users/')) return await requireSuperAdmin(request, env, updateAdminUser);
       if (method === 'DELETE' && path.match(/^\/api\/v1\/admin\/users\/\d+$/)) return await requireSuperAdmin(request, env, deleteAdminUser);
+
+      
       if (method === 'GET' && path === '/api/v1/admin/friends') return await requireAdmin(request, env, listAdminFriends);
       if (method === 'POST' && path === '/api/v1/admin/friends') return await requireAdmin(request, env, createFriend);
       if (method === 'PATCH' && path.match(/^\/api\/v1\/admin\/friends\/\d+$/)) return await requireAdmin(request, env, updateFriend);
       if (method === 'DELETE' && path.match(/^\/api\/v1\/admin\/friends\/\d+$/)) return await requireSuperAdmin(request, env, deleteFriend);
+      
       if (method === 'GET' && path === '/api/v1/admin/friends/applications') return await requireAdmin(request, env, listFriendApplications);
       if (method === 'PATCH' && path.match(/^\/api\/v1\/admin\/friends\/applications\/\d+$/)) return await requireAdmin(request, env, auditFriendApplication);
       if (method === 'DELETE' && path.match(/^\/api\/v1\/admin\/friends\/applications\/\d+$/)) return await requireSuperAdmin(request, env, deleteFriendApplication);
+
+      
       if (method === 'GET' && path === '/api/v1/admin/media') return await requireAdmin(request, env, listAdminMedia);
       if (method === 'GET' && path === '/api/v1/admin/media/usage') return await requireAdmin(request, env, getAdminMediaUsage);
       if (method === 'GET' && path === '/api/v1/admin/media/usage/detail') return await requireAdmin(request, env, getAdminMediaUsageDetail);
@@ -7254,8 +8383,12 @@ export default {
       if (method === 'POST' && path.startsWith('/api/v1/admin/media/chunk/')) return await requireAdmin(request, env, uploadMediaChunk);
       if (method === 'POST' && path.startsWith('/api/v1/admin/media/finalize/')) return await requireAdmin(request, env, finalizeMediaUpload);
       if (method === 'DELETE' && path.match(/^\/api\/v1\/admin\/media\/\d+$/)) return await requireSuperAdmin(request, env, deleteMedia);
+
+      
       if (method === 'GET' && path === '/api/v1/admin/system/databases') return await requireSuperAdmin(request, env, listDatabases);
       if (method === 'GET' && path === '/api/v1/admin/system/status') return await requireSuperAdmin(request, env, getSystemStatus);
+
+      
       if (method === 'GET' && path === '/api/v1/admin/settings/ai') return await requireAdmin(request, env, getAiSettings);
       if (method === 'PATCH' && path === '/api/v1/admin/settings/ai') return await requireSuperAdmin(request, env, updateAiSettings);
       if (method === 'GET' && path === '/api/v1/admin/ai/models') return await requireAdmin(request, env, listAdminAiModels);
@@ -7264,8 +8397,11 @@ export default {
       if (method === 'POST' && path === '/api/v1/admin/ai/summary') return await requireAdmin(request, env, aiGenerateSummary);
       if (method === 'POST' && path === '/api/v1/admin/ai/chat') return await requireAdmin(request, env, aiChat);
       if (method === 'POST' && path === '/api/v1/admin/ai/agent') return await requireAdmin(request, env, aiAgent);
+      
       if (method === 'POST' && path === '/api/v1/admin/ai/agent/confirm') return await requireAdmin(request, env, confirmWriteAction);
+      
       if (method === 'POST' && path === '/api/v1/admin/ai/agent/undo') return await requireAdmin(request, env, undoAgentWrite);
+      
       if (method === 'GET' && path === '/api/v1/admin/ai/agent/undo/list') return await requireSuperAdmin(request, env, listUndoLogs);
       if (method === 'POST' && path.match(/^\/api\/v1\/admin\/ai\/agent\/undo\/[^/]+$/)) return await requireSuperAdmin(request, env, undoAgentWriteAdmin);
       if (method === 'DELETE' && path.match(/^\/api\/v1\/admin\/ai\/agent\/undo\/[^/]+$/)) return await requireSuperAdmin(request, env, deleteUndoLog);
@@ -7276,6 +8412,8 @@ export default {
       if (method === 'POST' && path === '/api/v1/admin/ai/custom-models') return await requireSuperAdmin(request, env, createAiCustomModel);
       if (method === 'PATCH' && path.match(/^\/api\/v1\/admin\/ai\/custom-models\/\d+$/)) return await requireSuperAdmin(request, env, updateAiCustomModel);
       if (method === 'DELETE' && path.match(/^\/api\/v1\/admin\/ai\/custom-models\/\d+$/)) return await requireSuperAdmin(request, env, deleteAiCustomModelHandler);
+
+      
       if (method === 'GET' && path === '/api/v1/admin/themes') return await requireSuperAdmin(request, env, listAdminThemes);
       if (method === 'GET' && path.match(/^\/api\/v1\/admin\/themes\/[^/]+$/)) return await requireSuperAdmin(request, env, getAdminTheme);
       if (method === 'POST' && path === '/api/v1/admin/themes') return await requireSuperAdmin(request, env, createAdminTheme);
@@ -7283,9 +8421,35 @@ export default {
       if (method === 'PATCH' && path.match(/^\/api\/v1\/admin\/themes\/[^/]+$/)) return await requireSuperAdmin(request, env, updateAdminTheme);
       if (method === 'DELETE' && path.match(/^\/api\/v1\/admin\/themes\/[^/]+$/)) return await requireSuperAdmin(request, env, deleteAdminTheme);
       if (method === 'POST' && path === '/api/v1/admin/themes/clear-active') return await requireSuperAdmin(request, env, clearAdminActiveTheme);
+
+      
       if (method === 'GET' && path === '/api/v1/ai/v1/models') return await openaiModels(request, env);
       if (method === 'POST' && path === '/api/v1/ai/v1/chat/completions') return await openaiChatCompletions(request, env);
       if (method === 'POST' && path === '/api/v1/ai/v1/embeddings') return await openaiEmbeddings(request, env);
+
+      
+      if (method === 'GET' && path.startsWith('/s/')) {
+        const code = path.slice('/s/'.length).split('/')[0];
+        if (code) {
+          try {
+            const slug = base64UrlDecode(code);
+            if (/^[\w-]+$/.test(slug)) {
+              return new Response(null, {
+                status: 302,
+                headers: {
+                  Location: `/post/${slug}`,
+                  'Cache-Control': 'public, max-age=300',
+                },
+              });
+            }
+          } catch {
+            
+          }
+        }
+        return jsonResponse(404, null, '短链不存在', 404);
+      }
+
+      
       if (env.ASSETS) {
         const assetResponse = await env.ASSETS.fetch(request);
         if (!assetResponse || assetResponse.status === 404) {
@@ -7304,10 +8468,12 @@ export default {
         }
         return assetResponse;
       }
+
       return jsonResponse(404, null, 'Not Found', 404);
     } catch (err) {
       console.error(err);
       const msg = err.message || 'Internal Server Error';
+      
       if (
         msg.includes('D1 数据库绑定') ||
         msg.includes("Cannot read properties of undefined (reading 'prepare')") ||

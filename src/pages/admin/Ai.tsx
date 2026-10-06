@@ -56,7 +56,9 @@ import { compressImage, getBase64Size } from '@/utils/image';
 import { uploadMedia } from '@/api/media';
 import { useAgentStore } from '@/stores/agentStore';
 import { useSnackbar } from 'notistack';
+
 type AiTab = 'basic' | 'agent' | 'apikey' | 'custom';
+
 export function Ai() {
   const theme = useTheme();
   const isMobileAdmin = useMediaQuery(theme.breakpoints.down('lg'));
@@ -82,6 +84,7 @@ export function Ai() {
   const [generatedKey, setGeneratedKey] = useState('');
   const [showKeyDialog, setShowKeyDialog] = useState(false);
   const [showBuiltInKey, setShowBuiltInKey] = useState(false);
+
   const [models, setModels] = useState<AiModel[]>([]);
   const [modelsLoading, setModelsLoading] = useState(false);
   const [customModels, setCustomModels] = useState<AiCustomModel[]>([]);
@@ -91,17 +94,23 @@ export function Ai() {
   const [customForm, setCustomForm] = useState({ name: '', modelId: '', baseUrl: '', apiKey: '', enabled: true });
   const [useFullPath, setUseFullPath] = useState(false);
   const [customSubmitting, setCustomSubmitting] = useState(false);
+
+  
   const [deleteKeyConfirm, setDeleteKeyConfirm] = useState<AiApiKey | null>(null);
   const [deleteKeyLoading, setDeleteKeyLoading] = useState(false);
   const [deleteCustomConfirm, setDeleteCustomConfirm] = useState<AiCustomModel | null>(null);
   const [deleteCustomLoading, setDeleteCustomLoading] = useState(false);
+  
   const [workersAiTipOpen, setWorkersAiTipOpen] = useState(false);
+  
+
   const tabs: { id: AiTab; label: string }[] = [
     { id: 'basic', label: '基础设置' },
     { id: 'agent', label: 'AI 智能体' },
     { id: 'apikey', label: 'API Key' },
     { id: 'custom', label: '自定义模型' },
   ];
+
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
@@ -120,39 +129,47 @@ export function Ai() {
       cancelled = true;
     };
   }, []);
+
   const isDirty = useMemo(
     () => JSON.stringify(settings) !== JSON.stringify(initialSettings),
     [settings, initialSettings]
   );
+
   const loadKeys = async () => {
     setKeysLoading(true);
     const list = await fetchAiApiKeys();
     setKeys(list);
     setKeysLoading(false);
   };
+
   const loadModels = async () => {
     setModelsLoading(true);
     const list = await fetchAiModels();
     setModels(list);
     setModelsLoading(false);
   };
+
   const loadCustomModels = async () => {
     setCustomModelsLoading(true);
     const list = await fetchAiCustomModels();
     setCustomModels(list);
     setCustomModelsLoading(false);
   };
+
   useEffect(() => {
     loadModels();
   }, []);
+
   useEffect(() => {
     if (tab !== 'apikey') return;
     loadKeys();
   }, [tab]);
+
   useEffect(() => {
     if (tab !== 'custom') return;
     loadCustomModels();
   }, [tab]);
+
   const handleSave = async () => {
     setSaving(true);
     const updated = await updateAiSettings(settings);
@@ -160,12 +177,14 @@ export function Ai() {
     if (updated) {
       setSettings(updated);
       setInitialSettings(updated);
+      
       useAgentStore.getState().setAgentEnabled(updated.agentEnabled === true && updated.enabled === true);
       enqueueSnackbar('AI 设置已保存', { variant: 'success' });
     } else {
       enqueueSnackbar('保存失败，请稍后再试', { variant: 'error' });
     }
   };
+
   const handleCreateKey = async () => {
     const name = newKeyName.trim();
     if (!name) return;
@@ -181,6 +200,7 @@ export function Ai() {
       enqueueSnackbar(result.msg || '创建失败', { variant: 'error' });
     }
   };
+
   const handleDeleteKey = async () => {
     if (!deleteKeyConfirm) return;
     setDeleteKeyLoading(true);
@@ -194,6 +214,8 @@ export function Ai() {
       enqueueSnackbar('删除失败', { variant: 'error' });
     }
   };
+
+  
   const handleAgentAvatarUpload = async (file: File, targetSize: number, setter: (url: string) => void, label: string) => {
     try {
       const base64 = await compressImage(file, targetSize);
@@ -209,13 +231,16 @@ export function Ai() {
       enqueueSnackbar(msg, { variant: 'error' });
     }
   };
+
   const handleConfirmDeleteKey = (key: AiApiKey) => {
     setDeleteKeyConfirm(key);
   };
+
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     enqueueSnackbar('已复制到剪贴板', { variant: 'success' });
   };
+
   const openCustomDialog = (model?: AiCustomModel) => {
     if (model) {
       setEditingCustomModel(model);
@@ -234,12 +259,14 @@ export function Ai() {
     }
     setCustomDialogOpen(true);
   };
+
   const closeCustomDialog = () => {
     setCustomDialogOpen(false);
     setEditingCustomModel(null);
     setCustomForm({ name: '', modelId: '', baseUrl: '', apiKey: '', enabled: true });
     setUseFullPath(false);
   };
+
   const handleSaveCustomModel = async () => {
     const name = customForm.name.trim();
     const modelId = customForm.modelId.trim();
@@ -257,6 +284,7 @@ export function Ai() {
       enqueueSnackbar('Base URL 必须以 http:// 或 https:// 开头', { variant: 'warning' });
       return;
     }
+    
     if (!useFullPath) {
       baseUrl = baseUrl.replace(/\/chat\/completions$/i, '');
     }
@@ -275,6 +303,7 @@ export function Ai() {
       enqueueSnackbar('保存失败', { variant: 'error' });
     }
   };
+
   const handleDeleteCustomModel = async () => {
     if (!deleteCustomConfirm) return;
     setDeleteCustomLoading(true);
@@ -289,17 +318,23 @@ export function Ai() {
       enqueueSnackbar('删除失败', { variant: 'error' });
     }
   };
+
   const handleConfirmDeleteCustomModel = (model: AiCustomModel) => {
     setDeleteCustomConfirm(model);
   };
+
   if (loading) return <Loading />;
+
   const textModels = models.filter((m) => isTextAiModel(m.id));
+
   return (
     <Fade in timeout={400}>
       <Box>
         <Typography variant="h4" sx={{ fontWeight: 800, mb: 3, overflowWrap: 'break-word' }}>
           AI 管理
         </Typography>
+
+
         {isMobileAdmin ? (
           <FormControl size="small" sx={{ mb: 3, minWidth: 140, maxWidth: '100%' }}>
             <Select
@@ -321,9 +356,12 @@ export function Ai() {
                 <MenuItem key={t.id} value={t.id}>
                   {t.label}
                 </MenuItem>
+
               ))}
             </Select>
+
           </FormControl>
+
         ) : (
           <Box
             onWheel={(e) => {
@@ -394,11 +432,15 @@ export function Ai() {
                   >
                     {t.label}
                   </Button>
+
                 );
               })}
             </Box>
+
           </Box>
+
         )}
+
         <Fade in timeout={300} key={tab}>
           <Box>
             {tab === 'agent' && (
@@ -417,9 +459,13 @@ export function Ai() {
                   <Typography variant="h6" sx={{ fontWeight: 700, mb: 1, overflowWrap: 'break-word' }}>
                     AI 智能体
                   </Typography>
+
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
                     让 AI 帮你完成复杂任务：读取站点/文章数据、联网搜索、逐子任务执行并汇报。对话保存在本机浏览器，不会上传云端。
+
                   </Typography>
+
+
                   <FormControlLabel
                     control={
                       <Switch
@@ -433,6 +479,8 @@ export function Ai() {
                   <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
                     开启后，Agent 在需要查最新资料时可用 web_search / web_fetch 联网获取信息。
                   </Typography>
+
+
                   <Box sx={{ mt: 3 }}>
                     <ImageField
                       label="AI 智能体头像"
@@ -446,12 +494,18 @@ export function Ai() {
                       showSizeSelect={false}
                     />
                   </Box>
+
+
                   <FloatingSaveButton show={isDirty} saving={saving} onClick={handleSave} label="保存设置" />
                 </Paper>
+
+
                 {}
                 <UndoLogsManager />
               </Box>
+
             )}
+
             {tab === 'basic' && (
               <Paper
                 elevation={0}
@@ -467,6 +521,8 @@ export function Ai() {
                 <Typography variant="h6" sx={{ fontWeight: 700, mb: 3, overflowWrap: 'break-word' }}>
                   基础设置
                 </Typography>
+
+
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                   <FormControlLabel
                     control={
@@ -477,11 +533,14 @@ export function Ai() {
                     }
                     label="启用 AI 功能"
                   />
+
                   {!settings.enabled && (
                     <Typography variant="body2" color="text.secondary">
                       关闭后，文章编辑页的 AI 助手及所有 AI 接口将不可用。
                     </Typography>
+
                   )}
+
                   <FormControlLabel
                     control={
                       <Switch
@@ -489,6 +548,7 @@ export function Ai() {
                         onChange={(e) => {
                           const v = e.target.checked;
                           setSettings((s) => ({ ...s, agentEnabled: v }));
+                          
                           if (v) setWorkersAiTipOpen(true);
                         }}
                         disabled={!settings.enabled}
@@ -496,20 +556,25 @@ export function Ai() {
                     }
                     label="启用 AI 智能体"
                   />
+
                   {settings.agentEnabled && (
                     <Typography variant="body2" color="text.secondary">
                       开启后，侧边栏将显示「AI 助手」入口，用户可在对话页与 AI 直接交流。
                     </Typography>
+
                   )}
                   {!settings.enabled && (
                     <Typography variant="body2" color="text.secondary">
                       需先启用 AI 功能才能使用 AI 智能体。
                     </Typography>
+
                   )}
+
                   <FormControl size="small" fullWidth>
                     <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
                       默认文本模型
                     </Typography>
+
                     <Select
                       value={settings.model}
                       onChange={(e) => setSettings((s) => ({ ...s, model: e.target.value }))}
@@ -520,13 +585,18 @@ export function Ai() {
                         <MenuItem key={m.id} value={m.id}>
                           {m.name || m.id}
                         </MenuItem>
+
                       ))}
                     </Select>
+
                   </FormControl>
+
+
                   <Box>
                     <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
                       随机性 (Temperature)
                     </Typography>
+
                     <Slider
                       value={settings.temperature}
                       onChange={(_, v) => setSettings((s) => ({ ...s, temperature: v as number }))}
@@ -541,10 +611,13 @@ export function Ai() {
                       valueLabelDisplay="auto"
                     />
                   </Box>
+
+
                   <Box>
                     <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
                       最大 Token 数
                     </Typography>
+
                     <Slider
                       value={settings.maxTokens}
                       onChange={(_, v) => setSettings((s) => ({ ...s, maxTokens: v as number }))}
@@ -561,10 +634,15 @@ export function Ai() {
                     valueLabelDisplay="auto"
                   />
                   </Box>
+
                 </Box>
+
+
                 <FloatingSaveButton show={isDirty} saving={saving} onClick={handleSave} label="保存设置" />
               </Paper>
+
             )}
+
             {tab === 'apikey' && (
               <Paper
                 elevation={0}
@@ -580,12 +658,16 @@ export function Ai() {
                 <Typography variant="h6" sx={{ fontWeight: 700, mb: 1, overflowWrap: 'break-word' }}>
                   API Key 管理
                 </Typography>
+
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                   内置 API Key 由环境变量配置，不会在前端显示。你可以额外创建 Key 供外部工具以 OpenAI 兼容格式调用。
                 </Typography>
+
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
                   接口地址：{typeof window !== 'undefined' ? `${window.location.origin}/v1` : '/v1'}，支持 /v1/models、/v1/chat/completions、/v1/embeddings。
                 </Typography>
+
+
                 <Box
                   sx={{
                     p: 2,
@@ -599,6 +681,7 @@ export function Ai() {
                   <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>
                     内置 API Key
                   </Typography>
+
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <TextField
                       value={showBuiltInKey ? 'AI_API_KEY（已配置）' : '****************'}
@@ -613,20 +696,29 @@ export function Ai() {
                             <IconButton size="small" onClick={() => setShowBuiltInKey((v) => !v)}>
                               {showBuiltInKey ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
                             </IconButton>
+
                           </InputAdornment>
+
                         ),
                       }}
                       sx={{ '& .MuiOutlinedInput-root': { borderRadius: (t) => Math.max(8, t.shape.borderRadius - 4) } }}
                     />
                   </Box>
+
                   <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
                     在 Cloudflare Dashboard 中配置 AI_API_KEY 环境变量即可启用外部调用。
                   </Typography>
+
                 </Box>
+
+
                 <Divider sx={{ my: 2 }} />
+
                 <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2 }}>
                   自定义 API Key
                 </Typography>
+
+
                 <Box sx={{ display: 'flex', gap: 1, mb: 3, flexWrap: 'wrap' }}>
                   <TextField
                     size="small"
@@ -650,13 +742,17 @@ export function Ai() {
                   >
                     创建
                   </Button>
+
                 </Box>
+
+
                 {keysLoading ? (
                   <CircularProgress size={24} />
                 ) : keys.length === 0 ? (
                   <Typography variant="body2" color="text.secondary">
                     暂无自定义 API Key
                   </Typography>
+
                 ) : (
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                     {keys.map((key) => (
@@ -677,10 +773,13 @@ export function Ai() {
                           <Typography variant="body2" fontWeight={600} noWrap>
                             {key.name}
                           </Typography>
+
                           <Typography variant="caption" color="text.secondary">
                             创建于 {new Date(key.created_at).toLocaleString('zh-CN')}
                           </Typography>
+
                         </Box>
+
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
                           <Chip
                             label={key.enabled ? '启用' : '禁用'}
@@ -691,11 +790,16 @@ export function Ai() {
                           <IconButton size="small" color="error" onClick={() => handleConfirmDeleteKey(key)}>
                             <Delete fontSize="small" />
                           </IconButton>
+
                         </Box>
+
                       </Box>
+
                     ))}
                   </Box>
+
                 )}
+
                 <Box
                   sx={{
                     p: 2,
@@ -709,9 +813,11 @@ export function Ai() {
                   <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>
                     调用说明
                   </Typography>
+
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 0.75 }}>
                     将本站域名作为 OpenAI 兼容 base URL，配合上方 API Key 即可调用：
                   </Typography>
+
                   <Box
                     component="code"
                     sx={{
@@ -728,15 +834,19 @@ export function Ai() {
                   >
                     {typeof window !== 'undefined' ? `${window.location.origin}/v1` : '/v1'}
                   </Box>
+
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
                     支持 endpoints：/v1/models、/v1/chat/completions、/v1/embeddings
                   </Typography>
+
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
                     可直接使用本站内置别名，也支持传入 Cloudflare Workers AI 原始模型 ID（如 <code>@cf/meta/llama-3.3-70b-instruct-fp8-fast</code>）。自定义模型使用 <code>custom:&lt;ID&gt;</code>。
                   </Typography>
+
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 0.75 }}>
                     当前可用模型 ID：
                   </Typography>
+
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mb: 1.5 }}>
                     {modelsLoading ? (
                       <CircularProgress size={16} />
@@ -744,6 +854,7 @@ export function Ai() {
                       <Typography variant="body2" color="text.secondary">
                         暂无可用模型
                       </Typography>
+
                     ) : (
                       models.map((m) => (
                         <Chip
@@ -760,15 +871,21 @@ export function Ai() {
                       ))
                     )}
                   </Box>
+
                   <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
                     完整 Cloudflare Workers AI 模型列表可参考官方文档。接口层会透传任意合法 ID，列表只展示本站已内置别名与自定义模型。
                   </Typography>
+
                   <Typography variant="caption" color="warning.main" sx={{ display: 'block' }}>
                     注意：模型 ID 仅表示接口支持调用，不保证每个模型在所有情况下都能正常返回结果。自定义模型取决于第三方服务可用性。
                   </Typography>
+
                 </Box>
+
               </Paper>
+
             )}
+
             {tab === 'custom' && (
               <Paper
                 elevation={0}
@@ -784,9 +901,12 @@ export function Ai() {
                 <Typography variant="h6" sx={{ fontWeight: 700, mb: 1, overflowWrap: 'break-word' }}>
                   自定义模型
                 </Typography>
+
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
                   添加符合 OpenAI 接口规范的自定义模型（如 DeepSeek、OpenRouter 等），保存后会出现在基础设置的模型列表最前面。
                 </Typography>
+
+
                 <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 3 }}>
                   <Button
                     variant="contained"
@@ -796,13 +916,17 @@ export function Ai() {
                   >
                     添加模型
                   </Button>
+
                 </Box>
+
+
                 {customModelsLoading ? (
                   <CircularProgress size={24} />
                 ) : customModels.length === 0 ? (
                   <Typography variant="body2" color="text.secondary">
                     暂无自定义模型
                   </Typography>
+
                 ) : (
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                     {customModels.map((model) => (
@@ -832,13 +956,17 @@ export function Ai() {
                           <Typography variant="body2" fontWeight={600} noWrap>
                             {model.name}（自定义）
                           </Typography>
+
                           <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
                             {model.modelId}
                           </Typography>
+
                           <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
                             {model.baseUrl}
                           </Typography>
+
                         </Box>
+
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
                           <Chip
                             label={model.enabled ? '启用' : '禁用'}
@@ -849,15 +977,23 @@ export function Ai() {
                           <IconButton size="small" color="error" onClick={() => handleConfirmDeleteCustomModel(model)}>
                             <Delete fontSize="small" />
                           </IconButton>
+
                         </Box>
+
                       </ButtonBase>
+
                     ))}
                   </Box>
+
                 )}
               </Paper>
+
             )}
           </Box>
+
         </Fade>
+
+
         <Paper
           elevation={0}
           sx={{
@@ -872,30 +1008,41 @@ export function Ai() {
           <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>
             使用说明
           </Typography>
+
           <Typography variant="body2" color="text.secondary" component="div">
             <Box component="ul" sx={{ pl: 2, m: 0, '& li': { mb: 0.75 } }}>
               <li>
                 Cloudflare Workers AI 每天有固定免费额度，高消耗模型会更快用完配额。额度用尽后需等待次日重置，或添加自定义模型使用第三方 API。
               </li>
+
               <li>
                 文章生成、格式优化、AI 对话默认使用「基础设置」中选择的模型；选择自定义模型时会直接调用该模型的 OpenAI 兼容接口。
               </li>
+
               <li>
                 外部调用：可把本站点域名作为 OpenAI base URL，例如{' '}
                 <Box component="code" sx={{ bgcolor: 'background.paper', px: 0.75, py: 0.25, borderRadius: 0.75, fontFamily: 'monospace' }}>
                   {typeof window !== 'undefined' ? window.location.origin : ''}/v1
                 </Box>
+
                 ，并传入 API Key 即可。
               </li>
+
               <li>
                 自定义模型需要填写模型提供方给出的模型 ID、Base URL 和 API Key，保存后即可在模型列表中选择使用。
               </li>
+
               <li>
                 安全说明：自定义模型的 API Key 在服务端使用 AES-256-GCM 加密存储，密钥由环境变量派生；前端编辑时不会回显已保存的密钥，只能输入新密钥进行更新，避免密钥泄露风险。此前已保存的明文密钥仍可正常使用，编辑保存时会自动升级为加密存储。
               </li>
+
             </Box>
+
           </Typography>
+
         </Paper>
+
+
         <Dialog
           open={workersAiTipOpen}
           onClose={() => setWorkersAiTipOpen(false)}
@@ -909,21 +1056,27 @@ export function Ai() {
           }}
         >
           <DialogTitle sx={{ fontWeight: 700 }}>先看这里：关于 Workers AI 模型</DialogTitle>
+
           <DialogContent>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
               Cloudflare Workers AI 内置的模型偏轻量演示向。用它来驱动 AI 智能体，回答容易跑偏、工具调用不稳定、联网检索也常会落空，整体效果会大打折扣。
             </Typography>
+
             <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
               若想让 AI 真正好用，建议接入自定义模型（如 DeepSeek、OpenRouter 等），并在「基础设置」中把默认文本模型切换过去。一步到位，体验立现。
             </Typography>
+
             <Typography variant="body2" color="text.secondary">
               若只是尝鲜或演示，继续使用 Workers AI 内置模型也可，但请做好体验不佳的心理预期。
             </Typography>
+
           </DialogContent>
+
           <DialogActions sx={{ px: 3, pb: 2, justifyContent: 'flex-end' }}>
             <Button onClick={() => setWorkersAiTipOpen(false)} sx={{ borderRadius: (t) => Math.max(8, t.shape.borderRadius - 4) }}>
               我知道了
             </Button>
+
             <Button
               variant="contained"
               onClick={() => {
@@ -934,14 +1087,20 @@ export function Ai() {
             >
               去配置
             </Button>
+
           </DialogActions>
+
         </Dialog>
+
+
         <Dialog open={showKeyDialog} onClose={() => setShowKeyDialog(false)} fullWidth maxWidth="sm" BackdropProps={{ 'aria-hidden': false }}>
           <DialogTitle sx={{ fontWeight: 700 }}>API Key 创建成功</DialogTitle>
+
           <DialogContent>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
               请立即复制，关闭后将无法再次查看完整 Key。
             </Typography>
+
             <TextField
               value={generatedKey}
               fullWidth
@@ -952,22 +1111,30 @@ export function Ai() {
                     <IconButton onClick={() => copyToClipboard(generatedKey)}>
                       <ContentCopy fontSize="small" />
                     </IconButton>
+
                   </InputAdornment>
+
                 ),
               }}
               sx={{ '& .MuiOutlinedInput-root': { borderRadius: (t) => Math.max(8, t.shape.borderRadius - 4) } }}
             />
           </DialogContent>
+
           <DialogActions sx={{ px: 3, pb: 2, justifyContent: 'flex-end' }}>
             <Button onClick={() => setShowKeyDialog(false)} sx={{ borderRadius: (t) => Math.max(8, t.shape.borderRadius - 4) }}>
               关闭
             </Button>
+
           </DialogActions>
+
         </Dialog>
+
+
         <Dialog open={customDialogOpen} onClose={closeCustomDialog} fullWidth maxWidth="sm" BackdropProps={{ 'aria-hidden': false }}>
           <DialogTitle sx={{ fontWeight: 700 }}>
             {editingCustomModel ? '编辑自定义模型' : '添加自定义模型'}
           </DialogTitle>
+
           <DialogContent>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 0.5 }}>
               <TextField
@@ -1000,6 +1167,7 @@ export function Ai() {
                   ? '开启：将直接使用下方填写的完整接口地址发起请求。'
                   : '关闭：自动补全接口地址（为下方地址自动拼接 /v1/chat/completions）。'}
               </Typography>
+
               <TextField
                 label={useFullPath ? '接口地址（完整 endpoint）' : 'Base URL'}
                 placeholder={
@@ -1036,11 +1204,14 @@ export function Ai() {
                 label="启用该模型"
               />
             </Box>
+
           </DialogContent>
+
           <DialogActions sx={{ px: 3, pb: 2, justifyContent: 'flex-end' }}>
             <Button onClick={closeCustomDialog} sx={{ borderRadius: (t) => Math.max(8, t.shape.borderRadius - 4) }}>
               取消
             </Button>
+
             <Button
               variant="contained"
               onClick={handleSaveCustomModel}
@@ -1049,8 +1220,12 @@ export function Ai() {
             >
               {customSubmitting ? '保存中...' : '保存'}
             </Button>
+
           </DialogActions>
+
         </Dialog>
+
+
         <ConfirmDialog
           open={Boolean(deleteKeyConfirm)}
           title="确认删除 API Key"
@@ -1061,6 +1236,7 @@ export function Ai() {
           onClose={() => setDeleteKeyConfirm(null)}
           onConfirm={handleDeleteKey}
         />
+
         <ConfirmDialog
           open={Boolean(deleteCustomConfirm)}
           title="确认删除自定义模型"
@@ -1072,9 +1248,13 @@ export function Ai() {
           onConfirm={handleDeleteCustomModel}
         />
       </Box>
+
     </Fade>
+
   );
 }
+
+
 function UndoLogsManager() {
   const { enqueueSnackbar } = useSnackbar();
   const [status, setStatus] = useState<'all' | 'pending' | 'used'>('all');
@@ -1086,6 +1266,7 @@ function UndoLogsManager() {
   const [undoConfirm, setUndoConfirm] = useState<AiUndoLog | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<AiUndoLog | null>(null);
   const [acting, setActing] = useState(false);
+
   const load = useCallback(
     async (s = status, p = page) => {
       setLoading(true);
@@ -1094,17 +1275,20 @@ function UndoLogsManager() {
       setTotal(res.total);
       setLoading(false);
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
     [status, page]
   );
+
   useEffect(() => {
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, [status, page]);
+
   const changeStatus = (s: 'all' | 'pending' | 'used') => {
     setStatus(s);
     setPage(1);
   };
+
   const handleUndo = async () => {
     if (!undoConfirm) return;
     setActing(true);
@@ -1118,6 +1302,7 @@ function UndoLogsManager() {
     }
     load();
   };
+
   const handleDelete = async () => {
     if (!deleteConfirm) return;
     setActing(true);
@@ -1131,16 +1316,19 @@ function UndoLogsManager() {
     }
     load();
   };
+
   const fmt = (t: string) => {
     if (!t) return '';
     const d = new Date(t);
     if (Number.isNaN(d.getTime())) return t;
     return d.toLocaleString('zh-CN', { hour12: false });
   };
+
   const statusLabel = (s: AiUndoLog['status']) =>
     s === 'used' ? { text: '已回滚', color: 'default' as const }
       : s === 'expired' ? { text: '已过期', color: 'warning' as const }
       : { text: '可回滚', color: 'success' as const };
+
   return (
     <Paper
       elevation={0}
@@ -1158,10 +1346,14 @@ function UndoLogsManager() {
         <Typography variant="h6" sx={{ fontWeight: 700 }}>
           回滚记录
         </Typography>
+
       </Box>
+
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
         AI 写操作的回滚记录保存在云端，跨设备可见。站长可在此查看并代为回滚任意记录（操作后 24 小时内有效，每条只能回滚一次）。
       </Typography>
+
+
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, flexWrap: 'wrap' }}>
         {(['all', 'pending', 'used'] as const).map((s) => (
           <Button
@@ -1177,21 +1369,29 @@ function UndoLogsManager() {
           >
             {s === 'all' ? '全部' : s === 'pending' ? '可回滚' : '已回滚'}
           </Button>
+
         ))}
         <Box sx={{ ml: 'auto' }}>
           <Button size="small" onClick={() => load()} startIcon={<Refresh fontSize="small" />} sx={{ textTransform: 'none', borderRadius: 1.5 }}>
             刷新
           </Button>
+
         </Box>
+
       </Box>
+
+
       {loading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
           <CircularProgress size={28} />
         </Box>
+
       ) : logs.length === 0 ? (
         <Box sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
           <Typography variant="body2">暂无回滚记录</Typography>
+
         </Box>
+
       ) : (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
           {logs.map((log) => {
@@ -1211,22 +1411,28 @@ function UndoLogsManager() {
                   <Typography variant="body2" sx={{ fontWeight: 600, wordBreak: 'break-word', minWidth: 0, flex: 1 }}>
                     {log.target}
                   </Typography>
+
                   <Chip label={sl.text} size="small" color={sl.color} sx={{ borderRadius: 1 }} />
                 </Box>
+
                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5, wordBreak: 'break-word' }}>
                   回滚：{log.undoPreview}
                 </Typography>
+
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.75, flexWrap: 'wrap' }}>
                   <Typography variant="caption" color="text.disabled">
                     操作者：{log.operator}
                   </Typography>
+
                   <Typography variant="caption" color="text.disabled">
                     · {fmt(log.created_at)}
                   </Typography>
+
                   {log.status === 'used' && (
                     <Typography variant="caption" color="text.disabled">
                       · 回滚于 {fmt(log.used_at || '')}
                     </Typography>
+
                   )}
                   <Box sx={{ ml: 'auto', display: 'flex', gap: 0.5 }}>
                     {log.status === 'pending' && (
@@ -1240,6 +1446,7 @@ function UndoLogsManager() {
                       >
                         回滚
                       </Button>
+
                     )}
                     <Button
                       size="small"
@@ -1251,21 +1458,29 @@ function UndoLogsManager() {
                     >
                       删除
                     </Button>
+
                   </Box>
+
                 </Box>
+
               </Box>
+
             );
           })}
         </Box>
+
       )}
+
       {total > pageSize && (
         <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
           <Button size="small" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))} sx={{ textTransform: 'none', borderRadius: 1.5 }}>
             上一页
           </Button>
+
           <Typography variant="body2" sx={{ mx: 1.5, alignSelf: 'center', color: 'text.secondary' }}>
             {page} / {Math.max(1, Math.ceil(total / pageSize))}
           </Typography>
+
           <Button
             size="small"
             disabled={page >= Math.ceil(total / pageSize)}
@@ -1274,8 +1489,11 @@ function UndoLogsManager() {
           >
             下一页
           </Button>
+
         </Box>
+
       )}
+
       <ConfirmDialog
         open={Boolean(undoConfirm)}
         title="确认回滚操作"
@@ -1286,6 +1504,7 @@ function UndoLogsManager() {
         onClose={() => setUndoConfirm(null)}
         onConfirm={handleUndo}
       />
+
       <ConfirmDialog
         open={Boolean(deleteConfirm)}
         title="确认删除记录"
@@ -1297,5 +1516,6 @@ function UndoLogsManager() {
         onConfirm={handleDelete}
       />
     </Paper>
+
   );
 }

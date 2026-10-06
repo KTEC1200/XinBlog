@@ -1,5 +1,6 @@
 import type { ChatBubbleRenderer } from './base';
 import { resolveThemeColor, bubbleRadius, resolveImageRadius, type BubbleCorners } from './base';
+
 interface TicketParams extends Record<string, unknown> {
   mineBg: string;
   mineText: string;
@@ -10,6 +11,8 @@ interface TicketParams extends Record<string, unknown> {
   mineSharpCorner: BubbleCorners;
   otherSharpCorner: BubbleCorners;
 }
+
+
 export const ticketBubbleRenderer: ChatBubbleRenderer<TicketParams> = {
   id: 'ticket',
   name: '票据',
@@ -47,6 +50,7 @@ export const ticketBubbleRenderer: ChatBubbleRenderer<TicketParams> = {
     const otherText = resolveThemeColor(params.otherText, '');
     const mine = bubbleRadius(params.mineSharpCorner, radius);
     const other = bubbleRadius(params.otherSharpCorner, radius);
+
     return {
       mine: {
         backgroundColor: mineBg,

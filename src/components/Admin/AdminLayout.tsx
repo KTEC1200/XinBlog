@@ -1,6 +1,6 @@
 import { Box, Toolbar, Fade } from '@mui/material';
 import { useState, useRef, useEffect } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
+import { Outlet, useLocation, useSearchParams } from 'react-router-dom';
 import {
   AdminSideBar,
   AdminNavBar,
@@ -12,8 +12,12 @@ import { AdminVersionNotice } from './AdminVersionNotice';
 import { useUIStore } from '@/stores/uiStore';
 import { useSmoothScroll } from '@/hooks/useSmoothScroll';
 import { useSafeMediaQuery } from '@/hooks/useSafeMediaQuery';
+
 export function AdminLayout() {
   const location = useLocation();
+  const [searchParams] = useSearchParams();
+  
+  const embedded = searchParams.get('embed') === '1';
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const mainRef = useRef<HTMLElement>(null);
@@ -24,16 +28,20 @@ export function AdminLayout() {
     touchMultiplier: 1,
     disableOnTouch: true,
   });
+
   useEffect(() => {
     scrollToTop(true);
   }, [location.pathname, scrollToTop]);
+
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
   };
+
   const isDesktop = useSafeMediaQuery((t) => t.breakpoints.up('md'), true);
   const currentDrawerWidth = isDesktop
     ? (collapsed ? adminMiniDrawerWidth : adminDrawerWidth)
     : adminMobileDrawerWidth;
+
   return (
     <Box
       sx={{
@@ -45,20 +53,23 @@ export function AdminLayout() {
         backgroundColor: 'background.default',
       }}
     >
-      <Box sx={{ display: adminNavHidden ? 'none' : 'block' }}>
+      <Box sx={{ display: adminNavHidden || embedded ? 'none' : 'block' }}>
         <AdminNavBar onMenuClick={handleDrawerToggle} />
       </Box>
-      <AdminSideBar
-        collapsed={collapsed}
-        onToggle={() => setCollapsed(!collapsed)}
-        mobileOpen={mobileOpen}
-        onMobileClose={() => setMobileOpen(false)}
-      />
+
+      {!embedded && (
+        <AdminSideBar
+          collapsed={collapsed}
+          onToggle={() => setCollapsed(!collapsed)}
+          mobileOpen={mobileOpen}
+          onMobileClose={() => setMobileOpen(false)}
+        />
+      )}
       <Box
         ref={mainRef}
         component="main"
         sx={{
-          width: `calc(100% - ${currentDrawerWidth}px)`,
+          width: embedded ? '100%' : `calc(100% - ${currentDrawerWidth}px)`,
           flexGrow: 1,
           minWidth: 0,
           height: '100dvh',
@@ -79,17 +90,23 @@ export function AdminLayout() {
             p: { xs: 2, sm: 3, md: 4 },
           }}
         >
-          <Toolbar sx={{ display: adminNavHidden ? 'none' : { md: 'none' } }} />
+          <Toolbar sx={{ display: adminNavHidden || embedded ? 'none' : { md: 'none' } }} />
           <AdminVersionNotice />
           <Box sx={{ flexGrow: 1, minWidth: 0, minHeight: 0, overflow: 'hidden' }}>
             <Fade in timeout={400} key={location.pathname}>
               <Box sx={{ minWidth: 0, height: '100%' }}>
                 <Outlet />
               </Box>
+
             </Fade>
+
           </Box>
+
         </Box>
+
       </Box>
+
     </Box>
+
   );
 }

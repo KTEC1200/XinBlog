@@ -1,5 +1,6 @@
 import type { ChatBubbleRenderer } from './base';
 import { resolveThemeColor, bubbleRadius, resolveImageRadius, type BubbleCorners } from './base';
+
 interface StickyParams extends Record<string, unknown> {
   mineBg: string;
   mineText: string;
@@ -10,6 +11,8 @@ interface StickyParams extends Record<string, unknown> {
   mineSharpCorner: BubbleCorners;
   otherSharpCorner: BubbleCorners;
 }
+
+
 export const stickyBubbleRenderer: ChatBubbleRenderer<StickyParams> = {
   id: 'sticky',
   name: '手账',
@@ -47,6 +50,7 @@ export const stickyBubbleRenderer: ChatBubbleRenderer<StickyParams> = {
     const otherText = resolveThemeColor(params.otherText, '#5f6368');
     const mine = bubbleRadius(params.mineSharpCorner, radius);
     const other = bubbleRadius(params.otherSharpCorner, radius);
+
     return {
       mine: {
         backgroundColor: mineBg,
@@ -54,6 +58,7 @@ export const stickyBubbleRenderer: ChatBubbleRenderer<StickyParams> = {
         borderRadius: `${mine['top-left']}px ${mine['top-right']}px ${mine['bottom-right']}px ${mine['bottom-left']}px`,
         boxShadow: '2px 3px 6px rgba(0,0,0,0.12)',
         border: 'none',
+        
         background: `linear-gradient(135deg, ${mineBg} 0%, ${mineBg} 78%, rgba(0,0,0,0.12) 78%, rgba(0,0,0,0.06) 92%, transparent 92%), ${mineBg}`,
       },
       other: {

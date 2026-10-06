@@ -1,5 +1,6 @@
 import type { ChatBubbleRenderer } from './base';
 import { resolveThemeColor, bubbleRadius, resolveImageRadius, type BubbleCorners } from './base';
+
 interface MintParams extends Record<string, unknown> {
   mineBg: string;
   mineText: string;
@@ -10,6 +11,8 @@ interface MintParams extends Record<string, unknown> {
   mineSharpCorner: BubbleCorners;
   otherSharpCorner: BubbleCorners;
 }
+
+
 export const mintBubbleRenderer: ChatBubbleRenderer<MintParams> = {
   id: 'mint',
   name: '薄荷',
@@ -47,6 +50,7 @@ export const mintBubbleRenderer: ChatBubbleRenderer<MintParams> = {
     const otherText = resolveThemeColor(params.otherText, '#5f6368');
     const mine = bubbleRadius(params.mineSharpCorner, radius);
     const other = bubbleRadius(params.otherSharpCorner, radius);
+
     return {
       mine: {
         backgroundColor: mineBg,

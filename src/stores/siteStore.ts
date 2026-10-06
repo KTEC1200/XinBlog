@@ -3,17 +3,21 @@ import { apiGet, apiPatch } from '@/api/client';
 import { themePresets } from '@/types/theme';
 import { defaultCardTheme } from '@/utils/postCardTheme';
 import type { SiteConfig, SiteFontConfig, SiteCursorConfig, Live2dConfig, ClickEffectConfig, MusicPlayerConfig } from '@/types';
+
 const defaultPreset = themePresets.find((p) => p.id === 'ocean') || themePresets[0];
+
 const DEFAULT_FONT_CONFIG: Required<Pick<SiteFontConfig, 'activeFontId' | 'fonts' | 'fallback'>> = {
   activeFontId: '',
   fonts: [],
   fallback: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
 };
+
 const DEFAULT_CURSOR_CONFIG: Required<Pick<SiteCursorConfig, 'activeCursorId' | 'cursors' | 'size'>> = {
   activeCursorId: '',
   cursors: [],
   size: 32,
 };
+
 const DEFAULT_CLICK_EFFECT_CONFIG: Required<ClickEffectConfig> = {
   enabled: false,
   type: 'heart',
@@ -22,6 +26,7 @@ const DEFAULT_CLICK_EFFECT_CONFIG: Required<ClickEffectConfig> = {
   textList: ['❤富强❤', '❤民主❤', '❤文明❤', '❤和谐❤', '❤自由❤', '❤平等❤', '❤公正❤', '❤法治❤'],
   intensity: 'medium',
 };
+
 const DEFAULT_LIVE2D_CONFIG: Live2dConfig = {
   enabled: false,
   mobileEnabled: true,
@@ -39,6 +44,7 @@ const DEFAULT_LIVE2D_CONFIG: Live2dConfig = {
   cubism2Path: '/live2d/live2d.min.js',
   cubism5Path: 'https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js',
 };
+
 const DEFAULT_MUSIC_CONFIG: MusicPlayerConfig = {
   enabled: false,
   apiUrl: 'https://api.xfyun.club',
@@ -53,6 +59,7 @@ const DEFAULT_MUSIC_CONFIG: MusicPlayerConfig = {
   showPage: false,
   imageProxy: false,
 };
+
 const defaultConfig: SiteConfig = {
   author: 'Xin',
   siteName: 'XinBlog',
@@ -86,11 +93,6 @@ const defaultConfig: SiteConfig = {
     title: '',
     subtitle: '',
     badge: '',
-    layout: {
-      cols: 6,
-      gap: 16,
-      widgets: [],
-    },
   },
   about: {
     subtitle: '',
@@ -128,10 +130,13 @@ const defaultConfig: SiteConfig = {
   termsAgreement: '',
   termsPrivacy: '',
 };
+
 const SITE_CACHE_KEY = 'site-config-cache';
 const SITE_CACHE_TTL = 3 * 60 * 60 * 1000; 
+
 function normalizeFontConfig(font: SiteConfig['font']): typeof DEFAULT_FONT_CONFIG {
   if (!font) return { ...DEFAULT_FONT_CONFIG };
+  
   if ('source' in font) {
     return {
       ...DEFAULT_FONT_CONFIG,
@@ -144,6 +149,7 @@ function normalizeFontConfig(font: SiteConfig['font']): typeof DEFAULT_FONT_CONF
     fonts: font.fonts || [],
   };
 }
+
 function normalizeCursorConfig(cursor: SiteConfig['cursor']): typeof DEFAULT_CURSOR_CONFIG {
   if (!cursor) return { ...DEFAULT_CURSOR_CONFIG };
   return {
@@ -153,6 +159,7 @@ function normalizeCursorConfig(cursor: SiteConfig['cursor']): typeof DEFAULT_CUR
     size: typeof cursor.size === 'number' && cursor.size > 0 ? cursor.size : DEFAULT_CURSOR_CONFIG.size,
   };
 }
+
 function normalizeClickEffectConfig(clickEffect: SiteConfig['clickEffect']): typeof DEFAULT_CLICK_EFFECT_CONFIG {
   if (!clickEffect || typeof clickEffect !== 'object') return { ...DEFAULT_CLICK_EFFECT_CONFIG };
   return {
@@ -167,11 +174,13 @@ function normalizeClickEffectConfig(clickEffect: SiteConfig['clickEffect']): typ
     intensity: clickEffect.intensity || DEFAULT_CLICK_EFFECT_CONFIG.intensity,
   };
 }
+
 function normalizeLive2dConfig(live2d: SiteConfig['live2d']): Live2dConfig {
   if (!live2d) return { ...DEFAULT_LIVE2D_CONFIG };
   return {
     ...DEFAULT_LIVE2D_CONFIG,
     ...live2d,
+    
     waifuPath: DEFAULT_LIVE2D_CONFIG.waifuPath,
     cdnPath: DEFAULT_LIVE2D_CONFIG.cdnPath,
     cubism2Path: DEFAULT_LIVE2D_CONFIG.cubism2Path,
@@ -181,6 +190,7 @@ function normalizeLive2dConfig(live2d: SiteConfig['live2d']): Live2dConfig {
     tools: Array.isArray(live2d.tools) && live2d.tools.length > 0 ? live2d.tools : DEFAULT_LIVE2D_CONFIG.tools,
   };
 }
+
 function normalizeMusicConfig(music: SiteConfig['music']): MusicPlayerConfig {
   if (!music || typeof music !== 'object') return { ...DEFAULT_MUSIC_CONFIG };
   return {
@@ -202,6 +212,16 @@ function normalizeMusicConfig(music: SiteConfig['music']): MusicPlayerConfig {
     imageProxy: !!music.imageProxy,
   };
 }
+
+
+function normalizeHeroConfig(hero?: SiteConfig['hero']): SiteConfig['hero'] {
+  const base = hero || {};
+  const mode = base.mode === 'fullscreen' || base.mode === 'classic' ? base.mode : 'fullscreen';
+  const { layout: _legacyLayout, ...rest } = base as SiteConfig['hero'] & { layout?: unknown };
+  void _legacyLayout;
+  return { ...rest, mode };
+}
+
 export function normalizeSiteConfig(config: SiteConfig): SiteConfig {
   return {
     ...config,
@@ -210,8 +230,10 @@ export function normalizeSiteConfig(config: SiteConfig): SiteConfig {
     clickEffect: normalizeClickEffectConfig(config.clickEffect),
     live2d: normalizeLive2dConfig(config.live2d),
     music: normalizeMusicConfig(config.music),
+    hero: normalizeHeroConfig(config.hero),
   };
 }
+
 function getCachedSiteConfig(): SiteConfig | null {
   if (typeof window === 'undefined') return null;
   try {
@@ -224,32 +246,40 @@ function getCachedSiteConfig(): SiteConfig | null {
       }
     }
   } catch {
+    
   }
   return null;
 }
+
 export function setCachedSiteConfig(config: SiteConfig) {
   if (typeof window === 'undefined') return;
   try {
     localStorage.setItem(SITE_CACHE_KEY, JSON.stringify({ config, ts: Date.now() }));
   } catch {
+    
   }
 }
+
 export function clearCachedSiteConfig() {
   if (typeof window === 'undefined') return;
   localStorage.removeItem(SITE_CACHE_KEY);
 }
+
 function applySiteMeta(config: SiteConfig) {
   if (typeof window === 'undefined') return;
+
   const title = config.siteName || 'XinBlog';
   if (title) {
     document.title = title;
   }
+
   const description = config.shareDescription || '';
   setMeta('description', description);
   setMeta('og:title', title);
   setMeta('og:description', description);
   setMeta('og:type', 'website');
   setMeta('twitter:card', 'summary_large_image');
+
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
   const shareImage = config.shareImage || config.logo || `${origin}/logo.png`;
   if (shareImage) {
@@ -257,6 +287,7 @@ function applySiteMeta(config: SiteConfig) {
     setMeta('og:image', absoluteImage);
     setMeta('twitter:image', absoluteImage);
   }
+
   const faviconUrl = config.favicon || '/logo.png';
   let link = document.querySelector('link[rel*="icon"]') as HTMLLinkElement | null;
   if (!link) {
@@ -265,25 +296,31 @@ function applySiteMeta(config: SiteConfig) {
     document.head.appendChild(link);
   }
   link.href = faviconUrl;
+
   applySiteFont(normalizeFontConfig(config.font));
   applySiteCursor(normalizeCursorConfig(config.cursor));
 }
+
 const FONT_STYLE_ID = 'site-custom-font';
 const CURSOR_STYLE_ID = 'site-custom-cursor';
+
 function applySiteFont(font: SiteConfig['font']) {
   if (typeof window === 'undefined') return;
   const cfg = font ? normalizeFontConfig(font) : { ...DEFAULT_FONT_CONFIG };
   const fallback = cfg.fallback;
+
   let style = document.getElementById(FONT_STYLE_ID) as HTMLStyleElement | null;
   if (!style) {
     style = document.createElement('style');
     style.id = FONT_STYLE_ID;
     document.head.appendChild(style);
   }
+
   const activeFont = cfg.fonts?.find((f) => f.id === cfg.activeFontId);
   const family = activeFont?.family || '';
   const selectors =
     'body, .MuiTypography-root, .MuiFormHelperText-root, .MuiButton-root, .MuiButtonBase-root, .MuiInputBase-root, button, input, textarea, select';
+
   if (activeFont && activeFont.files.length > 0) {
     const src = activeFont.files
       .map((file) => `url("${file.url}") format("${file.format}")`)
@@ -298,11 +335,13 @@ function applySiteFont(font: SiteConfig['font']) {
     style.textContent = `${selectors} { font-family: ${fallback} !important; }`;
   }
 }
+
 interface CursorDataUrlResult {
   url: string;
   originalWidth: number;
   originalHeight: number;
 }
+
 function resizeCursorToDataUrl(url: string, size: number): Promise<CursorDataUrlResult> {
   return new Promise((resolve) => {
     const img = new Image();
@@ -330,21 +369,25 @@ function resizeCursorToDataUrl(url: string, size: number): Promise<CursorDataUrl
     img.src = url;
   });
 }
+
 function applySiteCursor(cursor: SiteConfig['cursor']) {
   if (typeof window === 'undefined') return;
   const cfg = cursor ? normalizeCursorConfig(cursor) : { ...DEFAULT_CURSOR_CONFIG };
   const size = cfg.size;
+
   let style = document.getElementById(CURSOR_STYLE_ID) as HTMLStyleElement | null;
   if (!style) {
     style = document.createElement('style');
     style.id = CURSOR_STYLE_ID;
     document.head.appendChild(style);
   }
+
   const activeCursor = cfg.cursors?.find((c) => c.id === cfg.activeCursorId);
   if (!activeCursor || activeCursor.files.length === 0) {
     style.textContent = '';
     return;
   }
+
   const roleMap: Record<string, { selectors: string[]; fallback: string }> = {
     default: {
       selectors: [
@@ -437,6 +480,7 @@ function applySiteCursor(cursor: SiteConfig['cursor']) {
     'n-resize': { selectors: ['.cursor-n-resize'], fallback: 'n-resize' },
     progress: { selectors: ['.cursor-progress'], fallback: 'progress' },
   };
+
   const buildRules = async () => {
     const rules: string[] = [];
     for (const file of activeCursor.files) {
@@ -444,6 +488,7 @@ function applySiteCursor(cursor: SiteConfig['cursor']) {
       const mapping = roleMap[file.role];
       if (!mapping) continue;
       const { url, originalWidth, originalHeight } = await resizeCursorToDataUrl(file.url, size);
+      
       const scaleX = originalWidth > 0 ? size / originalWidth : 1;
       const scaleY = originalHeight > 0 ? size / originalHeight : 1;
       const hotspotX = Math.round((file.hotspotX ?? 0) * scaleX);
@@ -454,10 +499,12 @@ function applySiteCursor(cursor: SiteConfig['cursor']) {
     }
     style.textContent = rules.join('\n');
   };
+
   buildRules().catch(() => {
     style.textContent = '';
   });
 }
+
 function setMeta(property: string, content: string) {
   if (typeof window === 'undefined') return;
   const isOg = property.startsWith('og:') || property.startsWith('twitter:');
@@ -474,6 +521,7 @@ function setMeta(property: string, content: string) {
   }
   meta.content = content;
 }
+
 interface SiteState {
   config: SiteConfig;
   loaded: boolean;
@@ -481,11 +529,16 @@ interface SiteState {
   loadConfig: (forceRefresh?: boolean) => Promise<void>;
   saveConfig: (config: Partial<SiteConfig>) => Promise<boolean>;
 }
+
 export const useSiteStore = create<SiteState>((set, get) => ({
   config: defaultConfig,
   loaded: false,
+
   setConfig: (newConfig) => set((state) => ({ config: { ...state.config, ...newConfig } })),
+
   loadConfig: async (forceRefresh = false) => {
+    
+    
     const cached = getCachedSiteConfig();
     if (cached && !forceRefresh) {
       const merged = normalizeSiteConfig({ ...defaultConfig, ...cached });
@@ -503,6 +556,7 @@ export const useSiteStore = create<SiteState>((set, get) => ({
         .catch(() => {});
       return;
     }
+    
     const url = `/api/v1/site?_=${Date.now()}`;
     try {
       const res = await apiGet<{ site: SiteConfig }>(url);
@@ -516,6 +570,7 @@ export const useSiteStore = create<SiteState>((set, get) => ({
       set({ loaded: true });
     }
   },
+
   saveConfig: async (newConfig) => {
     const merged = normalizeSiteConfig({ ...get().config, ...newConfig });
     const res = await apiPatch('/api/v1/admin/settings', { site: merged });

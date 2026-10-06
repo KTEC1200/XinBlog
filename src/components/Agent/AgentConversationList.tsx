@@ -27,6 +27,7 @@ import DriveFileRenameOutlineIcon from '@mui/icons-material/DriveFileRenameOutli
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import { ConfirmDialog } from '@/components/Common/ConfirmDialog';
 import type { AgentDialog } from '@/hooks/useAgentChat';
+
 interface AgentConversationListProps {
   dialogs: AgentDialog[];
   onSelect: (id: string) => void;
@@ -34,18 +35,22 @@ interface AgentConversationListProps {
   onDelete: (id: string) => Promise<boolean>;
   onRename: (id: string, title: string) => void;
 }
+
 interface MenuState {
   mouseX: number;
   mouseY: number;
   id: string;
 }
+
 const LONG_PRESS_MS = 500;
+
 function lastPreview(d: AgentDialog): string {
   const last = d.messages[d.messages.length - 1];
   if (!last) return '开始新的对话';
   if (!last.content) return last.role === 'user' ? last.content : '正在思考…';
   return last.content.replace(/\s+/g, ' ').slice(0, 40);
 }
+
 function formatTime(ts: number): string {
   const d = new Date(ts);
   const now = new Date();
@@ -54,6 +59,8 @@ function formatTime(ts: number): string {
   }
   return d.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' });
 }
+
+
 function RenameDialog({
   open,
   title,
@@ -68,10 +75,13 @@ function RenameDialog({
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [value, setValue] = useState(title);
+
   useEffect(() => {
     if (open) setValue(title);
   }, [open, title]);
+
   const trimmed = value.trim();
+
   return (
     <Dialog
       open={open}
@@ -82,6 +92,7 @@ function RenameDialog({
       PaperProps={{ sx: { borderRadius: { xs: 2, sm: '12px' } } }}
     >
       <DialogTitle sx={{ fontWeight: 700 }}>重命名对话</DialogTitle>
+
       <DialogContent>
         <TextField
           autoFocus
@@ -99,6 +110,7 @@ function RenameDialog({
           }}
         />
       </DialogContent>
+
       <DialogActions sx={{ px: 3, pb: 2 }}>
         <Box
           sx={{
@@ -112,6 +124,7 @@ function RenameDialog({
           <Button onClick={onClose} color="inherit" fullWidth={isMobile} sx={{ textTransform: 'none', borderRadius: 2 }}>
             取消
           </Button>
+
           <Button
             onClick={() => trimmed && onConfirm(trimmed)}
             variant="contained"
@@ -121,19 +134,27 @@ function RenameDialog({
           >
             保存
           </Button>
+
         </Box>
+
       </DialogActions>
+
     </Dialog>
+
   );
 }
+
+
 export function AgentConversationList({ dialogs, onSelect, onCreate, onDelete, onRename }: AgentConversationListProps) {
   const [menu, setMenu] = useState<MenuState | null>(null);
   const [renameTarget, setRenameTarget] = useState<AgentDialog | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<AgentDialog | null>(null);
+  
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState(false);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const suppressClickRef = useRef(false);
+
   const handleDeleteConfirm = async () => {
     if (!deleteTarget) return;
     setDeleting(true);
@@ -146,17 +167,21 @@ export function AgentConversationList({ dialogs, onSelect, onCreate, onDelete, o
       setDeleteError(true);
     }
   };
+
   const clearLongPress = () => {
     if (longPressTimer.current) {
       clearTimeout(longPressTimer.current);
       longPressTimer.current = null;
     }
   };
+
   const openContextMenu = (e: React.MouseEvent, d: AgentDialog) => {
     e.preventDefault();
     clearLongPress();
     setMenu({ mouseX: e.clientX - 2, mouseY: e.clientY - 6, id: d.id });
   };
+
+  
   const handlePointerDown = (e: React.PointerEvent, d: AgentDialog) => {
     if (e.pointerType === 'mouse') return;
     suppressClickRef.current = false;
@@ -168,6 +193,7 @@ export function AgentConversationList({ dialogs, onSelect, onCreate, onDelete, o
       setMenu({ mouseX: rect.left, mouseY: rect.bottom + 6, id: d.id });
     }, LONG_PRESS_MS);
   };
+
   const handleClick = (d: AgentDialog) => {
     clearLongPress();
     if (suppressClickRef.current) {
@@ -176,17 +202,21 @@ export function AgentConversationList({ dialogs, onSelect, onCreate, onDelete, o
     }
     onSelect(d.id);
   };
+
   const closeMenu = () => setMenu(null);
+
   const startRename = () => {
     const target = menu ? dialogs.find((d) => d.id === menu.id) : null;
     closeMenu();
     if (target) setRenameTarget(target);
   };
+
   const startDelete = () => {
     const target = menu ? dialogs.find((d) => d.id === menu.id) : null;
     closeMenu();
     if (target) setDeleteTarget(target);
   };
+
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       {}
@@ -196,8 +226,10 @@ export function AgentConversationList({ dialogs, onSelect, onCreate, onDelete, o
           <Typography variant="subtitle1" sx={{ fontWeight: 700, minWidth: 0 }} noWrap>
             我的对话
           </Typography>
+
           <Chip size="small" color="primary" label={dialogs.length} variant="outlined" sx={{ flexShrink: 0 }} />
         </Box>
+
         <IconButton
           size="small"
           color="primary"
@@ -211,8 +243,11 @@ export function AgentConversationList({ dialogs, onSelect, onCreate, onDelete, o
         >
           <AddIcon sx={{ fontSize: 22 }} />
         </IconButton>
+
       </Box>
+
       <Divider />
+
       {}
       {dialogs.length === 0 ? (
         <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1, py: 6 }}>
@@ -220,7 +255,9 @@ export function AgentConversationList({ dialogs, onSelect, onCreate, onDelete, o
           <Typography variant="body2" color="text.secondary">
             还没有对话，点击右上角新建一个吧
           </Typography>
+
         </Box>
+
       ) : (
         <Box sx={{ flex: 1, overflow: 'auto', p: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
           {dialogs.map((d) => {
@@ -268,6 +305,8 @@ export function AgentConversationList({ dialogs, onSelect, onCreate, onDelete, o
                 >
                   <SmartToyIcon sx={{ fontSize: 26 }} />
                 </Box>
+
+
                 <ListItemText
                   sx={{ minWidth: 0, flex: 1 }}
                   primary={d.title}
@@ -284,10 +323,12 @@ export function AgentConversationList({ dialogs, onSelect, onCreate, onDelete, o
                     mt: 0.25,
                   }}
                 />
+
                 <Box sx={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.5 }}>
                   <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.7rem' }}>
                     {formatTime(d.updatedAt)}
                   </Typography>
+
                   {}
                   <Box
                     sx={{
@@ -305,13 +346,19 @@ export function AgentConversationList({ dialogs, onSelect, onCreate, onDelete, o
                     <Typography variant="caption" sx={{ fontSize: '0.7rem', fontWeight: 700, lineHeight: 1 }}>
                       {d.messages.length}
                     </Typography>
+
                   </Box>
+
                 </Box>
+
               </ListItemButton>
+
             );
           })}
         </Box>
+
       )}
+
       {}
       <Menu
         open={menu !== null}
@@ -324,15 +371,21 @@ export function AgentConversationList({ dialogs, onSelect, onCreate, onDelete, o
           <ListItemIcon>
             <DriveFileRenameOutlineIcon sx={{ fontSize: 20 }} />
           </ListItemIcon>
+
           重命名
         </MenuItem>
+
         <MenuItem onClick={startDelete} sx={{ py: 0.75, color: 'error.main' }}>
           <ListItemIcon>
             <DeleteOutlineIcon sx={{ fontSize: 20, color: 'error.main' }} />
           </ListItemIcon>
+
           删除
         </MenuItem>
+
       </Menu>
+
+
       {}
       <RenameDialog
         open={renameTarget !== null}
@@ -343,6 +396,7 @@ export function AgentConversationList({ dialogs, onSelect, onCreate, onDelete, o
           setRenameTarget(null);
         }}
       />
+
       {}
       <ConfirmDialog
         open={deleteTarget !== null}
@@ -354,8 +408,10 @@ export function AgentConversationList({ dialogs, onSelect, onCreate, onDelete, o
               <Typography component="span" color="error" sx={{ display: 'block', mt: 1 }}>
                 删除失败，请稍后重试。
               </Typography>
+
             )}
           </>
+
         }
         confirmText="删除"
         confirmColor="error"
@@ -364,6 +420,8 @@ export function AgentConversationList({ dialogs, onSelect, onCreate, onDelete, o
         onConfirm={handleDeleteConfirm}
       />
     </Box>
+
   );
 }
+
 export const MemoAgentConversationList = memo(AgentConversationList);

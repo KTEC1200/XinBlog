@@ -1,6 +1,7 @@
 import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
+
 function cleanOldAssets(): Plugin {
   return {
     name: 'clean-old-assets',
@@ -19,6 +20,8 @@ function cleanOldAssets(): Plugin {
     },
   }
 }
+
+
 export default defineConfig({
   plugins: [react(), cleanOldAssets()],
   resolve: {

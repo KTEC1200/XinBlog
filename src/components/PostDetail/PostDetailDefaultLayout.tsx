@@ -5,12 +5,14 @@ import { PostDetailHeader } from './PostDetailHeader';
 import { PostDetailContent } from './PostDetailContent';
 import { PostDetailFooter } from './PostDetailFooter';
 import CommentSection from '@/components/Comment/CommentSection';
+
 interface PostDetailDefaultLayoutProps {
   post: Post;
   siblings: Post[];
   theme: PostDetailThemeConfig;
   onHeadingsExtracted?: (headings: HeadingItem[]) => void;
 }
+
 export function PostDetailDefaultLayout({
   post,
   siblings,
@@ -24,6 +26,8 @@ export function PostDetailDefaultLayout({
         <PostDetailFooter post={post} siblings={siblings} />
         <CommentSection slug={post.slug} />
       </Container>
+
     </Fade>
+
   );
 }

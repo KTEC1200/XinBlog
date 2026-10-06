@@ -17,6 +17,10 @@ import {
   ExpandMore,
   ChevronLeft,
   ChevronRight,
+  Add as AddIcon,
+  Comment as CommentIcon,
+  PermMedia as PermMediaIcon,
+  Label as LabelIcon,
 } from '@mui/icons-material';
 import { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
@@ -25,10 +29,12 @@ import { fetchPostsPage, fetchAllPosts, fetchTags } from '@/api/posts';
 import { PostList } from '@/components/Post/PostList';
 import { TagChip } from '@/components/Common/TagChip';
 import { Loading } from '@/components/Common/Loading';
-import { HeroBento } from '@/components/Hero/HeroBento';
+import { HeroFullscreen } from '@/components/Hero/HeroFullscreen';
 import { searchPosts } from '@/utils/search';
 import { resolveSpacingConfig } from '@/utils/spacingConfig';
+import { AdminFrameFab } from '@/components/Admin/AdminFrameFab';
 import type { Post, Tag, PaginationMode } from '@/types';
+
 export function Home() {
   const { config } = useSiteStore();
   const spacing = resolveSpacingConfig(config.spacing);
@@ -45,19 +51,24 @@ export function Home() {
   const [total, setTotal] = useState(0);
   const [heroBgLoaded, setHeroBgLoaded] = useState(false);
   const requestKeyRef = useRef(0);
+
   useEffect(() => {
     setInputValue(queryFromUrl);
   }, [queryFromUrl]);
+
   const loadPosts = useCallback(async (targetPage: number, append: boolean) => {
     const key = ++requestKeyRef.current;
     const isInitial = targetPage === 1 && !append;
     if (isInitial) setLoading(true);
     else setLoadingMore(true);
+
     const [postsData, tagsData] = await Promise.all([
       fetchPostsPage({ page: targetPage, limit: pageSize }),
       fetchTags(),
     ]);
+
     if (key !== requestKeyRef.current) return;
+
     setPosts((prev) => (append ? [...prev, ...postsData.list] : postsData.list));
     setTotal(postsData.total);
     setPage(targetPage);
@@ -65,6 +76,7 @@ export function Home() {
     if (isInitial) setLoading(false);
     setLoadingMore(false);
   }, [pageSize]);
+
   const loadAllForSearch = useCallback(async () => {
     const key = ++requestKeyRef.current;
     setLoading(true);
@@ -76,6 +88,7 @@ export function Home() {
     setTags(tagsData);
     setLoading(false);
   }, []);
+
   useEffect(() => {
     requestKeyRef.current += 1;
     if (!queryFromUrl.trim()) {
@@ -84,14 +97,17 @@ export function Home() {
       loadAllForSearch();
     }
   }, [queryFromUrl, loadPosts, loadAllForSearch]);
+
   const filteredPosts = useMemo(() => {
     if (!queryFromUrl.trim()) return posts;
     return searchPosts(posts, queryFromUrl).map((r) => r.post);
   }, [queryFromUrl, posts]);
+
   const isSearch = Boolean(queryFromUrl.trim());
   const hasMore = !isSearch && posts.length < total;
   const hasPrev = !isSearch && page > 1;
   const hasNext = !isSearch && posts.length < total;
+
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = inputValue.trim();
@@ -101,36 +117,42 @@ export function Home() {
       setSearchParams({});
     }
   };
+
   const handleClear = () => {
     setInputValue('');
     setSearchParams({});
   };
+
   const handleTagClick = (tagName: string) => {
     setInputValue(tagName);
     setSearchParams({ q: tagName });
   };
+
   const handleLoadMore = () => {
     if (!loadingMore && hasMore) {
       loadPosts(page + 1, true);
     }
   };
+
   const handlePrevPage = () => {
     if (hasPrev) {
       loadPosts(page - 1, false);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
+
   const handleNextPage = () => {
     if (hasNext) {
       loadPosts(page + 1, false);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
+
   return (
     <Fade in timeout={400}>
       <Box>
-        {config.hero?.mode === 'bento' ? (
-          <HeroBento hero={config.hero} />
+        {config.hero?.mode === 'fullscreen' ? (
+          <HeroFullscreen hero={config.hero} />
         ) : (
           <Box
             sx={{
@@ -181,6 +203,7 @@ export function Home() {
                   }}
                 />
               </>
+
             )}
             <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1 }}>
               <Box sx={{ textAlign: 'center', maxWidth: 720, mx: 'auto' }}>
@@ -215,6 +238,7 @@ export function Home() {
                   >
                     {config.hero.title}
                   </Typography>
+
                 )}
                 {config.hero?.subtitle && (
                   <Typography
@@ -224,7 +248,9 @@ export function Home() {
                   >
                     {config.hero.subtitle}
                   </Typography>
+
                 )}
+
                 {}
                 <Box
                   component="form"
@@ -284,8 +310,11 @@ export function Home() {
                     >
                       <Clear fontSize="small" />
                     </IconButton>
+
                   )}
                 </Box>
+
+
                 <Box sx={{ mt: 2, display: 'flex', gap: 1, flexWrap: 'wrap', justifyContent: 'center' }}>
                   {tags.slice(0, 5).map((tag) => (
                     <TagChip
@@ -296,16 +325,22 @@ export function Home() {
                     />
                   ))}
                 </Box>
+
               </Box>
+
             </Container>
+
           </Box>
+
         )}
+
         <Container maxWidth="lg" sx={{ pb: 8 }}>
           <Box sx={{ mb: 4 }}>
             <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: { xs: 'flex-start', sm: 'space-between' }, mb: 3, flexWrap: 'wrap', gap: 1 }}>
               <Typography variant="h4" component="h2" sx={{ fontWeight: 700, fontSize: { xs: '1.5rem', sm: '2rem', md: '2.125rem' } }}>
                 {queryFromUrl ? '搜索结果' : '最新文章'}
               </Typography>
+
               {queryFromUrl && (
                 <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: 'break-word', maxWidth: '100%' }}>
                   “{queryFromUrl}” 共 {filteredPosts.length} 篇
@@ -326,9 +361,13 @@ export function Home() {
                   >
                     清除
                   </Box>
+
                 </Typography>
+
               )}
             </Box>
+
+
             {loading ? (
               <Loading />
             ) : (
@@ -339,13 +378,17 @@ export function Home() {
                       <Typography variant="h6" color="text.secondary" gutterBottom>
                         没有找到相关文章
                       </Typography>
+
                       <Typography variant="body2" color="text.secondary">
                         换个关键词试试，或上传一篇把
                       </Typography>
+
                     </Box>
+
                   ) : (
                     <PostList posts={filteredPosts} />
                   )}
+
                   {!isSearch && (
                     <Box sx={{ mt: 5, display: 'flex', justifyContent: 'center' }}>
                       {paginationMode === 'load-more' ? (
@@ -365,6 +408,7 @@ export function Home() {
                         >
                           {loadingMore ? '加载中...' : hasMore ? '加载更多' : '没有更多了'}
                         </Button>
+
                       ) : (
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                           <Button
@@ -379,6 +423,7 @@ export function Home() {
                           >
                             上一页
                           </Button>
+
                           <Box
                             sx={{
                               px: 2,
@@ -393,6 +438,7 @@ export function Home() {
                           >
                             {page}
                           </Box>
+
                           <Button
                             variant="outlined"
                             onClick={handleNextPage}
@@ -405,19 +451,27 @@ export function Home() {
                           >
                             下一页
                           </Button>
+
                         </Box>
+
                       )}
                     </Box>
+
                   )}
                 </Box>
+
               </Fade>
+
             )}
           </Box>
+
+
           {!queryFromUrl && !loading && (
             <Box sx={{ mt: 6 }}>
               <Typography variant="h5" component="h3" sx={{ fontWeight: 700, mb: 2, fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
                 标签
               </Typography>
+
               <Box
                 sx={{
                   display: 'flex',
@@ -431,10 +485,20 @@ export function Home() {
                   <TagChip key={tag.id} tag={tag} size="medium" onClick={() => handleTagClick(tag.name)} />
                 ))}
               </Box>
+
             </Box>
+
           )}
         </Container>
+
+        {}
+        <AdminFrameFab adminPath="/admin/posts?compose=1&embed=1" label="写文章" icon={<AddIcon />} onSaved={() => window.location.reload()} />
+        <AdminFrameFab adminPath="/admin/comments?embed=1" label="管理评论" icon={<CommentIcon />} bottomOffset={64} onSaved={() => window.location.reload()} />
+        <AdminFrameFab adminPath="/admin/media?embed=1" label="管理媒体" icon={<PermMediaIcon />} bottomOffset={128} />
+        <AdminFrameFab adminPath="/admin/tags?embed=1" label="管理标签" icon={<LabelIcon />} bottomOffset={192} />
       </Box>
+
     </Fade>
+
   );
 }

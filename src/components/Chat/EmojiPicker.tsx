@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import data from '@emoji-mart/data/sets/15/native.json';
 import { Box, Tab, Tabs, alpha, useTheme } from '@mui/material';
+
+
 const CATEGORY_LABELS: Record<string, string> = {
   smileys: '表情',
   people: '人物',
@@ -12,21 +14,27 @@ const CATEGORY_LABELS: Record<string, string> = {
   symbols: '符号',
   flags: '旗帜',
 };
+
 interface EmojiPickerProps {
   onEmoji: (emoji: string) => void;
 }
+
+
 function nativeOf(hexId: string): string | undefined {
   const emoji = data.emojis[hexId];
   return emoji?.skins?.[0]?.native;
 }
+
 export default function EmojiPicker({ onEmoji }: EmojiPickerProps) {
   const theme = useTheme();
   const categories = data.categories.filter((c) => c.emojis.length > 0);
   const [active, setActive] = useState(() => categories[0]?.id ?? '');
+
   const activeCat = categories.find((c) => c.id === active) ?? categories[0];
   const gridEmojis = (activeCat?.emojis ?? [])
     .map(nativeOf)
     .filter((n): n is string => Boolean(n));
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: 240 }}>
       <Tabs
@@ -55,6 +63,8 @@ export default function EmojiPicker({ onEmoji }: EmojiPickerProps) {
           <Tab key={c.id} value={c.id} label={CATEGORY_LABELS[c.id] ?? c.id} />
         ))}
       </Tabs>
+
+
       <Box sx={{ flex: 1, overflowY: 'auto', p: 0.5 }}>
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.25 }}>
           {gridEmojis.map((emoji) => (
@@ -82,9 +92,13 @@ export default function EmojiPicker({ onEmoji }: EmojiPickerProps) {
             >
               {emoji}
             </Box>
+
           ))}
         </Box>
+
       </Box>
+
     </Box>
+
   );
 }

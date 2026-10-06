@@ -5,7 +5,9 @@ import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import SentimentSatisfiedAltIcon from '@mui/icons-material/SentimentSatisfiedAlt';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
+
 const EmojiPicker = lazy(() => import('@/components/Chat/EmojiPicker'));
+
 interface AgentInputProps {
   disabled?: boolean;
   onSend: (text: string) => void;
@@ -15,6 +17,7 @@ interface AgentInputProps {
   autoCollapse?: boolean;
   onAutoCollapseChange?: (v: boolean) => void;
 }
+
 export default function AgentInput({ disabled, onSend, modelOptions, selectedModel, onModelChange, autoCollapse, onAutoCollapseChange }: AgentInputProps) {
   const [value, setValue] = useState('');
   const [open, setOpen] = useState(false);
@@ -23,6 +26,7 @@ export default function AgentInput({ disabled, onSend, modelOptions, selectedMod
   const inputRef = useRef<HTMLInputElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
+
   useLayoutEffect(() => {
     const el = innerRef.current;
     if (!open) {
@@ -39,6 +43,7 @@ export default function AgentInput({ disabled, onSend, modelOptions, selectedMod
     }
     return undefined;
   }, [open]);
+
   useEffect(() => {
     if (!open) return;
     const handler = (e: MouseEvent) => {
@@ -47,6 +52,7 @@ export default function AgentInput({ disabled, onSend, modelOptions, selectedMod
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [open]);
+
   const doSend = () => {
     const text = value.trim();
     if (!text || disabled) return;
@@ -54,10 +60,12 @@ export default function AgentInput({ disabled, onSend, modelOptions, selectedMod
     setValue('');
     setOpen(false);
   };
+
   const insertEmoji = (emoji: string) => {
     setValue((v) => v + emoji);
     inputRef.current?.focus();
   };
+
   return (
     <Box
       ref={rootRef}
@@ -105,13 +113,18 @@ export default function AgentInput({ disabled, onSend, modelOptions, selectedMod
                   <Box component="span" sx={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {o.name || o.id}
                   </Box>
+
                 </Tooltip>
+
               </MenuItem>
+
             ))}
           </Select>
+
           <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.72rem' }}>
             选择本次对话使用的模型
           </Typography>
+
           {}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, ml: 'auto', flexShrink: 0 }}>
             <Switch
@@ -123,9 +136,13 @@ export default function AgentInput({ disabled, onSend, modelOptions, selectedMod
             <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.72rem', userSelect: 'none' }}>
               自动折叠思考
             </Typography>
+
           </Box>
+
         </Box>
+
       )}
+
       <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 1 }}>
         <InputBase
           inputRef={inputRef}
@@ -170,6 +187,7 @@ export default function AgentInput({ disabled, onSend, modelOptions, selectedMod
         >
           <SendIcon sx={{ fontSize: 22 }} />
         </IconButton>
+
         <IconButton
           color={open ? 'primary' : 'default'}
           disabled={disabled}
@@ -188,7 +206,10 @@ export default function AgentInput({ disabled, onSend, modelOptions, selectedMod
         >
           <AddCircleOutlineIcon sx={{ fontSize: 26 }} />
         </IconButton>
+
       </Box>
+
+
       <Box
         sx={{
           mt: 0.5,
@@ -241,31 +262,45 @@ export default function AgentInput({ disabled, onSend, modelOptions, selectedMod
                 >
                   <SentimentSatisfiedAltIcon sx={{ fontSize: 28 }} />
                 </Box>
+
                 <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                   表情
                 </Typography>
+
               </Box>
+
             </Box>
+
           )}
+
           {(open || panelHeight > 0) && activeView === 'emoji' && (
             <Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, pl: 0.75, py: 0.5 }}>
                 <IconButton size="small" onClick={() => setActiveView('menu')} aria-label="返回菜单">
                   <ArrowBackIcon sx={{ fontSize: 20 }} />
                 </IconButton>
+
                 <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
                   表情
                 </Typography>
+
               </Box>
+
               <Suspense fallback={<Box sx={{ height: 240, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Typography variant="caption" color="text.secondary">加载中…</Typography></Box>}>
                 <Box sx={{ p: 0.5 }}>
                   <EmojiPicker onEmoji={insertEmoji} />
                 </Box>
+
               </Suspense>
+
             </Box>
+
           )}
         </Box>
+
       </Box>
+
     </Box>
+
   );
 }

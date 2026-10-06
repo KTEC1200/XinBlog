@@ -57,15 +57,20 @@ import { Loading } from '@/components/Common/Loading';
 import { FloatingSaveButton } from '@/components/Common/FloatingSaveButton';
 import { ConfirmDialog } from '@/components/Common/ConfirmDialog';
 import type { FriendLink, FriendsConfig, FriendApplication } from '@/types';
+
 type FriendsTab = 'basic' | 'style' | 'manage' | 'audit';
+
 const TAB_LIST: { value: FriendsTab; label: string }[] = [
   { value: 'basic', label: '基础设置' },
   { value: 'style', label: '样式配置' },
   { value: 'manage', label: '友链管理' },
   { value: 'audit', label: '友链审核' },
 ];
+
 const MAX_AVATAR_SIZE = 30 * 1024;
+
 import { getBase64Size, compressImage } from '@/utils/image';
+
 function AvatarField({
   value,
   onChange,
@@ -78,6 +83,7 @@ function AvatarField({
   const [deleting, setDeleting] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [pendingDeleteMediaId, setPendingDeleteMediaId] = useState<number | null>(null);
+
   const handleUpload = async (file: File) => {
     try {
       const base64 = await compressImage(file, MAX_AVATAR_SIZE, 400);
@@ -96,6 +102,7 @@ function AvatarField({
       setUploading(false);
     }
   };
+
   const handleClear = () => {
     const mediaId = extractMediaId(value);
     if (mediaId) {
@@ -105,6 +112,7 @@ function AvatarField({
       onChange('');
     }
   };
+
   const handleConfirmDelete = async () => {
     setDeleting(true);
     onChange('');
@@ -120,11 +128,13 @@ function AvatarField({
     setDeleteDialogOpen(false);
     setPendingDeleteMediaId(null);
   };
+
   return (
     <Box>
       <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
         头像
       </Typography>
+
       {value ? (
         <Box sx={{ position: 'relative', display: 'inline-block', mb: 1 }}>
           <Box
@@ -147,7 +157,9 @@ function AvatarField({
           >
             <Close fontSize="small" />
           </IconButton>
+
         </Box>
+
       ) : null}
       <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center', minWidth: 0 }}>
         <Button
@@ -171,6 +183,7 @@ function AvatarField({
             }}
           />
         </Button>
+
         <TextField
           size="small"
           placeholder="或输入图片 URL"
@@ -179,9 +192,12 @@ function AvatarField({
           sx={{ flex: 1, minWidth: { xs: '100%', sm: 200 } }}
         />
       </Box>
+
       <Typography variant="caption" color="text.secondary">
         上传头像将自动压缩到 30KB 以内，也可引用自定义 URL
       </Typography>
+
+
       <ConfirmDialog
         open={deleteDialogOpen}
         title="确认移除头像？"
@@ -193,8 +209,10 @@ function AvatarField({
         onConfirm={handleConfirmDelete}
       />
     </Box>
+
   );
 }
+
 function FriendEditDialog({
   open,
   friend,
@@ -213,6 +231,7 @@ function FriendEditDialog({
   const [description, setDescription] = useState('');
   const [avatar, setAvatar] = useState('');
   const [sortOrder, setSortOrder] = useState('0');
+
   useEffect(() => {
     if (open) {
       setName(friend?.name || '');
@@ -222,6 +241,7 @@ function FriendEditDialog({
       setSortOrder(String(friend?.sortOrder ?? 0));
     }
   }, [open, friend]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSave({
@@ -232,10 +252,12 @@ function FriendEditDialog({
       sortOrder: parseInt(sortOrder, 10) || 0,
     });
   };
+
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth TransitionComponent={Grow} BackdropProps={{ 'aria-hidden': false }}>
       <form onSubmit={handleSubmit}>
         <DialogTitle>{friend ? '编辑友链' : '新增友链'}</DialogTitle>
+
         <DialogContent>
           <Stack spacing={3} sx={{ mt: 0.5 }}>
             <TextField
@@ -275,19 +297,27 @@ function FriendEditDialog({
             />
             <AvatarField value={avatar} onChange={setAvatar} />
           </Stack>
+
         </DialogContent>
+
         <DialogActions sx={{ px: 3, pb: 2, justifyContent: 'flex-end' }}>
           <Button onClick={onClose} color="inherit" disabled={saving}>
             取消
           </Button>
+
           <Button type="submit" variant="contained" startIcon={saving ? <CircularProgress size={16} color="inherit" /> : <Save />} disabled={saving}>
             {saving ? '保存中...' : '保存'}
           </Button>
+
         </DialogActions>
+
       </form>
+
     </Dialog>
+
   );
 }
+
 export function AdminFriends() {
   const { enqueueSnackbar } = useSnackbar();
   const theme = useTheme();
@@ -295,8 +325,10 @@ export function AdminFriends() {
   const site = useSiteStore();
   const { user } = useAuthStore();
   const isSuper = isSuperAdmin(user?.role);
+  
   const visibleTabs = isSuper ? TAB_LIST : TAB_LIST.filter((t) => t.value === 'manage' || t.value === 'audit');
   const [tab, setTab] = useState<FriendsTab>(isSuper ? 'basic' : 'manage');
+
   const friendsConfig: FriendsConfig = useMemo(
     () =>
       site.config.friends || {
@@ -310,16 +342,23 @@ export function AdminFriends() {
       },
     [site.config.friends]
   );
+
   const [saving, setSaving] = useState(false);
+
+  
   const [enabled, setEnabled] = useState(friendsConfig.enabled);
   const [title, setTitle] = useState(friendsConfig.title);
   const [subtitle, setSubtitle] = useState(friendsConfig.subtitle);
   const [applyEnabled, setApplyEnabled] = useState(!!friendsConfig.applyEnabled);
   const [applyNeedsAudit, setApplyNeedsAudit] = useState(friendsConfig.applyNeedsAudit !== false);
+
+  
   const [cardStyle, setCardStyle] = useState(friendsConfig.cardStyle);
   const [cardColor, setCardColor] = useState(friendsConfig.cardColor);
   const [avatarShape, setAvatarShape] = useState(friendsConfig.avatarShape);
   const [showDescription, setShowDescription] = useState(friendsConfig.showDescription);
+
+  
   const [friends, setFriends] = useState<FriendLink[]>([]);
   const [loading, setLoading] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
@@ -330,6 +369,8 @@ export function AdminFriends() {
     friend: null,
     loading: false,
   });
+
+  
   const [applications, setApplications] = useState<FriendApplication[]>([]);
   const [appLoading, setAppLoading] = useState(false);
   const [appProcessing, setAppProcessing] = useState<Set<number>>(new Set());
@@ -348,6 +389,7 @@ export function AdminFriends() {
   const [appTotal, setAppTotal] = useState(0);
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailApp, setDetailApp] = useState<FriendApplication | null>(null);
+
   useEffect(() => {
     setEnabled(friendsConfig.enabled);
     setTitle(friendsConfig.title);
@@ -359,6 +401,7 @@ export function AdminFriends() {
     setAvatarShape(friendsConfig.avatarShape);
     setShowDescription(friendsConfig.showDescription);
   }, [friendsConfig]);
+
   const loadFriends = async () => {
     setLoading(true);
     try {
@@ -370,11 +413,13 @@ export function AdminFriends() {
       setLoading(false);
     }
   };
+
   useEffect(() => {
     if (tab !== 'manage') return;
     loadFriends();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, [tab]);
+
   const basicDirty = useMemo(() => {
     return (
       enabled !== friendsConfig.enabled ||
@@ -384,6 +429,7 @@ export function AdminFriends() {
       applyNeedsAudit !== (friendsConfig.applyNeedsAudit !== false)
     );
   }, [enabled, title, subtitle, applyEnabled, applyNeedsAudit, friendsConfig]);
+
   const styleDirty = useMemo(() => {
     return (
       cardStyle !== friendsConfig.cardStyle ||
@@ -392,6 +438,7 @@ export function AdminFriends() {
       showDescription !== friendsConfig.showDescription
     );
   }, [cardStyle, cardColor, avatarShape, showDescription, friendsConfig]);
+
   const saveBasic = async () => {
     await saveConfig({
       ...friendsConfig,
@@ -402,6 +449,7 @@ export function AdminFriends() {
       applyNeedsAudit,
     });
   };
+
   const saveStyle = async () => {
     await saveConfig({
       ...friendsConfig,
@@ -411,6 +459,7 @@ export function AdminFriends() {
       showDescription,
     });
   };
+
   const saveConfig = async (next: FriendsConfig) => {
     setSaving(true);
     const ok = await site.saveConfig({ friends: next });
@@ -421,17 +470,21 @@ export function AdminFriends() {
       enqueueSnackbar('保存失败，请稍后再试', { variant: 'error' });
     }
   };
+
   const handleOpenAdd = () => {
     setEditFriend(null);
     setEditOpen(true);
   };
+
   const handleOpenEdit = (friend: FriendLink) => {
     setEditFriend(friend);
     setEditOpen(true);
   };
+
   const handleCloseEdit = () => {
     setEditOpen(false);
   };
+
   const handleSaveFriend = async (data: Omit<FriendLink, 'id' | 'createdAt' | 'updatedAt'>) => {
     setFriendSaving(true);
     try {
@@ -450,9 +503,11 @@ export function AdminFriends() {
       setFriendSaving(false);
     }
   };
+
   const handleDeleteClick = (friend: FriendLink) => {
     setDeleteDialog({ open: true, friend, loading: false });
   };
+
   const handleConfirmDelete = async () => {
     const friend = deleteDialog.friend;
     if (!friend) return;
@@ -467,6 +522,7 @@ export function AdminFriends() {
       setDeleteDialog({ open: false, friend: null, loading: false });
     }
   };
+
   const loadApplications = async (page = appPage, limit = appRowsPerPage) => {
     setAppLoading(true);
     try {
@@ -479,22 +535,27 @@ export function AdminFriends() {
       setAppLoading(false);
     }
   };
+
   useEffect(() => {
     if (tab !== 'audit') return;
     loadApplications(appPage, appRowsPerPage);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, [tab, appPage, appRowsPerPage]);
+
   const handleAppChangePage = (_: unknown, newPage: number) => {
     setAppPage(newPage);
   };
+
   const handleAppChangeRowsPerPage = (e: React.ChangeEvent<HTMLInputElement>) => {
     setAppRowsPerPage(parseInt(e.target.value, 10));
     setAppPage(0);
   };
+
   const handleOpenDetail = (app: FriendApplication) => {
     setDetailApp(app);
     setDetailOpen(true);
   };
+
   const handleApprove = async (app: FriendApplication) => {
     setAppProcessing((prev) => new Set(prev).add(app.id));
     try {
@@ -511,9 +572,11 @@ export function AdminFriends() {
       });
     }
   };
+
   const handleOpenReject = (app: FriendApplication) => {
     setRemarkDialog({ open: true, app, remark: app.remark || '' });
   };
+
   const handleConfirmReject = async () => {
     const app = remarkDialog.app;
     if (!app) return;
@@ -533,9 +596,11 @@ export function AdminFriends() {
       });
     }
   };
+
   const handleAppDeleteClick = (app: FriendApplication) => {
     setAppDeleteDialog({ open: true, app, loading: false });
   };
+
   const handleConfirmAppDelete = async () => {
     const app = appDeleteDialog.app;
     if (!app) return;
@@ -550,6 +615,7 @@ export function AdminFriends() {
       setAppDeleteDialog({ open: false, app: null, loading: false });
     }
   };
+
   const formatAppTime = (iso?: string) => {
     if (!iso) return '';
     const date = new Date(iso);
@@ -561,6 +627,7 @@ export function AdminFriends() {
       minute: '2-digit',
     });
   };
+
   const renderAuditPanel = () => {
     if (appLoading && applications.length === 0) return <Loading />;
     return (
@@ -581,7 +648,9 @@ export function AdminFriends() {
             <Typography variant="body2" color="text.secondary">
               暂无友链申请
             </Typography>
+
           </Paper>
+
         ) : (
           <Paper
             elevation={0}
@@ -615,11 +684,13 @@ export function AdminFriends() {
                     <Avatar src={app.avatar || undefined} alt={app.name || '站点'} variant="rounded" sx={{ width: 44, height: 44, flexShrink: 0 }}>
                       {app.name?.[0] || '?'}
                     </Avatar>
+
                     <Box sx={{ flex: 1, minWidth: 0 }}>
                       <Stack direction="row" spacing={1} alignItems="center">
                         <Typography variant="subtitle2" sx={{ fontWeight: 700, overflowWrap: 'break-word' }}>
                           {app.name}
                         </Typography>
+
                         <Typography
                           variant="caption"
                           sx={{
@@ -635,11 +706,14 @@ export function AdminFriends() {
                         >
                           {app.status === 'approved' ? '已通过' : app.status === 'rejected' ? '已驳回' : '待审核'}
                         </Typography>
+
                       </Stack>
+
                       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
                         {formatAppTime(app.createdAt)}
                         {app.email ? ` · ${app.email}` : ''}
                       </Typography>
+
                       {app.url && (
                         <MuiLink
                           href={app.url}
@@ -658,6 +732,7 @@ export function AdminFriends() {
                         >
                           {app.url}
                         </MuiLink>
+
                       )}
                       {}
                       {app.description ? (
@@ -682,15 +757,18 @@ export function AdminFriends() {
                         >
                           {app.description}
                         </MuiLink>
+
                       ) : (
                         <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
                           无说明
                         </Typography>
+
                       )}
                       {app.status === 'rejected' && app.remark && (
                         <Typography variant="caption" color="error.main" sx={{ display: 'block', mt: 0.5 }}>
                           驳回原因：{app.remark}
                         </Typography>
+
                       )}
                       <Stack direction="row" spacing={1} sx={{ mt: 1 }} flexWrap="wrap">
                         <Button
@@ -702,6 +780,7 @@ export function AdminFriends() {
                         >
                           详情
                         </Button>
+
                         {app.status === 'pending' && (
                           <Button
                             size="small"
@@ -714,6 +793,7 @@ export function AdminFriends() {
                           >
                             通过
                           </Button>
+
                         )}
                         {app.status === 'pending' && (
                           <Button
@@ -726,17 +806,24 @@ export function AdminFriends() {
                           >
                             驳回
                           </Button>
+
                         )}
                         {isSuper && (<IconButton size="small" color="error" onClick={() => handleAppDeleteClick(app)}>
                           <DeleteOutline fontSize="small" />
                         </IconButton>)}
+
                       </Stack>
+
                     </Box>
+
                   </Box>
+
                   {index < applications.length - 1 && <Divider sx={{ my: 1 }} />}
                 </Box>
+
               ))}
             </Box>
+
             <TablePagination
               component="div"
               count={appTotal}
@@ -758,10 +845,12 @@ export function AdminFriends() {
               }}
             />
           </Paper>
+
         )}
         {}
         <Dialog open={detailOpen} onClose={() => setDetailOpen(false)} fullWidth maxWidth="md" TransitionComponent={Grow}>
           <DialogTitle>申请详情</DialogTitle>
+
           <DialogContent dividers sx={{ minHeight: '45vh', maxHeight: '70vh', overflowY: 'auto' }}>
             {detailApp && (
               <Stack spacing={2}>
@@ -769,13 +858,18 @@ export function AdminFriends() {
                   <Avatar src={detailApp.avatar || undefined} alt={detailApp.name || '站点'} variant="rounded" sx={{ width: 56, height: 56 }}>
                     {detailApp.name?.[0] || '?'}
                   </Avatar>
+
                   <Box>
                     <Typography variant="h6">{detailApp.name}</Typography>
+
                     <Typography variant="caption" color="text.secondary">
                       {formatAppTime(detailApp.createdAt)}
                     </Typography>
+
                   </Box>
+
                 </Stack>
+
                 <Typography
                   variant="body2"
                   sx={{
@@ -785,42 +879,54 @@ export function AdminFriends() {
                 >
                   {detailApp.status === 'approved' ? '已通过' : detailApp.status === 'rejected' ? '已驳回' : '待审核'}
                 </Typography>
+
                 {detailApp.url && (
                   <Box>
                     <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
                       站点链接
                     </Typography>
+
                     <MuiLink href={detailApp.url} target="_blank" rel="noopener noreferrer" underline="hover" sx={{ wordBreak: 'break-all', color: 'primary.main' }}>
                       {detailApp.url}
                     </MuiLink>
+
                   </Box>
+
                 )}
                 {detailApp.email && (
                   <Box>
                     <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
                       联系方式
                     </Typography>
+
                     <Typography variant="body2">{detailApp.email}</Typography>
+
                   </Box>
+
                 )}
                 <Box>
                   <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
                     站点说明
                   </Typography>
+
                   {detailApp.description ? (
                     <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', pb: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
                       {detailApp.description}
                     </Typography>
+
                   ) : (
                     <Typography variant="body2" color="text.secondary">无说明</Typography>
+
                   )}
                 </Box>
+
                 {}
                 {detailApp.url && (
                   <Box sx={{ mt: 1 }}>
                     <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
                       站点预览
                     </Typography>
+
                     <Paper
                       variant="outlined"
                       sx={{
@@ -839,18 +945,27 @@ export function AdminFriends() {
                         loading="lazy"
                       />
                     </Paper>
+
                   </Box>
+
                 )}
               </Stack>
+
             )}
           </DialogContent>
+
           <DialogActions>
             <Button onClick={() => setDetailOpen(false)}>关闭</Button>
+
           </DialogActions>
+
         </Dialog>
+
       </>
+
     );
   };
+
   const renderTabs = () =>
     isMobileAdmin ? (
       <FormControl size="small" sx={{ mb: 3, minWidth: 140, maxWidth: '100%' }}>
@@ -873,9 +988,12 @@ export function AdminFriends() {
             <MenuItem key={item.value} value={item.value}>
               {item.label}
             </MenuItem>
+
           ))}
         </Select>
+
       </FormControl>
+
     ) : (
       <Box
         onWheel={(e) => {
@@ -944,10 +1062,14 @@ export function AdminFriends() {
             >
               {item.label}
             </Button>
+
           ))}
         </Box>
+
       </Box>
+
     );
+
   const renderBasicPanel = () => (
     <Paper
       elevation={0}
@@ -984,6 +1106,7 @@ export function AdminFriends() {
         <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
           友链申请
         </Typography>
+
         <FormControlLabel
           control={
             <Switch
@@ -1005,10 +1128,14 @@ export function AdminFriends() {
         <Typography variant="caption" color="text.secondary">
           关闭「需审核后展示」时，访客提交的申请将直接生效为友链并立即展示。
         </Typography>
+
         <FloatingSaveButton show={basicDirty} saving={saving} onClick={saveBasic} label="保存基础设置" />
       </Stack>
+
     </Paper>
+
   );
+
   const renderStylePanel = () => (
     <Paper
       elevation={0}
@@ -1025,35 +1152,48 @@ export function AdminFriends() {
       <Stack spacing={3}>
         <FormControl fullWidth>
           <InputLabel>卡片样式</InputLabel>
+
           <Select
             value={cardStyle}
             label="卡片样式"
             onChange={(e) => setCardStyle(e.target.value as 'standard' | 'compact')}
           >
             <MenuItem value="standard">标准卡片</MenuItem>
+
             <MenuItem value="compact">紧凑卡片</MenuItem>
+
           </Select>
+
         </FormControl>
+
         <FormControl fullWidth>
           <InputLabel>头像形状</InputLabel>
+
           <Select
             value={avatarShape}
             label="头像形状"
             onChange={(e) => setAvatarShape(e.target.value as 'circle' | 'rounded')}
           >
             <MenuItem value="circle">圆形</MenuItem>
+
             <MenuItem value="rounded">圆角</MenuItem>
+
           </Select>
+
         </FormControl>
+
         <Box>
           <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
             卡片强调色
           </Typography>
+
           <ColorPicker value={cardColor} onChange={setCardColor} />
           <Typography variant="caption" color="text.secondary">
             留空则跟随主题主色
           </Typography>
+
         </Box>
+
         <FormControlLabel
           control={
             <Switch
@@ -1065,17 +1205,24 @@ export function AdminFriends() {
         />
         <FloatingSaveButton show={styleDirty} saving={saving} onClick={saveStyle} label="保存样式设置" />
       </Stack>
+
     </Paper>
+
   );
+
   const renderManagePanel = () => {
     if (loading && friends.length === 0) return <Loading />;
+
     return (
       <>
         <Box sx={{ mb: 2 }}>
           <Button variant="contained" startIcon={<Add />} onClick={handleOpenAdd}>
             新增友链
           </Button>
+
         </Box>
+
+
         {friends.length === 0 ? (
           <Paper
             elevation={0}
@@ -1092,7 +1239,9 @@ export function AdminFriends() {
             <Typography variant="body2" color="text.secondary">
               暂无友链，点击上方按钮添加
             </Typography>
+
           </Paper>
+
         ) : isMobileAdmin ? (
           <Grid container spacing={2}>
             {friends.map((friend) => (
@@ -1133,36 +1282,49 @@ export function AdminFriends() {
                         >
                           {friend.name.charAt(0)}
                         </Box>
+
                       )}
                       <Box sx={{ flex: 1, minWidth: 0 }}>
                         <Typography variant="subtitle2" sx={{ overflowWrap: 'break-word', fontWeight: 700 }}>
                           {friend.name}
                         </Typography>
+
                         <Typography variant="caption" color="text.secondary" sx={{ overflowWrap: 'break-word', display: 'block' }}>
                           {friend.url}
                         </Typography>
+
                       </Box>
+
                     </Box>
+
                     {friend.description && (
                       <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5, overflowWrap: 'break-word' }}>
                         {friend.description}
                       </Typography>
+
                     )}
                     <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.5 }}>
                       <IconButton size="small" onClick={() => handleOpenEdit(friend)}>
                         <Edit fontSize="small" />
                       </IconButton>
+
                       {isSuper && (
                       <IconButton size="small" color="error" onClick={() => handleDeleteClick(friend)}>
                         <DeleteOutline fontSize="small" />
                       </IconButton>
+
                       )}
                     </Box>
+
                   </CardContent>
+
                 </Card>
+
               </Grid>
+
             ))}
           </Grid>
+
         ) : (
           <TableContainer
             component={Paper}
@@ -1180,12 +1342,19 @@ export function AdminFriends() {
               <TableHead>
                 <TableRow>
                   <TableCell>站点</TableCell>
+
                   <TableCell>链接</TableCell>
+
                   <TableCell>描述</TableCell>
+
                   <TableCell>排序</TableCell>
+
                   <TableCell align="right">操作</TableCell>
+
                 </TableRow>
+
               </TableHead>
+
               <TableBody>
                 {friends.map((friend) => (
                   <TableRow key={friend.id} hover>
@@ -1216,56 +1385,79 @@ export function AdminFriends() {
                           >
                             {friend.name.charAt(0)}
                           </Box>
+
                         )}
                         <Typography variant="body2" sx={{ overflowWrap: 'break-word', minWidth: 0, fontWeight: 600 }}>
                           {friend.name}
                         </Typography>
+
                       </Box>
+
                     </TableCell>
+
                     <TableCell>
                       <Typography variant="body2" sx={{ overflowWrap: 'break-word', minWidth: 0, color: 'text.secondary' }}>
                         {friend.url}
                       </Typography>
+
                     </TableCell>
+
                     <TableCell>
                       <Typography variant="body2" sx={{ overflowWrap: 'break-word', minWidth: 0, color: 'text.secondary' }}>
                         {friend.description || '-'}
                       </Typography>
+
                     </TableCell>
+
                     <TableCell>{friend.sortOrder ?? 0}</TableCell>
+
                     <TableCell align="right">
                       <IconButton size="small" onClick={() => handleOpenEdit(friend)}>
                         <Edit fontSize="small" />
                       </IconButton>
+
                       {isSuper && (
                       <IconButton size="small" color="error" onClick={() => handleDeleteClick(friend)}>
                         <DeleteOutline fontSize="small" />
                       </IconButton>
+
                       )}
                     </TableCell>
+
                   </TableRow>
+
                 ))}
               </TableBody>
+
             </Table>
+
           </TableContainer>
+
         )}
       </>
+
     );
   };
+
   return (
     <Fade in timeout={400}>
     <Box>
       <Typography variant="h5" sx={{ fontWeight: 700, mb: 1 }}>
         友链管理
       </Typography>
+
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
         配置友链页面开关、样式与友链列表。
       </Typography>
+
+
       {renderTabs()}
+
       {tab === 'basic' && renderBasicPanel()}
       {tab === 'style' && renderStylePanel()}
       {tab === 'manage' && renderManagePanel()}
       {tab === 'audit' && renderAuditPanel()}
+
       <FriendEditDialog
         open={editOpen}
         friend={editFriend}
@@ -1273,6 +1465,7 @@ export function AdminFriends() {
         onClose={handleCloseEdit}
         onSave={handleSaveFriend}
       />
+
       <ConfirmDialog
         open={deleteDialog.open}
         title="确认删除友链？"
@@ -1283,6 +1476,7 @@ export function AdminFriends() {
         onClose={() => setDeleteDialog({ open: false, friend: null, loading: false })}
         onConfirm={handleConfirmDelete}
       />
+
       <Dialog
         open={remarkDialog.open}
         onClose={() => !appProcessing.has(remarkDialog.app?.id ?? -1) && setRemarkDialog({ open: false, app: null, remark: '' })}
@@ -1292,6 +1486,7 @@ export function AdminFriends() {
         BackdropProps={{ 'aria-hidden': false }}
       >
         <DialogTitle>驳回申请</DialogTitle>
+
         <DialogContent>
           <TextField
             autoFocus
@@ -1304,15 +1499,21 @@ export function AdminFriends() {
             sx={{ mt: 1 }}
           />
         </DialogContent>
+
         <DialogActions sx={{ px: 3, pb: 2, justifyContent: 'flex-end' }}>
           <Button onClick={() => setRemarkDialog({ open: false, app: null, remark: '' })} color="inherit" disabled={appProcessing.has(remarkDialog.app?.id ?? -1)}>
             取消
           </Button>
+
           <Button variant="contained" color="warning" onClick={handleConfirmReject} disabled={appProcessing.has(remarkDialog.app?.id ?? -1)}>
             确认驳回
           </Button>
+
         </DialogActions>
+
       </Dialog>
+
+
       <ConfirmDialog
         open={appDeleteDialog.open}
         title="确认删除申请？"
@@ -1324,6 +1525,8 @@ export function AdminFriends() {
         onConfirm={handleConfirmAppDelete}
       />
     </Box>
+
     </Fade>
+
   );
 }

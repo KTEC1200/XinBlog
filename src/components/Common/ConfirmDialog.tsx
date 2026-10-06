@@ -12,6 +12,7 @@ import {
   useTheme,
 } from '@mui/material';
 import type { ReactNode } from 'react';
+
 export interface ConfirmDialogProps {
   open: boolean;
   title: string;
@@ -22,6 +23,7 @@ export interface ConfirmDialogProps {
   onClose: () => void;
   onConfirm: () => void;
 }
+
 export function ConfirmDialog({
   open,
   title,
@@ -34,6 +36,7 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
   return (
     <Dialog
       open={open}
@@ -46,9 +49,12 @@ export function ConfirmDialog({
       }}
     >
       <DialogTitle sx={{ fontWeight: 700 }}>{title}</DialogTitle>
+
       <DialogContent>
         <DialogContentText color="text.secondary">{content}</DialogContentText>
+
       </DialogContent>
+
       <DialogActions sx={{ px: 3, pb: 2 }}>
         <Box
           sx={{
@@ -68,6 +74,7 @@ export function ConfirmDialog({
           >
             取消
           </Button>
+
           <Button
             onClick={onConfirm}
             variant="contained"
@@ -79,8 +86,12 @@ export function ConfirmDialog({
           >
             {loading ? '处理中...' : confirmText}
           </Button>
+
         </Box>
+
       </DialogActions>
+
     </Dialog>
+
   );
 }

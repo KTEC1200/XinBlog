@@ -1,3 +1,4 @@
+# Logs
 logs
 *.log
 npm-debug.log*
@@ -5,22 +6,38 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+
 node_modules
 dist
 dist-ssr
 *.local
+
+# 构建产物（自定义编译脚本产生）
 build.err
 build.log
 compile.done
 compile.log
+
+# 运行时数据库（db/ 下为表结构 .sql，运行时生成的库文件应忽略）
 *.db
 *.sqlite
 *.sqlite3
+
+# 环境变量（保留 .env.example 作为模板）
 .env
 .env.*
+!.env.example
+
+# 依赖缓存 / 测试覆盖率
 .cache
 coverage
+
+# 第三方 Live2D 看板娘模型（体积大且非本项目源码，需自行放入 public/live2d-models/）
+public/live2d-models/
+
+# Editor directories and files
 .vscode/*
+!.vscode/extensions.json
 .idea
 .DS_Store
 *.suo

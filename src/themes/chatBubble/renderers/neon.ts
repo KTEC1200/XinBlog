@@ -1,5 +1,6 @@
 import type { ChatBubbleRenderer } from './base';
 import { resolveThemeColor, bubbleRadius, resolveImageRadius, type BubbleCorners } from './base';
+
 interface NeonParams extends Record<string, unknown> {
   mineBg: string;
   mineText: string;
@@ -12,6 +13,8 @@ interface NeonParams extends Record<string, unknown> {
   mineSharpCorner: BubbleCorners;
   otherSharpCorner: BubbleCorners;
 }
+
+
 export const neonBubbleRenderer: ChatBubbleRenderer<NeonParams> = {
   id: 'neon',
   name: '霓虹',
@@ -56,6 +59,7 @@ export const neonBubbleRenderer: ChatBubbleRenderer<NeonParams> = {
     const mine = bubbleRadius(params.mineSharpCorner, radius);
     const other = bubbleRadius(params.otherSharpCorner, radius);
     const textShadow = (glow: string) => `0 0 8px ${glow}`;
+
     return {
       mine: {
         backgroundColor: mineBg,

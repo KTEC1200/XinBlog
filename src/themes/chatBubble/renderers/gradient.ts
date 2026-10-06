@@ -1,5 +1,7 @@
 import type { ChatBubbleRenderer } from './base';
 import { resolveThemeColor, bubbleRadius } from './base';
+
+
 export const gradientBubbleRenderer: ChatBubbleRenderer<{
   mineStart: string;
   mineEnd: string;
@@ -38,6 +40,7 @@ export const gradientBubbleRenderer: ChatBubbleRenderer<{
     const background = (a: string, b: string) => `linear-gradient(135deg, ${a} 0%, ${b || a} 100%)`;
     const mine = bubbleRadius(params.mineSharpCorner, radius);
     const other = bubbleRadius(params.otherSharpCorner, radius);
+
     return {
       mine: {
         backgroundImage: background(mineStart, mineEnd),

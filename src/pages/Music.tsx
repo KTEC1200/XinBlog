@@ -4,14 +4,19 @@ import { MusicNote } from '@mui/icons-material';
 import { useSiteStore } from '@/stores/siteStore';
 import { useSharedMusicPlayer, useSidebarVisible } from '@/components/MusicPlayer/MusicPlayerContext';
 import { MusicPlayerCard } from '@/components/MusicPlayer/MusicPlayerCard';
+import { AdminFrameFab } from '@/components/Admin/AdminFrameFab';
+
+
 export function MusicPage() {
   const music = useSiteStore((s) => s.config.music);
   const player = useSharedMusicPlayer();
   const { setShowSidebar } = useSidebarVisible();
+
   useEffect(() => {
     setShowSidebar(false);
     return () => setShowSidebar(true);
   }, [setShowSidebar]);
+
   return (
     <Fade in timeout={400}>
       <Container maxWidth="lg" sx={{ py: { xs: 2, md: 4 } }}>
@@ -20,7 +25,10 @@ export function MusicPage() {
           <Typography variant="h5" sx={{ fontWeight: 800 }}>
             音乐播放器
           </Typography>
+
         </Box>
+
+
         {!music?.enabled ? (
           <Box
             sx={{
@@ -36,14 +44,21 @@ export function MusicPage() {
             <Typography variant="body1" color="text.secondary">
               音乐播放器未启用
             </Typography>
+
             <Typography variant="body2" color="text.disabled" sx={{ mt: 0.5 }}>
               请在管理后台 → 音乐播放器中开启并配置
             </Typography>
+
           </Box>
+
         ) : (
           <MusicPlayerCard config={music} player={player} />
         )}
+        {}
+        <AdminFrameFab adminPath="/admin/music?embed=1" label="管理音乐" icon={<MusicNote />} requireSuper />
       </Container>
+
     </Fade>
+
   );
 }

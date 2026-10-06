@@ -19,19 +19,23 @@ import { isContentAdmin } from '@/utils/permission';
 import { useBuiltinNavItems } from '@/hooks/useNavItems';
 import { Logo } from '@/components/Common/Logo';
 import { LogoutConfirmDialog } from '@/components/Common/LogoutConfirmDialog';
+
 interface SideBarProps {
   mobileOpen: boolean;
   onMobileClose: () => void;
 }
+
 export const drawerWidth = 260;
 export const miniDrawerWidth = 56;
 export const mobileDrawerWidth = 1;
+
 interface SideBarNavItem {
   id: string;
   title: string;
   path: string;
   icon: React.ReactNode;
 }
+
 export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
   const location = useLocation();
   const { sidebarCollapsed, toggleSidebar } = useUIStore();
@@ -39,6 +43,7 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
   const builtinItems = useBuiltinNavItems();
   const [isAnimating, setIsAnimating] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
+
   const navItems = useMemo<SideBarNavItem[]>(
     () =>
       builtinItems.map((item) => ({
@@ -49,22 +54,27 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
       })),
     [builtinItems]
   );
+
   const handleToggle = () => {
     setIsAnimating(true);
     toggleSidebar();
   };
+
   useEffect(() => {
     if (!isAnimating) return;
     const timer = setTimeout(() => setIsAnimating(false), DRAWER_TRANSITION_MS);
     return () => clearTimeout(timer);
   }, [isAnimating, sidebarCollapsed]);
+
   const handleLogout = () => {
     if (isAuthenticated) {
       setLogoutOpen(true);
     }
     onMobileClose();
   };
+
   const drawerContent = (collapsed: boolean) => {
+    
     if (collapsed) {
       return (
         <Box
@@ -98,6 +108,8 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
           >
             <ChevronRight />
           </IconButton>
+
+
           {}
           <Stack
             sx={{
@@ -138,9 +150,12 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
                   >
                     {item.icon}
                   </IconButton>
+
                 </Tooltip>
+
               );
             })}
+
             {isContentAdmin(user?.role) && (
               <Tooltip title="管理后台" placement="right">
                 <IconButton
@@ -167,12 +182,17 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
                 >
                   <Settings fontSize="small" />
                 </IconButton>
+
               </Tooltip>
+
             )}
           </Stack>
+
         </Box>
+
       );
     }
+
     return (
       <Box
         sx={{
@@ -188,6 +208,7 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
           <Box sx={{ width: '100%', pl: 1.5, cursor: 'pointer', textDecoration: 'none' }} component={Link} to="/">
             <Logo />
           </Box>
+
           <Box>
             <IconButton
               onClick={() => {
@@ -201,8 +222,12 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
             >
               <ChevronLeft />
             </IconButton>
+
           </Box>
+
         </DrawerHeaderContainer>
+
+
         {}
         <Stack
           sx={{
@@ -240,12 +265,16 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
                 >
                   {item.icon}
                 </Box>
+
                 <Typography variant="body2" fontWeight={600} noWrap>
                   {item.title}
                 </Typography>
+
               </StyledNavButton>
+
             );
           })}
+
           {}
           {isContentAdmin(user?.role) && (
             <StyledNavButton
@@ -269,12 +298,17 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
               >
                 <Settings fontSize="small" />
               </Box>
+
               <Typography variant="body2" fontWeight={600} noWrap>
                 管理后台
               </Typography>
+
             </StyledNavButton>
+
           )}
         </Stack>
+
+
         {}
         <Box
           sx={{
@@ -305,15 +339,22 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
             >
               {isAuthenticated ? <Logout fontSize="small" /> : <Login fontSize="small" />}
             </Box>
+
             <Typography variant="body2" fontWeight={600} noWrap>
               {isAuthenticated && user ? user.username : '登录'}
             </Typography>
+
           </StyledNavButton>
+
         </Box>
+
       </Box>
+
     );
   };
+
   const currentWidth = sidebarCollapsed ? miniDrawerWidth : drawerWidth;
+
   return (
     <>
       {}
@@ -335,6 +376,8 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
       >
         {drawerContent(false)}
       </Drawer>
+
+
       {}
       <Drawer
         variant="persistent"
@@ -344,6 +387,7 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
           display: 'block',
           width: { xs: `${mobileDrawerWidth}px`, md: currentWidth },
           flexShrink: 0,
+          
           transition: (theme) =>
             theme.transitions.create('width', {
               easing: theme.transitions.easing.sharp,
@@ -378,7 +422,9 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
             drawerContent(sidebarCollapsed)
           )}
         </Box>
+
       </Drawer>
+
       <LogoutConfirmDialog
         open={logoutOpen}
         onClose={() => setLogoutOpen(false)}
@@ -388,8 +434,10 @@ export function SideBar({ mobileOpen, onMobileClose }: SideBarProps) {
         }}
       />
     </>
+
   );
 }
+
 export function SideBarHeaderSpacer() {
   return <Toolbar />;
 }

@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS users (
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
+
 CREATE TABLE IF NOT EXISTS refresh_tokens (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id INTEGER NOT NULL,
@@ -22,6 +23,7 @@ CREATE TABLE IF NOT EXISTS refresh_tokens (
   expires_at TEXT NOT NULL,
   created_at TEXT NOT NULL
 );
+
 CREATE TABLE IF NOT EXISTS verify_codes (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   email TEXT UNIQUE NOT NULL,
@@ -29,6 +31,7 @@ CREATE TABLE IF NOT EXISTS verify_codes (
   expires_at TEXT NOT NULL,
   created_at TEXT NOT NULL
 );
+
 CREATE TABLE IF NOT EXISTS rate_limits (
   key TEXT PRIMARY KEY,
   count INTEGER NOT NULL DEFAULT 0,

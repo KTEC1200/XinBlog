@@ -31,19 +31,25 @@ import { isContentAdmin } from '@/utils/permission';
 import { useSiteStore } from '@/stores/siteStore';
 import { useScrollDirection } from '@/hooks/useScrollDirection';
 import { resolveSpacingConfig } from '@/utils/spacingConfig';
+
 interface NavBarProps {
   onMenuClick: () => void;
   drawerOpen?: boolean;
   drawerWidth?: number;
   scrollTargetRef?: RefObject<HTMLElement | null>;
+  
   layout?: 'sidebar' | 'top';
+  
+  transparent?: boolean;
 }
+
 export function NavBar({
   onMenuClick,
   drawerOpen = false,
   drawerWidth = 0,
   scrollTargetRef,
   layout = 'sidebar',
+  transparent = false,
 }: NavBarProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -55,7 +61,7 @@ export function NavBar({
   const navTheme = config.nav?.theme || { variant: 'default' };
   const isGlass = navTheme.variant === 'glass';
   const hideOnScroll = navTheme.hideOnScroll ?? true;
-  const { hidden } = useScrollDirection(hideOnScroll ? 64 : 0, scrollTargetRef);
+  const { hidden, scrollY } = useScrollDirection(hideOnScroll ? 64 : 0, scrollTargetRef);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [searchValue, setSearchValue] = useState('');
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
@@ -64,15 +70,20 @@ export function NavBar({
   const userMenuOpen = Boolean(anchorEl);
   const location = useLocation();
   const topNavItems = useTopNavItems();
+
+  
   useEffect(() => {
     setMobileNavOpen(false);
   }, [location.pathname]);
+
   const handleUserMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
   };
+
   const handleUserMenuClose = () => {
     setAnchorEl(null);
   };
+
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = searchValue.trim();
@@ -80,28 +91,40 @@ export function NavBar({
       navigate(`/?q=${encodeURIComponent(trimmed)}`);
     }
   };
+
   const handleMobileSearchOpen = () => {
     setMobileSearchOpen(true);
   };
+
   const handleMobileSearchClose = () => {
     setMobileSearchOpen(false);
     setSearchValue('');
   };
+
+  
+  const isHeroFullscreen = transparent && scrollY <= 8;
+  
+  const overlayText = isHeroFullscreen;
+
   const glassOpacity = navTheme.glassOpacity ?? 0.4;
   const glassBlur = navTheme.blur ?? 16;
   const borderOpacity = navTheme.borderOpacity ?? 0.2;
   const shadowOpacity = navTheme.shadowOpacity ?? 0.08;
+
   return (
     <AppBar
       position="fixed"
       color="inherit"
       elevation={0}
       sx={{
-        backdropFilter: isGlass ? `blur(${glassBlur}px)` : 'blur(12px)',
-        backgroundColor: isGlass
-          ? (theme) => alpha(theme.palette.background.paper, glassOpacity)
-          : (theme) => alpha(theme.palette.background.paper, theme.palette.mode === 'light' ? 0.85 : 0.8),
-        borderBottom: isGlass ? 1 : 0,
+        backdropFilter: isHeroFullscreen ? 'none' : isGlass ? `blur(${glassBlur}px)` : 'blur(12px)',
+        backgroundColor: isHeroFullscreen
+          ? 'transparent'
+          : isGlass
+            ? (theme) => alpha(theme.palette.background.paper, glassOpacity)
+            : (theme) => alpha(theme.palette.background.paper, theme.palette.mode === 'light' ? 0.85 : 0.8),
+        color: overlayText ? '#fff' : 'inherit',
+        borderBottom: isHeroFullscreen ? 0 : isGlass ? 1 : 0,
         borderColor: isGlass
           ? (theme) =>
               alpha(
@@ -109,10 +132,14 @@ export function NavBar({
                 borderOpacity
               )
           : 'transparent',
-        boxShadow: isGlass
-          ? (theme) =>
-              `0 4px 24px ${alpha(theme.palette.common.black, shadowOpacity)}`
-          : 'none',
+        boxShadow: isHeroFullscreen
+          ? 'none'
+          : isGlass
+            ? (theme) =>
+                `0 4px 24px ${alpha(theme.palette.common.black, shadowOpacity)}`
+            : 'none',
+        
+        textShadow: isHeroFullscreen ? '0 1px 8px rgba(0,0,0,0.45)' : 'none',
         transition: theme.transitions.create(['width', 'margin-left', 'transform', 'background-color', 'border-color', 'box-shadow'], {
           easing: theme.transitions.easing.sharp,
           duration: theme.transitions.duration.enteringScreen,
@@ -130,6 +157,7 @@ export function NavBar({
               <Box sx={{ display: { xs: 'none', md: 'flex' }, flexShrink: 0 }}>
                 <Logo />
               </Box>
+
               {}
               <Box sx={{ display: { md: 'none' } }}>
                 <AnimatedMenuButton
@@ -138,7 +166,9 @@ export function NavBar({
                   color={navTheme.textColor || theme.palette.text.primary}
                 />
               </Box>
+
             </>
+
           ) : (
             <IconButton
               onClick={onMenuClick}
@@ -152,8 +182,11 @@ export function NavBar({
             >
               <MenuIcon />
             </IconButton>
+
           )}
         </Box>
+
+
         {isMobile ? (
           <Box
             component="form"
@@ -218,6 +251,7 @@ export function NavBar({
               }}
             />
           </Box>
+
         ) : (
           <Box
             sx={{
@@ -230,6 +264,7 @@ export function NavBar({
         )}
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: { xs: `${spacing.navGap.mobile}px`, md: `${spacing.navGap.desktop}px` }, flex: 1, minWidth: 0 }}>
           {isTop ? (
+            
             <Box
               sx={{
                 position: 'absolute',
@@ -257,17 +292,21 @@ export function NavBar({
               >
                 <TopNavTabs navTheme={navTheme} />
               </Box>
+
             </Box>
+
           ) : (
             <Box sx={{ display: { xs: 'none', md: 'flex' }, flex: 1, minWidth: 0, maxWidth: { md: '82%', lg: '88%' } }}>
               <NavLinks items={config.nav?.items || []} navTheme={navTheme} />
             </Box>
+
           )}
           {}
           {!isTop && (
             <Box sx={{ display: { md: 'none' } }}>
               <NavLinks items={config.nav?.items || []} forceMobile navTheme={navTheme} />
             </Box>
+
           )}
           <Tooltip title="搜索文章">
             <IconButton
@@ -284,10 +323,14 @@ export function NavBar({
             >
               <Search />
             </IconButton>
+
           </Tooltip>
+
           <Box sx={{ color: navTheme.textColor || 'inherit' }}>
             <ThemeToggle />
           </Box>
+
+
           {isAuthenticated && user ? (
             <>
               <Tooltip title="账户菜单">
@@ -319,8 +362,11 @@ export function NavBar({
                   >
                     {user.username.charAt(0).toUpperCase()}
                   </Avatar>
+
                 </IconButton>
+
               </Tooltip>
+
               <Menu
                 id="user-menu"
                 anchorEl={anchorEl}
@@ -348,6 +394,7 @@ export function NavBar({
                   <AccountCircle fontSize="small" sx={{ mr: 1.5 }} />
                   个人中心
                 </MenuItem>
+
                 {isContentAdmin(user?.role) && (
                   <MenuItem
                     component={Link}
@@ -357,6 +404,7 @@ export function NavBar({
                     <Settings fontSize="small" sx={{ mr: 1.5 }} />
                     管理后台
                   </MenuItem>
+
                 )}
                 <MenuItem
                   onClick={() => {
@@ -367,8 +415,11 @@ export function NavBar({
                   <Logout fontSize="small" sx={{ mr: 1.5 }} />
                   退出登录
                 </MenuItem>
+
               </Menu>
+
             </>
+
           ) : (
             <Tooltip title="登录">
               <IconButton
@@ -385,10 +436,15 @@ export function NavBar({
               >
                 <Person />
               </IconButton>
+
             </Tooltip>
+
           )}
         </Box>
+
       </Toolbar>
+
+
       {}
       {isTop && (
         <Box
@@ -467,19 +523,26 @@ export function NavBar({
                         {item.icon}
                         {item.title}
                       </ButtonBase>
+
                     ) : (
                       <ButtonBase component={Link} to={item.url} onClick={() => setMobileNavOpen(false)} sx={rowSx}>
                         {item.icon}
                         {item.title}
                       </ButtonBase>
+
                     )}
                   </Box>
+
                 );
               })}
             </Box>
+
           </Collapse>
+
         </Box>
+
       )}
+
       {mobileSearchOpen && (
         <Toolbar
           sx={{
@@ -513,6 +576,7 @@ export function NavBar({
           >
             <ArrowBack />
           </IconButton>
+
           <Box
             component="form"
             onSubmit={handleSearchSubmit}
@@ -561,8 +625,11 @@ export function NavBar({
               }}
             />
           </Box>
+
         </Toolbar>
+
       )}
+
       <LogoutConfirmDialog
         open={logoutOpen}
         onClose={() => setLogoutOpen(false)}
@@ -572,5 +639,6 @@ export function NavBar({
         }}
       />
     </AppBar>
+
   );
 }

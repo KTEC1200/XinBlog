@@ -13,21 +13,27 @@ import { Link, useLocation } from 'react-router-dom';
 import { KeyboardArrowDown } from '@mui/icons-material';
 import { useTopNavItems, type TopNavItem } from '@/hooks/useNavItems';
 import type { NavThemeConfig } from '@/types';
+
 function isExternalUrl(url: string): boolean {
   return /^https?:\/\//i.test(url);
 }
+
 function isNavActive(url: string, pathname: string): boolean {
   if (isExternalUrl(url)) return false;
   if (url === '/') return pathname === '/';
   return pathname.startsWith(url);
 }
+
 function resolveNavColor(color?: string): string | undefined {
   const trimmed = color?.trim();
   return trimmed ? trimmed : undefined;
 }
+
 interface TopNavTabsProps {
   navTheme?: NavThemeConfig;
 }
+
+
 export function TopNavTabs({ navTheme }: TopNavTabsProps) {
   const theme = useTheme();
   const location = useLocation();
@@ -35,6 +41,9 @@ export function TopNavTabs({ navTheme }: TopNavTabsProps) {
   const [moreAnchor, setMoreAnchor] = useState<null | HTMLElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [maxVisible, setMaxVisible] = useState(items.length);
+
+  
+  
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -56,15 +65,19 @@ export function TopNavTabs({ navTheme }: TopNavTabsProps) {
     observer.observe(el);
     return () => observer.disconnect();
   }, [items.length]);
+
   const visibleItems = items.slice(0, maxVisible);
   const moreItems = items.slice(maxVisible);
+
   const glassOpacity = navTheme?.glassOpacity ?? 0.4;
   const glassBlur = navTheme?.blur ?? 16;
   const borderOpacity = navTheme?.borderOpacity ?? 0.2;
   const shadowOpacity = navTheme?.shadowOpacity ?? 0.08;
   const textColor = navTheme?.textColor;
   const activeColor = navTheme?.activeColor || theme.palette.primary.main;
+
   const activeIndex = visibleItems.findIndex((item) => isNavActive(item.url, location.pathname));
+
   const tabSx = (item: TopNavItem, active: boolean) => {
     const customColor = resolveNavColor(item.color);
     const itemText = customColor || textColor;
@@ -95,7 +108,9 @@ export function TopNavTabs({ navTheme }: TopNavTabsProps) {
       '&:hover': { color: itemText || itemActive },
     };
   };
+
   if (items.length === 0) return null;
+
   return (
     <Box
       ref={containerRef}
@@ -130,6 +145,7 @@ export function TopNavTabs({ navTheme }: TopNavTabsProps) {
           sx={{
             minHeight: 0,
             '& .MuiTabs-flexContainer': { gap: 0.5 },
+            
             '& .MuiTabs-indicator': {
               zIndex: 0,
               height: '100%',
@@ -160,7 +176,10 @@ export function TopNavTabs({ navTheme }: TopNavTabsProps) {
             );
           })}
         </Tabs>
+
       </Box>
+
+
       {moreItems.length > 0 && (
         <>
           <ButtonBase
@@ -190,6 +209,7 @@ export function TopNavTabs({ navTheme }: TopNavTabsProps) {
             更多
             <KeyboardArrowDown sx={{ fontSize: 18 }} />
           </ButtonBase>
+
           <Menu
             anchorEl={moreAnchor}
             open={Boolean(moreAnchor)}
@@ -241,6 +261,7 @@ export function TopNavTabs({ navTheme }: TopNavTabsProps) {
                   >
                     {item.title}
                   </MenuItem>
+
                 );
               }
               return (
@@ -253,11 +274,15 @@ export function TopNavTabs({ navTheme }: TopNavTabsProps) {
                 >
                   {item.title}
                 </MenuItem>
+
               );
             })}
           </Menu>
+
         </>
+
       )}
     </Box>
+
   );
 }

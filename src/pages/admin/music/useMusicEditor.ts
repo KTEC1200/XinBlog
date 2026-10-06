@@ -3,18 +3,25 @@ import { useSiteStore } from '@/stores/siteStore';
 import { useSnackbar } from 'notistack';
 import { DEFAULT_MUSIC_CONFIG, isValidPlaylistId } from '@/components/MusicPlayer/musicUtils';
 import type { MusicPlayerConfig, MusicPlayMode } from '@/types';
+
 export type MusicTab = 'basic' | 'preview';
+
 export const tabList: { value: MusicTab; label: string }[] = [
   { value: 'basic', label: '基础设置' },
   { value: 'preview', label: '效果预览' },
 ];
+
 export type MusicEditor = ReturnType<typeof useMusicEditor>;
+
+
 export function useMusicEditor() {
   const site = useSiteStore();
   const { enqueueSnackbar } = useSnackbar();
   const [tab, setTab] = useState<MusicTab>('basic');
   const [saving, setSaving] = useState(false);
+
   const current = site.config.music || DEFAULT_MUSIC_CONFIG;
+
   const [enabled, setEnabled] = useState(current.enabled);
   const [playlistId, setPlaylistId] = useState(current.playlistId);
   const [volume, setVolume] = useState<number>(current.volume);
@@ -27,6 +34,7 @@ export function useMusicEditor() {
   const [showPage, setShowPage] = useState(current.showPage);
   const [imageProxy, setImageProxy] = useState(current.imageProxy ?? false);
   const [inputError, setInputError] = useState('');
+
   useEffect(() => {
     const cfg = site.config.music || DEFAULT_MUSIC_CONFIG;
     setEnabled(cfg.enabled);
@@ -41,6 +49,7 @@ export function useMusicEditor() {
     setShowPage(cfg.showPage);
     setImageProxy(cfg.imageProxy ?? false);
   }, [site.config.music]);
+
   const isDirty = useMemo(() => {
     const cfg = site.config.music || DEFAULT_MUSIC_CONFIG;
     return (
@@ -57,8 +66,10 @@ export function useMusicEditor() {
       imageProxy !== (cfg.imageProxy ?? false)
     );
   }, [enabled, playlistId, volume, playMode, autoplay, showLyric, memory, position, showInAdmin, showPage, imageProxy, site.config.music]);
+
   const buildConfig = (): MusicPlayerConfig => ({
     enabled,
+    
     apiUrl: DEFAULT_MUSIC_CONFIG.apiUrl,
     playlistId: playlistId.trim(),
     volume: Math.max(0, Math.min(1, Number(volume) || 0)),
@@ -71,6 +82,7 @@ export function useMusicEditor() {
     showPage,
     imageProxy,
   });
+
   const resetToDefault = () => {
     const cfg = DEFAULT_MUSIC_CONFIG;
     setEnabled(cfg.enabled);
@@ -85,8 +97,10 @@ export function useMusicEditor() {
     setShowPage(cfg.showPage);
     setImageProxy(cfg.imageProxy ?? false);
   };
+
   const save = async () => {
     if (!isDirty) return true;
+    
     const id = playlistId.trim();
     if (id && !isValidPlaylistId(id)) {
       setInputError('歌单 ID 格式不正确，请输入纯数字 ID');
@@ -103,6 +117,7 @@ export function useMusicEditor() {
     }
     return ok;
   };
+
   return {
     tab,
     setTab,

@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
 import { getChatSettings } from '@/api/chat';
+
+
 export function useChatEnabled() {
   const [enabled, setEnabled] = useState(false);
+
   useEffect(() => {
     let cancelled = false;
     getChatSettings().then((res) => {
@@ -12,5 +15,6 @@ export function useChatEnabled() {
       cancelled = true;
     };
   }, []);
+
   return enabled;
 }

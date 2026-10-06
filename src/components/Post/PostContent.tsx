@@ -11,14 +11,19 @@ import type { Components } from 'react-markdown';
 import { useThemeStore } from '@/stores/themeStore';
 import { useSiteStore } from '@/stores/siteStore';
 import { resolveSpacingConfig } from '@/utils/spacingConfig';
+
 import { ImageLightbox } from '@/components/Common/ImageLightbox';
 import { LazyImage } from '@/components/Common/LazyImage';
 import type { HeadingItem } from './TableOfContents';
+
 interface PostContentProps {
   content: string;
   onHeadingsExtracted?: (headings: HeadingItem[]) => void;
 }
+
 const headingLevels = [1, 2, 3, 4, 5, 6] as const;
+
+
 function flattenText(
   children: React.ReactNode,
   out: string[] = []
@@ -33,6 +38,8 @@ function flattenText(
   });
   return out;
 }
+
+
 function slugify(text: string): string {
   return (
     text
@@ -41,9 +48,14 @@ function slugify(text: string): string {
       .replace(/^-+|-+$/g, '') || 'heading'
   );
 }
+
+
 function useHeadingIds() {
   const seenRef = useRef<Record<string, number>>({});
+
+  
   seenRef.current = {};
+
   return {
     getId: (text: string, level: number) => {
       const base = `toc-heading-${level}-${slugify(text)}`;
@@ -53,6 +65,7 @@ function useHeadingIds() {
     },
   };
 }
+
 function extractHeadings(root: HTMLElement | null): HeadingItem[] {
   if (!root) return [];
   const elements = root.querySelectorAll('h1, h2, h3, h4, h5, h6');
@@ -62,8 +75,10 @@ function extractHeadings(root: HTMLElement | null): HeadingItem[] {
     level: parseInt(el.tagName[1], 10),
   }));
 }
+
 function useHighlightTheme() {
   const { mode } = useThemeStore();
+
   useEffect(() => {
     const linkId = 'hljs-theme';
     let link = document.getElementById(linkId) as HTMLLinkElement | null;
@@ -71,6 +86,7 @@ function useHighlightTheme() {
       mode === 'dark'
         ? 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css'
         : 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css';
+
     if (!link) {
       link = document.createElement('link');
       link.id = linkId;
@@ -80,10 +96,14 @@ function useHighlightTheme() {
     link.href = themeHref;
   }, [mode]);
 }
+
 function PreBlock({ children }: { children?: React.ReactNode }) {
   const [copied, setCopied] = useState(false);
   const preRef = useRef<HTMLPreElement>(null);
+
   const handleCopy = async () => {
+    
+    
     const codeText = preRef.current?.textContent ?? '';
     if (!codeText) return;
     try {
@@ -91,8 +111,10 @@ function PreBlock({ children }: { children?: React.ReactNode }) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
+      
     }
   };
+
   return (
     <Box sx={{ position: 'relative' }}>
       <Tooltip title={copied ? '已复制' : '复制代码'} arrow placement="left">
@@ -115,11 +137,16 @@ function PreBlock({ children }: { children?: React.ReactNode }) {
         >
           {copied ? <Check fontSize="small" /> : <ContentCopy fontSize="small" />}
         </IconButton>
+
       </Tooltip>
+
       <pre ref={preRef} style={{ margin: 0 }}>{children}</pre>
+
     </Box>
+
   );
 }
+
 export function PostContent({ content, onHeadingsExtracted }: PostContentProps) {
   useHighlightTheme();
   const { getId } = useHeadingIds();
@@ -131,6 +158,8 @@ export function PostContent({ content, onHeadingsExtracted }: PostContentProps) 
     remarkMath: unknown;
     rehypeKatex: unknown;
   } | null>(null);
+
+  
   useEffect(() => {
     if (!enableLatex) {
       setLatexPlugins(null);
@@ -147,6 +176,7 @@ export function PostContent({ content, onHeadingsExtracted }: PostContentProps) 
     });
     return () => { cancelled = true; };
   }, [enableLatex]);
+
   const sanitizeSchema = useMemo(() => {
     if (!enableLatex) return undefined;
     return {
@@ -159,7 +189,9 @@ export function PostContent({ content, onHeadingsExtracted }: PostContentProps) 
       ],
       attributes: {
         ...defaultSchema.attributes,
+        
         span: [...((defaultSchema.attributes && defaultSchema.attributes['*']) || []), 'className', 'style', 'ariaHidden'],
+        
         math: ['xmlns', 'display', 'className'],
         annotation: ['encoding', 'className'],
         mrow: ['className'],
@@ -175,9 +207,11 @@ export function PostContent({ content, onHeadingsExtracted }: PostContentProps) 
       },
     };
   }, [enableLatex]);
+
   const remarkPlugins = useMemo(() => {
     const plugins = [remarkGfm];
     if (latexPlugins?.remarkMath) {
+      
       plugins.push([latexPlugins.remarkMath, {
         inlineMath: [['$', '$'], ['\\(', '\\)']],
         displayMath: [['$$', '$$'], ['\\[', '\\]']]
@@ -185,6 +219,7 @@ export function PostContent({ content, onHeadingsExtracted }: PostContentProps) 
     }
     return plugins;
   }, [latexPlugins]);
+
   const rehypePlugins = useMemo(() => {
     const plugins: any[] = [];
     if (latexPlugins?.rehypeKatex) {
@@ -198,15 +233,20 @@ export function PostContent({ content, onHeadingsExtracted }: PostContentProps) 
     plugins.push(rehypeHighlight);
     return plugins;
   }, [latexPlugins, sanitizeSchema]);
+
   const [lightbox, setLightbox] = useState<{ open: boolean; src: string; alt: string }>({
     open: false,
     src: '',
     alt: '',
   });
+
   useEffect(() => {
+    
     if (!rootRef.current) return;
     const headings = extractHeadings(rootRef.current);
     onHeadingsExtracted?.(headings);
+    
+    
   }, [content, onHeadingsExtracted, latexPlugins]);
   const headingComponents: Components = {};
   headingLevels.forEach((level) => {
@@ -218,10 +258,12 @@ export function PostContent({ content, onHeadingsExtracted }: PostContentProps) 
       <Tag id={getId(flattenText(children).join(' '), level)} {...props}>
         {children}
       </Tag>
+
     );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    
     (headingComponents as any)[Tag] = Heading;
   });
+
   return (
     <Fade in timeout={400}>
       <Box
@@ -357,6 +399,8 @@ export function PostContent({ content, onHeadingsExtracted }: PostContentProps) 
             fontWeight: 700,
           },
         },
+        
+        
         '& .katex-display': {
           overflow: 'auto hidden',
           overflowWrap: 'normal',
@@ -380,9 +424,12 @@ export function PostContent({ content, onHeadingsExtracted }: PostContentProps) 
             borderRadius: 3,
           },
         },
+        
         '& p:has(.katex)': {
           lineHeight: 2.2,
         },
+        
+        
         '& .katex': {
           fontFeatureSettings: '"kern"',
           color: 'inherit',
@@ -397,6 +444,8 @@ export function PostContent({ content, onHeadingsExtracted }: PostContentProps) 
           ...headingComponents,
           pre: PreBlock,
           a: ({ href, node, children, ...props }) => {
+            
+            
             const openInNewTab = /^(https?:|mailto:|tel:|#)/i.test(href || '');
             return (
               <a
@@ -407,6 +456,7 @@ export function PostContent({ content, onHeadingsExtracted }: PostContentProps) 
               >
                 {children}
               </a>
+
             );
           },
           table: ({ children }) => (
@@ -415,10 +465,14 @@ export function PostContent({ content, onHeadingsExtracted }: PostContentProps) 
               onTouchMove={(e) => e.stopPropagation()}
             >
               <table>{children}</table>
+
             </Box>
+
           ),
           img: ({ src, alt }) =>
             imageDisplayMode === 'natural' ? (
+              
+              
               <Box
                 component="span"
                 sx={{ display: 'block', width: '100%', cursor: 'zoom-in' }}
@@ -440,7 +494,12 @@ export function PostContent({ content, onHeadingsExtracted }: PostContentProps) 
                   }}
                 />
               </Box>
+
             ) : (
+              
+              
+              
+              
               <Box
                 component="span"
                 sx={{
@@ -473,11 +532,13 @@ export function PostContent({ content, onHeadingsExtracted }: PostContentProps) 
                   }}
                 />
               </Box>
+
             ),
         }}
       >
         {content}
       </ReactMarkdown>
+
       <ImageLightbox
         open={lightbox.open}
         src={lightbox.src}
@@ -485,6 +546,8 @@ export function PostContent({ content, onHeadingsExtracted }: PostContentProps) 
         onClose={() => setLightbox((prev) => ({ ...prev, open: false }))}
       />
     </Box>
+
     </Fade>
+
   );
 }

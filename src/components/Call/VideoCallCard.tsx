@@ -8,6 +8,7 @@ import PhoneIcon from '@mui/icons-material/Phone';
 import VideocamIcon from '@mui/icons-material/Videocam';
 import VideocamOffIcon from '@mui/icons-material/VideocamOff';
 import type { CallState } from '@/hooks/useVoiceCall';
+
 interface VideoCallCardProps {
   state: CallState;
   peerName: string;
@@ -23,6 +24,8 @@ interface VideoCallCardProps {
   onToggleMute: () => void;
   onToggleCamera: () => void;
 }
+
+
 function RemoteVideo({ stream }: { stream: MediaStream | null }) {
   const ref = useRef<HTMLVideoElement | null>(null);
   useEffect(() => {
@@ -38,6 +41,8 @@ function RemoteVideo({ stream }: { stream: MediaStream | null }) {
     />
   );
 }
+
+
 function LocalPreview({ stream, cameraMuted }: { stream: MediaStream | null; cameraMuted: boolean }) {
   const ref = useRef<HTMLVideoElement | null>(null);
   useEffect(() => {
@@ -73,6 +78,7 @@ function LocalPreview({ stream, cameraMuted }: { stream: MediaStream | null; cam
         >
           <VideocamOffIcon fontSize="small" />
         </Box>
+
       ) : (
         <video
           ref={ref}
@@ -83,17 +89,21 @@ function LocalPreview({ stream, cameraMuted }: { stream: MediaStream | null; cam
         />
       )}
     </Box>
+
   );
 }
+
 function fmtDuration(sec: number): string {
   const m = Math.floor(sec / 60);
   const s = sec % 60;
   return `${m}:${String(s).padStart(2, '0')}`;
 }
+
 interface DragState {
   offX: number;
   offY: number;
 }
+
 export default function VideoCallCard(props: VideoCallCardProps) {
   const {
     state,
@@ -111,20 +121,28 @@ export default function VideoCallCard(props: VideoCallCardProps) {
     onToggleCamera,
   } = props;
   const { enqueueSnackbar } = useSnackbar();
+
+  
+  
   const show = state === 'dialing' || state === 'ringing' || state === 'connecting' || state === 'connected';
   const isDialing = state === 'dialing';
   const isRinging = state === 'ringing';
   const isConnecting = state === 'connecting';
   const isConnected = state === 'connected';
+
+  
   useEffect(() => {
     if (state === 'ending') {
       enqueueSnackbar(endedNote || '通话已结束', { variant: 'info' });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, [state === 'ending']);
+
+  
   const windowRef = useRef<HTMLDivElement | null>(null);
   const dragRef = useRef<DragState | null>(null);
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
+
   const onHeaderPointerDown = (e: React.PointerEvent) => {
     const el = windowRef.current;
     if (!el) return;
@@ -147,6 +165,7 @@ export default function VideoCallCard(props: VideoCallCardProps) {
   const onHeaderPointerUp = () => {
     dragRef.current = null;
   };
+
   return (
     <Fade in={show} timeout={220} unmountOnExit>
       <Box
@@ -186,13 +205,18 @@ export default function VideoCallCard(props: VideoCallCardProps) {
               <Avatar sx={{ width: 56, height: 56, fontSize: 24, bgcolor: 'primary.main', mb: 1, mx: 'auto' }}>
                 {peerName?.[0]?.toUpperCase() || '?'}
               </Avatar>
+
               <Typography variant="caption">
                 {isDialing ? '等待对方接听…' : isRinging ? '来电…' : isConnecting ? '正在接通…' : ''}
               </Typography>
+
             </Box>
+
           )}
           <LocalPreview stream={localStream} cameraMuted={cameraMuted} />
         </Box>
+
+
         {}
         <Box
           onPointerDown={onHeaderPointerDown}
@@ -214,6 +238,7 @@ export default function VideoCallCard(props: VideoCallCardProps) {
             <Typography variant="subtitle1" noWrap sx={{ fontWeight: 700, lineHeight: 1.2 }}>
               {peerName || '…'}
             </Typography>
+
             {}
             {(isDialing || isConnecting) && (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.7, mt: 0.2 }}>
@@ -221,19 +246,24 @@ export default function VideoCallCard(props: VideoCallCardProps) {
                 <Typography variant="caption" color="primary.main" sx={{ lineHeight: 1 }}>
                   {isConnecting ? '正在接通…' : '正在连接…'}
                 </Typography>
+
               </Box>
+
             )}
             {isRinging && (
               <Typography variant="caption" color="secondary.main" fontWeight={600} sx={{ lineHeight: 1 }}>
                 来电…
               </Typography>
+
             )}
             {isConnected && (
               <Typography variant="caption" color="success.main" fontWeight={600} sx={{ lineHeight: 1 }}>
                 通话中
               </Typography>
+
             )}
           </Box>
+
           {}
           <IconButton
             size="small"
@@ -249,6 +279,7 @@ export default function VideoCallCard(props: VideoCallCardProps) {
           >
             {cameraMuted ? <VideocamOffIcon fontSize="small" /> : <VideocamIcon fontSize="small" />}
           </IconButton>
+
           {}
           <IconButton
             size="small"
@@ -264,7 +295,10 @@ export default function VideoCallCard(props: VideoCallCardProps) {
           >
             {muted ? <MicOffIcon fontSize="small" /> : <MicIcon fontSize="small" />}
           </IconButton>
+
         </Box>
+
+
         {}
         <Box
           sx={{
@@ -294,7 +328,10 @@ export default function VideoCallCard(props: VideoCallCardProps) {
                       : `通话中 ${fmtDuration(durationSec)}`
                     : '通话已结束'}
           </Typography>
+
         </Box>
+
+
         {}
         <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, px: 2, py: 2 }}>
           {isRinging ? (
@@ -302,14 +339,19 @@ export default function VideoCallCard(props: VideoCallCardProps) {
               <Button variant="contained" color="success" onClick={onAccept} startIcon={<PhoneIcon />} sx={{ textTransform: 'none', minWidth: 120, py: 0.8 }}>
                 接听
               </Button>
+
               <Button variant="contained" color="error" onClick={onReject} startIcon={<CallEndIcon />} sx={{ textTransform: 'none', minWidth: 120, py: 0.8 }}>
                 拒绝
               </Button>
+
             </>
+
           ) : isConnecting ? (
+            
             <Button variant="contained" color="success" disabled startIcon={<CircularProgress size={16} color="inherit" />} sx={{ textTransform: 'none', minWidth: 160, py: 0.8 }}>
               正在接通…
             </Button>
+
           ) : (
             <IconButton
               onClick={onHangup}
@@ -319,9 +361,13 @@ export default function VideoCallCard(props: VideoCallCardProps) {
             >
               <CallEndIcon fontSize="large" />
             </IconButton>
+
           )}
         </Box>
+
       </Box>
+
     </Fade>
+
   );
 }

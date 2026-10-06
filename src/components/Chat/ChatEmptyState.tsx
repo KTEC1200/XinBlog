@@ -2,11 +2,14 @@ import { Box, Button, Typography, alpha, Fade } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Link } from 'react-router-dom';
 import ForumOutlinedIcon from '@mui/icons-material/ForumOutlined';
+
+
 interface ChatEmptyStateProps {
   title?: string;
   description?: string;
   showBackHome?: boolean;
 }
+
 export default function ChatEmptyState({
   title = '公共聊天房暂未开放',
   description = '管理员正在整理房间，请稍后再来看看~',
@@ -14,6 +17,7 @@ export default function ChatEmptyState({
 }: ChatEmptyStateProps) {
   const theme = useTheme();
   const radius = Math.max(8, theme.shape.borderRadius - 4);
+
   return (
     <Fade in timeout={400}>
       <Box
@@ -49,12 +53,15 @@ export default function ChatEmptyState({
         >
           <ForumOutlinedIcon sx={{ fontSize: 36 }} />
         </Box>
+
         <Typography variant="h6" sx={{ fontWeight: 700, mb: 0.5 }}>
           {title}
         </Typography>
+
         <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 360 }}>
           {description}
         </Typography>
+
         {showBackHome && (
           <Button
             component={Link}
@@ -70,8 +77,11 @@ export default function ChatEmptyState({
           >
             返回首页
           </Button>
+
         )}
       </Box>
+
     </Fade>
+
   );
 }

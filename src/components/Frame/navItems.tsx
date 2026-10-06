@@ -10,12 +10,15 @@ import {
   People,
   SmartToy,
 } from '@mui/icons-material';
+
+
 export interface BuiltinNavItem {
   id: string;
   title: string;
   path: string;
   icon: ReactNode;
 }
+
 export const builtinNavItems: BuiltinNavItem[] = [
   { id: 'nav-home', title: '首页', path: '/', icon: <Home fontSize="small" /> },
   { id: 'nav-tags', title: '标签', path: '/tag/all', icon: <LocalOffer fontSize="small" /> },
