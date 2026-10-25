@@ -1,0 +1,1 @@
+import{G as e}from"./TransitionGroupContext-DW0TFUyY.js";import{r as t}from"./ButtonBase-dfoD0-Gy.js";var n=e(),r=t((0,n.jsx)(`path`,{d:`m4 12 1.41 1.41L11 7.83V20h2V7.83l5.58 5.59L20 12l-8-8z`}),`ArrowUpward`);export{r as t};

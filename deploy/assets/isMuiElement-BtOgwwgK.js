@@ -1,0 +1,1 @@
+import{i as e,t}from"./react-SIfiwpqq.js";var n=e(t());function r(e,t){return n.isValidElement(e)&&t.indexOf(e.type.muiName??e.type?._payload?.value?.muiName)!==-1}var i=r;export{i as t};
