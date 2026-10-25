@@ -1,1 +1,0 @@
-import{T as e,j as t}from"./TransitionGroupContext-DW0TFUyY.js";import{t as n}from"./getThemeProps-CgH6-7zc.js";var r=e();function i({props:e,name:r,defaultTheme:i,themeId:a}){let o=t(i);return a&&(o=o[a]||o),n({theme:o,name:r,props:e})}export{r as n,i as t};

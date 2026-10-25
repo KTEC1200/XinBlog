@@ -1,1 +1,0 @@
-import{G as e}from"./TransitionGroupContext-DW0TFUyY.js";import{n as t,r as n,t as r}from"./PostListMagazine-CE-sGPvL.js";import{u as i}from"./index-ffFUvIAi.js";var a=e();function o({posts:e}){let{postLayout:o}=i();switch(o){case`list`:return(0,a.jsx)(t,{posts:e});case`magazine`:return(0,a.jsx)(r,{posts:e});default:return(0,a.jsx)(n,{posts:e})}}export{o as t};
